@@ -1,26 +1,32 @@
 import { fetchJSON, el } from './utils.js';
 
-// OpenLayers imports via global ol (from CDN). Avoid ESM for simplicity on GH Pages.
-const { Map, View } = ol;
-const { OSM, XYZ } = ol.source;
-const { Tile as TileLayer, Vector as VectorLayer } = ol.layer;
-const { Vector as VectorSource } = ol.source;
-const { fromLonLat } = ol.proj;
-const { GeoJSON } = ol.format;
-const { Fill, Stroke, Style, Circle as CircleStyle, Icon } = ol.style;
-const { defaults: defaultControls } = ol.control;
-const { defaults: defaultInteractions, Select } = ol.interaction;
-const { Overlay } = ol;
+// Access OpenLayers from the global (loaded via classic script tag)
+const olGlobal = globalThis.ol || window.ol;
+if(!olGlobal){
+  console.error('OpenLayers CDN script failed to load.');
+}
+const { Map, View } = olGlobal;
+const { OSM, XYZ } = olGlobal.source;
+const { Tile: TileLayer, Vector: VectorLayer } = olGlobal.layer;
+const { Vector: VectorSource } = olGlobal.source;
+const { fromLonLat } = olGlobal.proj;
+const { GeoJSON } = olGlobal.format;
+const { Fill, Stroke, Style, Circle: CircleStyle } = olGlobal.style;
+const { defaults: defaultControls } = olGlobal.control;
+const { defaults: defaultInteractions } = olGlobal.interaction;
+const { Overlay } = olGlobal;
 
 const centerLonLat = [106.827153, -6.175392]; // Jakarta Monas as example center
 const center = fromLonLat(centerLonLat);
 
-const osm = new TileLayer({ source: new OSM(), visible: true });
-const stamen = new TileLayer({
+const osm = new TileLayer({ source: new OSM({ crossOrigin: 'anonymous' }), visible: true });
+// Note: Stamen public tiles are deprecated. Replace with OpenTopoMap as a free alternative.
+const openTopo = new TileLayer({
   source: new XYZ({
-    url: 'https://stamen-tiles.a.ssl.fastly.net/toner-lite/{z}/{x}/{y}.png',
-    attributions: 'Map tiles by Stamen Design',
-    maxZoom: 20
+    url: 'https://{a-c}.tile.opentopomap.org/{z}/{x}/{y}.png',
+    attributions: 'Map data © OpenStreetMap contributors, SRTM | Style: OpenTopoMap',
+    maxZoom: 17,
+    crossOrigin: 'anonymous'
   }),
   visible: false
 });
@@ -28,14 +34,15 @@ const esriSat = new TileLayer({
   source: new XYZ({
     url: 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
     attributions: 'Source: Esri, Maxar, Earthstar Geographics',
-    maxZoom: 20
+    maxZoom: 20,
+    crossOrigin: 'anonymous'
   }),
   visible: false
 });
 
 const map = new Map({
   target: 'map',
-  layers: [osm, stamen, esriSat],
+  layers: [osm, openTopo, esriSat],
   view: new View({ center, zoom: 11 }),
   controls: defaultControls({ attribution: true }),
   interactions: defaultInteractions()
@@ -80,7 +87,7 @@ map.addLayer(pointsLayer);
 // Basemap switching
 function setBasemap(name){
   osm.setVisible(name === 'osm');
-  stamen.setVisible(name === 'stamen');
+  openTopo.setVisible(name === 'topo');
   esriSat.setVisible(name === 'sat');
 }
 
