@@ -1,0 +1,16 @@
+{
+  "type": "FeatureCollection",
+  "name": "polygons",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "name": "Kabupaten Boundary", "photo": "../assets/photos/sample.svg" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [106.80, -6.25], [106.90, -6.25], [106.90, -6.15], [106.80, -6.15], [106.80, -6.25]
+        ]]
+      }
+    }
+  ]
+}
