@@ -1,0 +1,24 @@
+{
+  "type": "FeatureCollection",
+  "name": "points",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Office",
+        "description": "Government Office",
+        "photo": "../assets/photos/sample.svg"
+      },
+      "geometry": { "type": "Point", "coordinates": [106.827153, -6.175392] }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "School",
+        "description": "High School",
+        "photo": "../assets/photos/sample.svg"
+      },
+      "geometry": { "type": "Point", "coordinates": [106.8456, -6.2088] }
+    }
+  ]
+}
