@@ -1,20 +1,22 @@
 import { fetchJSON, el } from './utils.js';
 
-// Access OpenLayers from the global (loaded via classic script tag)
-const olGlobal = globalThis.ol || window.ol;
-if(!olGlobal){
-  console.error('OpenLayers CDN script failed to load.');
-}
-const { Map, View } = olGlobal;
-const { OSM, XYZ } = olGlobal.source;
-const { Tile: TileLayer, Vector: VectorLayer } = olGlobal.layer;
-const { Vector: VectorSource } = olGlobal.source;
-const { fromLonLat } = olGlobal.proj;
-const { GeoJSON } = olGlobal.format;
-const { Fill, Stroke, Style, Circle: CircleStyle } = olGlobal.style;
-const { defaults: defaultControls } = olGlobal.control;
-const { defaults: defaultInteractions } = olGlobal.interaction;
-const { Overlay } = olGlobal;
+// Use OpenLayers ESM imports from CDN (reliable on Vercel)
+import Map from 'https://cdn.jsdelivr.net/npm/ol/Map.js';
+import View from 'https://cdn.jsdelivr.net/npm/ol/View.js';
+import TileLayer from 'https://cdn.jsdelivr.net/npm/ol/layer/Tile.js';
+import VectorLayer from 'https://cdn.jsdelivr.net/npm/ol/layer/Vector.js';
+import OSM from 'https://cdn.jsdelivr.net/npm/ol/source/OSM.js';
+import XYZ from 'https://cdn.jsdelivr.net/npm/ol/source/XYZ.js';
+import VectorSource from 'https://cdn.jsdelivr.net/npm/ol/source/Vector.js';
+import GeoJSON from 'https://cdn.jsdelivr.net/npm/ol/format/GeoJSON.js';
+import Overlay from 'https://cdn.jsdelivr.net/npm/ol/Overlay.js';
+import { fromLonLat } from 'https://cdn.jsdelivr.net/npm/ol/proj.js';
+import Style from 'https://cdn.jsdelivr.net/npm/ol/style/Style.js';
+import Fill from 'https://cdn.jsdelivr.net/npm/ol/style/Fill.js';
+import Stroke from 'https://cdn.jsdelivr.net/npm/ol/style/Stroke.js';
+import CircleStyle from 'https://cdn.jsdelivr.net/npm/ol/style/Circle.js';
+import { defaults as defaultControls } from 'https://cdn.jsdelivr.net/npm/ol/control.js';
+import { defaults as defaultInteractions } from 'https://cdn.jsdelivr.net/npm/ol/interaction.js';
 
 const centerLonLat = [106.827153, -6.175392]; // Jakarta Monas as example center
 const center = fromLonLat(centerLonLat);
