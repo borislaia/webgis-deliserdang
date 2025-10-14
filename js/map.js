@@ -105,6 +105,10 @@ zoomInBtn.addEventListener('click', () => map.getView().setZoom(map.getView().ge
 zoomOutBtn.addEventListener('click', () => map.getView().setZoom(map.getView().getZoom() - 1));
 resetViewBtn.addEventListener('click', () => map.getView().animate({ center, zoom: 11, duration: 400 }));
 
+// Ensure the map resizes correctly when the page/layout changes
+window.addEventListener('load', () => map.updateSize());
+window.addEventListener('resize', () => map.updateSize());
+
 // Popup overlay
 const container = el('div', { class: 'ol-popup card' });
 const overlay = new Overlay({ element: container, autoPan: { animation: { duration: 250 } } });

@@ -43,7 +43,11 @@ body{
 .content{ padding:24px; }
 
 /* Map page specifics */
-.map-container{ position:fixed; inset:0; }
+.map-container{
+  position: fixed;
+  /* Use explicit edges for wider browser support than inset */
+  top: 0; right: 0; bottom: 0; left: 0;
+}
 .float-panel{ position:absolute; right:16px; top:16px; width:320px; max-height:70vh; overflow:auto; padding:14px; }
 .float-controls{ position:absolute; left:16px; top:16px; display:flex; flex-direction:column; gap:8px; }
 .float-card{ padding:12px; }
