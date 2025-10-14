@@ -19,8 +19,8 @@ const center = fromLonLat(centerLonLat);
 const osm = new TileLayer({ source: new OSM(), visible: true });
 const stamen = new TileLayer({
   source: new XYZ({
-    url: 'https://stamen-tiles.a.ssl.fastly.net/toner-lite/{z}/{x}/{y}.png',
-    attributions: 'Map tiles by Stamen Design',
+    url: 'https://tiles.stadiamaps.com/tiles/stamen_toner_lite/{z}/{x}/{y}.png',
+    attributions: '&copy; <a href="https://stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://stamen.com/" target="_blank">Stamen Design</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/about/" target="_blank">OpenStreetMap</a> contributors',
     maxZoom: 20
   }),
   visible: false
