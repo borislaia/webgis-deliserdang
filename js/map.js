@@ -3,11 +3,11 @@ import { fetchJSON, el } from './utils.js';
 // OpenLayers imports via global ol (from CDN). Avoid ESM for simplicity on GH Pages.
 const { Map, View } = ol;
 const { OSM, XYZ } = ol.source;
-const { Tile as TileLayer, Vector as VectorLayer } = ol.layer;
-const { Vector as VectorSource } = ol.source;
+const { Tile: TileLayer, Vector: VectorLayer } = ol.layer;
+const { Vector: VectorSource } = ol.source;
 const { fromLonLat } = ol.proj;
 const { GeoJSON } = ol.format;
-const { Fill, Stroke, Style, Circle as CircleStyle, Icon } = ol.style;
+const { Fill, Stroke, Style, Circle: CircleStyle, Icon } = ol.style;
 const { defaults: defaultControls } = ol.control;
 const { defaults: defaultInteractions, Select } = ol.interaction;
 const { Overlay } = ol;
