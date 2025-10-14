@@ -1,6 +1,7 @@
 import { fetchJSON, el } from './utils.js';
 
-// OpenLayers imports via global ol (from CDN). Avoid ESM for simplicity on GH Pages.
+// OpenLayers imports via global namespace (loaded from CDN)
+const ol = window.ol;
 const { Map, View } = ol;
 const { OSM, XYZ } = ol.source;
 const { Tile: TileLayer, Vector: VectorLayer } = ol.layer;
