@@ -18,10 +18,10 @@ function initVanta() {
     scale: 1.00,
     scaleMobile: 1.00,
     color: 0x40000,
-    backgroundColor: 0xdedede,
-    points: 12.00,
-    maxDistance: 12.00,
-    spacing: 12.00
+    backgroundColor: 0xffffff,
+    points: 11.00,
+    maxDistance: 15.00,
+    spacing: 18.00
   });
 }
 
