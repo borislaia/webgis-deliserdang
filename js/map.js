@@ -15,28 +15,10 @@ const defaultInteractions = ol.interaction.defaults.defaults;
 const { Select } = ol.interaction;
 const { Overlay } = ol;
 
-const centerLonLat = [106.827153, -6.175392]; // Jakarta Monas as example center
+const centerLonLat = [98.8664408999889, 3.550706892846442]; // Requested center [lon, lat]
 const center = fromLonLat(centerLonLat);
 
-const googleHybrid = new TileLayer({
-  source: new XYZ({
-    url: 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
-    attributions: '© Google',
-    maxZoom: 20,
-    crossOrigin: 'anonymous'
-  }),
-  visible: true
-});
-
-const googleSat = new TileLayer({
-  source: new XYZ({
-    url: 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
-    attributions: '© Google',
-    maxZoom: 20,
-    crossOrigin: 'anonymous'
-  }),
-  visible: false
-});
+// (deduplicated basemap layer definitions)
 
 const osm = new TileLayer({ 
   source: new OSM(), 
@@ -71,7 +53,7 @@ const googleSat = new TileLayer({
     maxZoom: 20,
     crossOrigin: 'anonymous'
   }),
-  visible: true // default basemap
+  visible: false
 });
 
 const googleHybrid = new TileLayer({
@@ -81,7 +63,7 @@ const googleHybrid = new TileLayer({
     maxZoom: 20,
     crossOrigin: 'anonymous'
   }),
-  visible: false
+  visible: true // default basemap to match UI
 });
 
 const map = new Map({
@@ -112,30 +94,69 @@ const polygonStyle = new Style({
   fill: new Fill({ color: 'rgba(59,130,246,0.18)' })
 });
 
+// Palette-based styling for NAMOBJ in batas_kecamatan.geojson
+const palette = [
+  '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
+  '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf',
+  '#a6cee3', '#1f78b4', '#b2df8a', '#33a02c', '#fb9a99',
+  '#e31a1c', '#fdbf6f', '#ff7f00', '#cab2d6', '#6a3d9a'
+];
+const colorByName = new Map();
+function getColorForName(name){
+  const key = String(name ?? 'Unknown');
+  if(!colorByName.has(key)){
+    const nextIndex = colorByName.size % palette.length;
+    colorByName.set(key, palette[nextIndex]);
+  }
+  return colorByName.get(key);
+}
+function hexToRgba(hex, alpha = 0.5){
+  const h = String(hex).replace('#','');
+  let r, g, b;
+  if(h.length === 3){
+    r = parseInt(h[0] + h[0], 16);
+    g = parseInt(h[1] + h[1], 16);
+    b = parseInt(h[2] + h[2], 16);
+  } else {
+    const bigint = parseInt(h, 16);
+    r = (bigint >> 16) & 255;
+    g = (bigint >> 8) & 255;
+    b = bigint & 255;
+  }
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+function kecamatanStyle(feature){
+  const name = feature.get('NAMOBJ') || 'Unknown';
+  const baseHex = getColorForName(name);
+  return new Style({
+    stroke: new Stroke({ color: '#222', width: 1 }),
+    fill: new Fill({ color: hexToRgba(baseHex, 0.45) })
+  });
+}
+
 const pointsLayer = new VectorLayer({ source: new VectorSource(), style: pointStyle, visible: true });
 const linesLayer = new VectorLayer({ source: new VectorSource(), style: lineStyle, visible: true });
 const polygonsLayer = new VectorLayer({ source: new VectorSource(), style: polygonStyle, visible: true });
+const kecamatanLayer = new VectorLayer({ source: new VectorSource(), style: kecamatanStyle, visible: true });
 map.addLayer(polygonsLayer);
+map.addLayer(kecamatanLayer); // draw below lines/points
 map.addLayer(linesLayer);
 map.addLayer(pointsLayer);
 
 // Load data
 (async function loadData(){
-  const [points, lines, polys] = await Promise.all([
+  const [points, lines, polys, batas] = await Promise.all([
     fetchJSON('./data/points.geojson'),
     fetchJSON('./data/lines.geojson'),
-    fetchJSON('./data/polygons.geojson')
+    fetchJSON('./data/polygons.geojson'),
+    fetchJSON('./data/batas_kecamatan.geojson')
   ]);
   const fmt = new GeoJSON();
   pointsLayer.getSource().addFeatures(fmt.readFeatures(points, { featureProjection: map.getView().getProjection() }));
   linesLayer.getSource().addFeatures(fmt.readFeatures(lines, { featureProjection: map.getView().getProjection() }));
   polygonsLayer.getSource().addFeatures(fmt.readFeatures(polys, { featureProjection: map.getView().getProjection() }));
-
-  // Fit to polygons if available
-  const extent = polygonsLayer.getSource().getExtent();
-  if (extent && extent[0] !== Infinity) {
-    map.getView().fit(extent, { padding: [40, 40, 40, 40], duration: 500 });
-  }
+  kecamatanLayer.getSource().addFeatures(fmt.readFeatures(batas, { featureProjection: map.getView().getProjection() }));
+  // Keep initial center as requested; no auto-fit on load
 })();
 
 // Basemap switching
