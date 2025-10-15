@@ -46,7 +46,7 @@ body{
 
 /* Map page specifics */
 .map-container{ position:fixed; inset:0; }
-.float-panel{ position:absolute; right:16px; top:16px; width:320px; max-height:70vh; overflow:auto; padding:14px; }
+.float-panel{ position:absolute; right:16px; top:16px; width:300px; max-height:70vh; overflow:auto; padding:14px; }
 .float-controls{ position:absolute; left:16px; top:16px; display:flex; flex-direction:column; gap:8px; }
 .float-card{ padding:12px; }
 .badge{ font-size:12px; padding:4px 8px; border-radius:999px; background:rgba(10,132,255,0.15); color:#0a84ff; border:1px solid rgba(10,132,255,0.25); }
