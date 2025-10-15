@@ -41,7 +41,7 @@ body{
 .input{ width:100%; padding:12px 14px; border-radius:12px; border:1px solid var(--stroke); background: linear-gradient(180deg, #fff, #f8fafc); }
 .form-row{ display:flex; flex-direction:column; gap:8px; }
 .layout{ display:grid; grid-template-columns: 260px 1fr; min-height: calc(100vh - 100px); }
-.sidebar{ padding:20px; }
+.sidebar{ padding:20px; background: rgba(255, 255, 255, 0.5); }
 .content{ padding:24px; }
 
 /* Map page specifics */

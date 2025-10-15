@@ -245,7 +245,6 @@ const chkKecamatan = document.getElementById('chkKecamatan');
 const chkPoints = document.getElementById('chkPoints');
 const chkLines = document.getElementById('chkLines');
 const chkPolygons = document.getElementById('chkPolygons');
-const chkKecamatan = document.getElementById('chkKecamatan');
 chkPoints.addEventListener('change', () => pointsLayer.setVisible(chkPoints.checked));
 chkLines.addEventListener('change', () => linesLayer.setVisible(chkLines.checked));
 chkPolygons.addEventListener('change', () => polygonsLayer.setVisible(chkPolygons.checked));
