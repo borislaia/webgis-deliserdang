@@ -41,6 +41,7 @@ body{
 .input{ width:100%; padding:12px 14px; border-radius:12px; border:1px solid var(--stroke); background: linear-gradient(180deg, #fff, #f8fafc); }
 .form-row{ display:flex; flex-direction:column; gap:8px; }
 .layout{ display:grid; grid-template-columns: 260px 1fr; min-height: calc(100vh - 100px); }
+.layout{ position: relative; z-index: 1; }
 .sidebar{ padding:20px; }
 .content{ padding:24px; }
 
@@ -58,4 +59,4 @@ body{
 .modal.open{ display:flex; }
 .modal img{ max-width:90vw; max-height:90vh; border-radius:12px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
 
-#vanta-bg{ position: fixed; inset:0; pointer-events:none; }
+#vanta-bg{ position: fixed; inset:0; pointer-events:none; z-index:-1; }
