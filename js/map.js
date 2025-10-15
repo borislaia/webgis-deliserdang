@@ -9,8 +9,10 @@ const { Vector: VectorSource } = ol.source;
 const { fromLonLat } = ol.proj;
 const { GeoJSON } = ol.format;
 const { Fill, Stroke, Style, Circle: CircleStyle, Icon } = ol.style;
-const { defaults: defaultControls } = ol.control;
-const { defaults: defaultInteractions, Select } = ol.interaction;
+// In the UMD build, defaults are nested under `.defaults`
+const defaultControls = ol.control.defaults.defaults;
+const defaultInteractions = ol.interaction.defaults.defaults;
+const { Select } = ol.interaction;
 const { Overlay } = ol;
 
 const centerLonLat = [106.827153, -6.175392]; // Jakarta Monas as example center
