@@ -47,7 +47,9 @@ const map = new Map({
   target: 'map',
   layers: [osm, cartoDB, esriSat],
   view: new View({ center, zoom: 11 }),
-  controls: defaultControls({ attribution: true }),
+  // Remove default OL UI controls; we provide custom ones in the UI.
+  // Also hides basemap attribution text.
+  controls: defaultControls({ attribution: false, zoom: false, rotate: false }),
   interactions: defaultInteractions()
 });
 
