@@ -63,6 +63,27 @@ const esriSat = new TileLayer({
   visible: false
 });
 
+// Google basemaps
+const googleSat = new TileLayer({
+  source: new XYZ({
+    url: 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+    attributions: '© Google',
+    maxZoom: 20,
+    crossOrigin: 'anonymous'
+  }),
+  visible: true // default basemap
+});
+
+const googleHybrid = new TileLayer({
+  source: new XYZ({
+    url: 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+    attributions: '© Google',
+    maxZoom: 20,
+    crossOrigin: 'anonymous'
+  }),
+  visible: false
+});
+
 const map = new Map({
   target: 'map',
   layers: [googleHybrid, googleSat, osm, cartoDB, esriSat],
