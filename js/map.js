@@ -15,10 +15,28 @@ const defaultInteractions = ol.interaction.defaults.defaults;
 const { Select } = ol.interaction;
 const { Overlay } = ol;
 
-const centerLonLat = [98.8664408999889, 3.550706892846442]; // Requested center [lon, lat]
+const centerLonLat = [98.8664408999889, 3.550706892846442]; // Deli Serdang, North Sumatra
 const center = fromLonLat(centerLonLat);
 
-// (deduplicated basemap layer definitions)
+const googleHybrid = new TileLayer({
+  source: new XYZ({
+    url: 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+    attributions: '© Google',
+    maxZoom: 20,
+    crossOrigin: 'anonymous'
+  }),
+  visible: true // default basemap matches UI default
+});
+
+const googleSat = new TileLayer({
+  source: new XYZ({
+    url: 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+    attributions: '© Google',
+    maxZoom: 20,
+    crossOrigin: 'anonymous'
+  }),
+  visible: false
+});
 
 const osm = new TileLayer({ 
   source: new OSM(), 
@@ -45,26 +63,7 @@ const esriSat = new TileLayer({
   visible: false
 });
 
-// Google basemaps
-const googleSat = new TileLayer({
-  source: new XYZ({
-    url: 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
-    attributions: '© Google',
-    maxZoom: 20,
-    crossOrigin: 'anonymous'
-  }),
-  visible: false
-});
-
-const googleHybrid = new TileLayer({
-  source: new XYZ({
-    url: 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
-    attributions: '© Google',
-    maxZoom: 20,
-    crossOrigin: 'anonymous'
-  }),
-  visible: true // default basemap to match UI
-});
+// (deduplicated basemap declarations above)
 
 const map = new Map({
   target: 'map',
@@ -76,13 +75,57 @@ const map = new Map({
   interactions: defaultInteractions()
 });
 
-// Error handling for tile loading
-[googleHybrid, googleSat, osm, cartoDB, esriSat].forEach((layer, idx) => {
+// Error handling and fallback: if current basemap fails, switch to OSM
+function attachTileErrorFallback(layer){
   const source = layer.getSource();
-  source.on('tileloaderror', (event) => {
-    console.warn(`Tile loading error for layer ${idx}:`, event);
+  if(!source || typeof source.on !== 'function') return;
+  source.on('tileloaderror', () => {
+    if(layer.getVisible()){
+      console.warn('Basemap tile failed; switching to OSM fallback');
+      setBasemap('osm');
+      // Also update the radio button UI to reflect the change
+      const osmRadio = document.querySelector('input[name="basemap"][value="osm"]');
+      if(osmRadio){ osmRadio.checked = true; }
+    }
   });
-});
+}
+[googleHybrid, googleSat, cartoDB, esriSat].forEach(attachTileErrorFallback);
+
+// Color palette for each NAMOBJ (22 distinct colors)
+const colorPalette = {
+  'BANGUNPURBA': '#FF6B6B',      // Coral Red
+  'BATANGKUIS': '#4ECDC4',       // Turquoise
+  'BERINGIN': '#45B7D1',         // Sky Blue
+  'BIRU-BIRU': '#96CEB4',        // Sage Green
+  'DELITUA': '#FFEAA7',          // Pale Yellow
+  'GALANG': '#DFE6E9',           // Light Gray
+  'GUNUNGMERIAH': '#74B9FF',     // Light Blue
+  'HAMPARANPERAK': '#A29BFE',    // Periwinkle
+  'KUTALIMBARU': '#FD79A8',      // Pink
+  'LABUHANDELI': '#FDCB6E',      // Orange Yellow
+  'LUBUKPAKAM': '#6C5CE7',       // Purple
+  'NAMORAMBE': '#00B894',        // Teal
+  'PAGARMERBAU': '#E17055',      // Terra Cotta
+  'PANCURBATU': '#55EFC4',       // Mint
+  'PANTAILABU': '#81ECEC',       // Cyan
+  'PATUMBAK': '#FAB1A0',         // Peach
+  'PERCUTSEITUAN': '#FF7675',    // Salmon
+  'SENEMBAHTANJUNGMUDA HILIR': '#FD79A8', // Rose
+  'SENEMBAHTANJUNGMUDA HULU': '#A29BFE',  // Lavender
+  'SIBOLANGIT': '#00CEC9',       // Aqua
+  'SUNGGAL': '#F8A5C2',          // Light Pink
+  'TANJUNGMORAWA': '#63CDDA'     // Ocean Blue
+};
+
+// Style function for kecamatan boundaries
+function kecamatanStyleFunction(feature) {
+  const namobj = feature.get('NAMOBJ');
+  const color = colorPalette[namobj] || '#CCCCCC'; // Default gray if not found
+  return new Style({
+    stroke: new Stroke({ color: '#333333', width: 2 }),
+    fill: new Fill({ color: color + '80' }) // Adding transparency (50%)
+  });
+}
 
 // Vector layers
 const pointStyle = new Style({
@@ -94,69 +137,91 @@ const polygonStyle = new Style({
   fill: new Fill({ color: 'rgba(59,130,246,0.18)' })
 });
 
-// Palette-based styling for NAMOBJ in batas_kecamatan.geojson
-const palette = [
-  '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
-  '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf',
-  '#a6cee3', '#1f78b4', '#b2df8a', '#33a02c', '#fb9a99',
-  '#e31a1c', '#fdbf6f', '#ff7f00', '#cab2d6', '#6a3d9a'
+// Batas Kecamatan layer — colored by NAMOBJ
+const categoryPalette = [
+  '#1f77b4','#aec7e8','#ff7f0e','#ffbb78','#2ca02c','#98df8a',
+  '#d62728','#ff9896','#9467bd','#c5b0d5','#8c564b','#c49c94',
+  '#e377c2','#f7b6d2','#7f7f7f','#c7c7c7','#bcbd22','#dbdb8d',
+  '#17becf','#9edae5'
 ];
-const colorByName = new Map();
-function getColorForName(name){
-  const key = String(name ?? 'Unknown');
-  if(!colorByName.has(key)){
-    const nextIndex = colorByName.size % palette.length;
-    colorByName.set(key, palette[nextIndex]);
+const namToColor = new Map();
+let nextColorIndex = 0;
+function colorForName(name){
+  const key = name || 'Unknown';
+  if(!namToColor.has(key)){
+    const color = nextColorIndex < categoryPalette.length
+      ? categoryPalette[nextColorIndex]
+      : hslColorForString(key);
+    namToColor.set(key, color);
+    nextColorIndex++;
   }
-  return colorByName.get(key);
+  return namToColor.get(key);
 }
-function hexToRgba(hex, alpha = 0.5){
-  const h = String(hex).replace('#','');
-  let r, g, b;
-  if(h.length === 3){
-    r = parseInt(h[0] + h[0], 16);
-    g = parseInt(h[1] + h[1], 16);
-    b = parseInt(h[2] + h[2], 16);
-  } else {
-    const bigint = parseInt(h, 16);
-    r = (bigint >> 16) & 255;
-    g = (bigint >> 8) & 255;
-    b = bigint & 255;
+function hslColorForString(str){
+  let hash = 0;
+  for(let i = 0; i < str.length; i++){
+    hash = (hash << 5) - hash + str.charCodeAt(i);
+    hash |= 0;
   }
-  return `rgba(${r},${g},${b},${alpha})`;
+  const hue = Math.abs(hash) % 360;
+  return `hsl(${hue}, 65%, 55%)`;
 }
+function hexToRgba(hex, alpha = 0.4){
+  const r = parseInt(hex.slice(1,3), 16);
+  const g = parseInt(hex.slice(3,5), 16);
+  const b = parseInt(hex.slice(5,7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+function applyAlpha(color, alpha){
+  if(color.startsWith('#')) return hexToRgba(color, alpha);
+  if(color.startsWith('hsl(')) return color.replace('hsl(', 'hsla(').replace(')', `, ${alpha})`);
+  return color;
+}
+const kecStyleCache = new Map();
 function kecamatanStyle(feature){
   const name = feature.get('NAMOBJ') || 'Unknown';
-  const baseHex = getColorForName(name);
-  return new Style({
-    stroke: new Stroke({ color: '#222', width: 1 }),
-    fill: new Fill({ color: hexToRgba(baseHex, 0.45) })
-  });
+  const baseColor = colorForName(name);
+  let style = kecStyleCache.get(baseColor);
+  if(!style){
+    style = new Style({
+      stroke: new Stroke({ color: '#111827', width: 1 }),
+      fill: new Fill({ color: applyAlpha(baseColor, 0.35) })
+    });
+    kecStyleCache.set(baseColor, style);
+  }
+  return style;
 }
+
+const kecamatanLayer = new VectorLayer({ source: new VectorSource(), style: kecamatanStyle, visible: true });
 
 const pointsLayer = new VectorLayer({ source: new VectorSource(), style: pointStyle, visible: true });
 const linesLayer = new VectorLayer({ source: new VectorSource(), style: lineStyle, visible: true });
 const polygonsLayer = new VectorLayer({ source: new VectorSource(), style: polygonStyle, visible: true });
-const kecamatanLayer = new VectorLayer({ source: new VectorSource(), style: kecamatanStyle, visible: true });
+// Layer draw order: polygons (sample), kecamatan (on top of sample polys), lines, points
 map.addLayer(polygonsLayer);
-map.addLayer(kecamatanLayer); // draw below lines/points
+map.addLayer(kecamatanLayer);
 map.addLayer(linesLayer);
 map.addLayer(pointsLayer);
 
 // Load data
 (async function loadData(){
-  const [points, lines, polys, batas] = await Promise.all([
+  const [batas, points, lines, polys] = await Promise.all([
+    fetchJSON('./data/batas_kecamatan.geojson'),
     fetchJSON('./data/points.geojson'),
     fetchJSON('./data/lines.geojson'),
     fetchJSON('./data/polygons.geojson'),
     fetchJSON('./data/batas_kecamatan.geojson')
   ]);
   const fmt = new GeoJSON();
+  // Batas Kecamatan first
+  kecamatanLayer.getSource().addFeatures(
+    fmt.readFeatures(batas, { featureProjection: map.getView().getProjection() })
+  );
+  // Demo/sample data
   pointsLayer.getSource().addFeatures(fmt.readFeatures(points, { featureProjection: map.getView().getProjection() }));
   linesLayer.getSource().addFeatures(fmt.readFeatures(lines, { featureProjection: map.getView().getProjection() }));
   polygonsLayer.getSource().addFeatures(fmt.readFeatures(polys, { featureProjection: map.getView().getProjection() }));
-  kecamatanLayer.getSource().addFeatures(fmt.readFeatures(batas, { featureProjection: map.getView().getProjection() }));
-  // Keep initial center as requested; no auto-fit on load
+  // Keep explicit center; avoid auto-fit overriding requested center
 })();
 
 // Basemap switching
@@ -172,13 +237,22 @@ document.querySelectorAll('input[name="basemap"]').forEach(r => {
   r.addEventListener('change', (e) => setBasemap(e.target.value));
 });
 
+// Apply initial basemap based on the checked radio, ensuring visibility state sync
+const initialBasemap = document.querySelector('input[name="basemap"]:checked');
+if(initialBasemap){ setBasemap(initialBasemap.value); }
+
 // Layer toggles
+const chkKecamatan = document.getElementById('chkKecamatan');
 const chkPoints = document.getElementById('chkPoints');
 const chkLines = document.getElementById('chkLines');
 const chkPolygons = document.getElementById('chkPolygons');
+const chkKecamatan = document.getElementById('chkKecamatan');
 chkPoints.addEventListener('change', () => pointsLayer.setVisible(chkPoints.checked));
 chkLines.addEventListener('change', () => linesLayer.setVisible(chkLines.checked));
 chkPolygons.addEventListener('change', () => polygonsLayer.setVisible(chkPolygons.checked));
+if(chkKecamatan){
+  chkKecamatan.addEventListener('change', () => kecamatanLayer.setVisible(chkKecamatan.checked));
+}
 
 // Controls
 const zoomInBtn = document.getElementById('zoomIn');
@@ -195,7 +269,7 @@ map.addOverlay(overlay);
 
 function renderPopup(feature){
   const props = feature.getProperties();
-  const title = props.name || 'Feature';
+  const title = props.NAMOBJ || props.name || 'Feature';
   const photo = props.photo;
   const desc = props.description || '';
   container.innerHTML = '';
