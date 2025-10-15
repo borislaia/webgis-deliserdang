@@ -48,17 +48,17 @@ const googleSat = new TileLayer({
   source: new XYZ({
     url: 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
     attributions: '© Google',
-    maxZoom: 21,
+    maxZoom: 20,
     crossOrigin: 'anonymous'
   }),
-  visible: true
+  visible: true // default basemap
 });
 
 const googleHybrid = new TileLayer({
   source: new XYZ({
     url: 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
     attributions: '© Google',
-    maxZoom: 21,
+    maxZoom: 20,
     crossOrigin: 'anonymous'
   }),
   visible: false
@@ -120,8 +120,8 @@ map.addLayer(pointsLayer);
 
 // Basemap switching
 function setBasemap(name){
-  googleSat.setVisible(name === 'g_sat');
-  googleHybrid.setVisible(name === 'g_hybrid');
+  googleSat.setVisible(name === 'g-sat');
+  googleHybrid.setVisible(name === 'g-hybrid');
   osm.setVisible(name === 'osm');
   cartoDB.setVisible(name === 'carto');
   esriSat.setVisible(name === 'sat');
