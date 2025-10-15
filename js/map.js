@@ -98,14 +98,6 @@ function attachTileErrorFallback(layer){
 // (removed legacy, unused color/style function definitions)
 
 // Vector layers
-const pointStyle = new Style({
-  image: new CircleStyle({ radius: 6, fill: new Fill({ color: '#ef4444' }), stroke: new Stroke({ color: '#b91c1c', width: 1 }) })
-});
-const lineStyle = new Style({ stroke: new Stroke({ color: '#10b981', width: 3 }) });
-const polygonStyle = new Style({
-  stroke: new Stroke({ color: '#2563eb', width: 2 }),
-  fill: new Fill({ color: 'rgba(59,130,246,0.18)' })
-});
 
 // Batas Kecamatan layer — colored by NAMOBJ
 const categoryPalette = [
@@ -163,34 +155,22 @@ function kecamatanStyle(feature){
 }
 
 const kecamatanLayer = new VectorLayer({ source: new VectorSource(), style: kecamatanStyle, visible: true });
-
-const pointsLayer = new VectorLayer({ source: new VectorSource(), style: pointStyle, visible: true });
-const linesLayer = new VectorLayer({ source: new VectorSource(), style: lineStyle, visible: true });
-const polygonsLayer = new VectorLayer({ source: new VectorSource(), style: polygonStyle, visible: true });
-// Layer draw order: polygons (sample), kecamatan (on top of sample polys), lines, points
-map.addLayer(polygonsLayer);
+// Layer draw order: kecamatan only
 map.addLayer(kecamatanLayer);
-map.addLayer(linesLayer);
-map.addLayer(pointsLayer);
 
 // Load data
 (async function loadData(){
-  const [batas, points, lines, polys] = await Promise.all([
-    fetchJSON('./data/batas_kecamatan.geojson'),
-    fetchJSON('./data/points.geojson'),
-    fetchJSON('./data/lines.geojson'),
-    fetchJSON('./data/polygons.geojson')
-  ]);
+  const batas = await fetchJSON('./data/batas_kecamatan.geojson');
   const fmt = new GeoJSON();
-  // Batas Kecamatan first
-  kecamatanLayer.getSource().addFeatures(
-    fmt.readFeatures(batas, { featureProjection: map.getView().getProjection() })
-  );
-  // Demo/sample data
-  pointsLayer.getSource().addFeatures(fmt.readFeatures(points, { featureProjection: map.getView().getProjection() }));
-  linesLayer.getSource().addFeatures(fmt.readFeatures(lines, { featureProjection: map.getView().getProjection() }));
-  polygonsLayer.getSource().addFeatures(fmt.readFeatures(polys, { featureProjection: map.getView().getProjection() }));
-  // Keep explicit center; avoid auto-fit overriding requested center
+  const features = fmt.readFeatures(batas, {
+    dataProjection: 'EPSG:4326',
+    featureProjection: map.getView().getProjection()
+  });
+  kecamatanLayer.getSource().addFeatures(features);
+  const extent = kecamatanLayer.getSource().getExtent();
+  if(extent && extent.every(Number.isFinite)){
+    map.getView().fit(extent, { padding: [40,40,40,40], duration: 400, maxZoom: 13 });
+  }
 })();
 
 // Basemap switching
@@ -210,14 +190,8 @@ document.querySelectorAll('input[name="basemap"]').forEach(r => {
 const initialBasemap = document.querySelector('input[name="basemap"]:checked');
 if(initialBasemap){ setBasemap(initialBasemap.value); }
 
-// Layer toggles
+// Layer toggle
 const chkKecamatan = document.getElementById('chkKecamatan');
-const chkPoints = document.getElementById('chkPoints');
-const chkLines = document.getElementById('chkLines');
-const chkPolygons = document.getElementById('chkPolygons');
-chkPoints.addEventListener('change', () => pointsLayer.setVisible(chkPoints.checked));
-chkLines.addEventListener('change', () => linesLayer.setVisible(chkLines.checked));
-chkPolygons.addEventListener('change', () => polygonsLayer.setVisible(chkPolygons.checked));
 if(chkKecamatan){
   chkKecamatan.addEventListener('change', () => kecamatanLayer.setVisible(chkKecamatan.checked));
 }
