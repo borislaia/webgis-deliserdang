@@ -16,8 +16,12 @@ const { Overlay } = ol;
 const centerLonLat = [106.827153, -6.175392]; // Jakarta Monas as example center
 const center = fromLonLat(centerLonLat);
 
-const osm = new TileLayer({ source: new OSM(), visible: true });
-const stamen = new TileLayer({
+const osm = new TileLayer({ 
+  source: new OSM(), 
+  visible: true 
+});
+
+const cartoDB = new TileLayer({
   source: new XYZ({
     url: 'https://tiles.stadiamaps.com/tiles/stamen_toner_lite/{z}/{x}/{y}.png',
     attributions: '&copy; <a href="https://stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://stamen.com/" target="_blank">Stamen Design</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/about/" target="_blank">OpenStreetMap</a> contributors',
@@ -25,21 +29,31 @@ const stamen = new TileLayer({
   }),
   visible: false
 });
+
 const esriSat = new TileLayer({
   source: new XYZ({
-    url: 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-    attributions: 'Source: Esri, Maxar, Earthstar Geographics',
-    maxZoom: 20
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    attributions: '© Esri, Maxar, Earthstar Geographics',
+    maxZoom: 19,
+    crossOrigin: 'anonymous'
   }),
   visible: false
 });
 
 const map = new Map({
   target: 'map',
-  layers: [osm, stamen, esriSat],
+  layers: [osm, cartoDB, esriSat],
   view: new View({ center, zoom: 11 }),
   controls: defaultControls({ attribution: true }),
   interactions: defaultInteractions()
+});
+
+// Error handling for tile loading
+[osm, cartoDB, esriSat].forEach((layer, idx) => {
+  const source = layer.getSource();
+  source.on('tileloaderror', (event) => {
+    console.warn(`Tile loading error for layer ${idx}:`, event);
+  });
 });
 
 // Vector layers
@@ -81,7 +95,7 @@ map.addLayer(pointsLayer);
 // Basemap switching
 function setBasemap(name){
   osm.setVisible(name === 'osm');
-  stamen.setVisible(name === 'stamen');
+  cartoDB.setVisible(name === 'carto');
   esriSat.setVisible(name === 'sat');
 }
 
