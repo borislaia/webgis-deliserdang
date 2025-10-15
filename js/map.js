@@ -152,20 +152,40 @@ function kecamatanStyle(feature){
   return style;
 }
 
-const kecamatanLayer = new VectorLayer({ source: new VectorSource(), style: kecamatanStyle, visible: true, zIndex: 10 });
+const kecamatanLayer = new VectorLayer({ 
+  source: new VectorSource(), 
+  style: kecamatanStyle, 
+  visible: true, 
+  zIndex: 10,
+  opacity: 1
+});
+console.log('Kecamatan layer created:', kecamatanLayer);
 
 // Add kecamatan layer to map
 map.addLayer(kecamatanLayer);
 
 // Load data
 (async function loadData(){
-  const batas = await fetchJSON('./data/batas_kecamatan.json');
-  const fmt = new GeoJSON();
-  // Load Batas Kecamatan
-  kecamatanLayer.getSource().addFeatures(
-    fmt.readFeatures(batas, { dataProjection: 'EPSG:4326', featureProjection: map.getView().getProjection() })
-  );
-  // Keep explicit center; avoid auto-fit overriding requested center
+  try {
+    console.log('Loading GeoJSON data...');
+    const batas = await fetchJSON('./data/batas_kecamatan.json');
+    console.log('Data loaded:', batas);
+    const fmt = new GeoJSON();
+    // Load Batas Kecamatan
+    const features = fmt.readFeatures(batas, { dataProjection: 'EPSG:4326', featureProjection: map.getView().getProjection() });
+    console.log('Features parsed:', features.length);
+    kecamatanLayer.getSource().addFeatures(features);
+    console.log('Features added to layer');
+    
+    // Fit view to features extent
+    const extent = kecamatanLayer.getSource().getExtent();
+    console.log('Extent:', extent);
+    if (extent && extent.every(v => isFinite(v))) {
+      map.getView().fit(extent, { padding: [50, 50, 50, 50], maxZoom: 13 });
+    }
+  } catch (error) {
+    console.error('Error loading GeoJSON:', error);
+  }
 })();
 
 // Basemap switching

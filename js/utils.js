@@ -6,7 +6,14 @@ export function ensureAuthRedirect(to = '/login.html'){
 export function setAuth(token){ localStorage.setItem('auth_token', token); }
 export function clearAuth(){ localStorage.removeItem('auth_token'); }
 
-export function fetchJSON(path){ return fetch(path).then(r => r.json()); }
+export function fetchJSON(path){ 
+  return fetch(path).then(r => {
+    if (!r.ok) {
+      throw new Error(`HTTP error! status: ${r.status}`);
+    }
+    return r.json();
+  }); 
+}
 
 export function el(tag, attrs={}, children=[]){
   const node = document.createElement(tag);
