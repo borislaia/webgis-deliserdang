@@ -9,9 +9,9 @@ const { Vector: VectorSource } = ol.source;
 const { fromLonLat } = ol.proj;
 const { GeoJSON } = ol.format;
 const { Fill, Stroke, Style, Circle: CircleStyle, Icon } = ol.style;
-// In the UMD build, defaults are nested under `.defaults`
-const defaultControls = ol.control.defaults.defaults;
-const defaultInteractions = ol.interaction.defaults.defaults;
+// Defaults are functions on the UMD namespace
+const defaultControls = ol.control.defaults;
+const defaultInteractions = ol.interaction.defaults;
 const { Select } = ol.interaction;
 const { Overlay } = ol;
 
@@ -245,7 +245,6 @@ const chkKecamatan = document.getElementById('chkKecamatan');
 const chkPoints = document.getElementById('chkPoints');
 const chkLines = document.getElementById('chkLines');
 const chkPolygons = document.getElementById('chkPolygons');
-const chkKecamatan = document.getElementById('chkKecamatan');
 chkPoints.addEventListener('change', () => pointsLayer.setVisible(chkPoints.checked));
 chkLines.addEventListener('change', () => linesLayer.setVisible(chkLines.checked));
 chkPolygons.addEventListener('change', () => polygonsLayer.setVisible(chkPolygons.checked));
