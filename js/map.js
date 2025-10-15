@@ -159,7 +159,7 @@ map.addLayer(kecamatanLayer);
 
 // Load data
 (async function loadData(){
-  const batas = await fetchJSON('./data/batas_kecamatan.geojson');
+  const batas = await fetchJSON('./data/batas_kecamatan.json');
   const fmt = new GeoJSON();
   // Load Batas Kecamatan
   kecamatanLayer.getSource().addFeatures(
