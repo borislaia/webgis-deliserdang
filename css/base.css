@@ -57,3 +57,5 @@ body{
 .modal{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,0.6); z-index:9999; }
 .modal.open{ display:flex; }
 .modal img{ max-width:90vw; max-height:90vh; border-radius:12px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
+
+#vanta-bg{ position: fixed; inset:0; pointer-events:none; }

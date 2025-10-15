@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="./css/base.css" />
   </head>
   <body>
+    <div id="vanta-bg"></div>
     <header class="app-header blur">
       <div class="brand">
         <img src="./assets/icons/logo-deliserdang.jpg" alt="Logo" class="brand-icon" />
@@ -35,6 +36,25 @@
         </form>
       </div>
     </main>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.134.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vanta@0.5.24/dist/vanta.fog.min.js"></script>
+    <script>
+      VANTA.FOG({
+        el: "#vanta-bg",
+        mouseControls: true,
+        touchControls: true,
+        gyroControls: false,
+        minHeight: 200.00,
+        minWidth: 200.00,
+        highlightColor: 0xffffff,
+        midtoneColor: 0xf2ff,
+        lowlightColor: 0xd9d9d9,
+        baseColor: 0xffffff,
+        blurFactor: 0.57,
+        speed: 1.60,
+        zoom: 0.80
+      });
+    </script>
     <script type="module" src="./js/utils.js"></script>
     <script type="module" src="./js/auth.js"></script>
     
