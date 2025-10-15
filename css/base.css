@@ -58,4 +58,4 @@ body{
 .modal.open{ display:flex; }
 .modal img{ max-width:90vw; max-height:90vh; border-radius:12px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
 
-#vanta-bg{ position: fixed; inset:0; pointer-events:none; }
+#vanta-bg{ position: fixed; inset:0; pointer-events:none; z-index:-1; }
