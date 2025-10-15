@@ -15,7 +15,7 @@ const defaultInteractions = ol.interaction.defaults.defaults;
 const { Select } = ol.interaction;
 const { Overlay } = ol;
 
-const centerLonLat = [98.8664408999889, 3.550706892846442]; // Center (lon, lat)
+const centerLonLat = [98.8664408999889, 3.550706892846442]; // Deli Serdang, North Sumatra
 const center = fromLonLat(centerLonLat);
 
 const googleHybrid = new TileLayer({
@@ -90,6 +90,42 @@ function attachTileErrorFallback(layer){
   });
 }
 [googleHybrid, googleSat, cartoDB, esriSat].forEach(attachTileErrorFallback);
+
+// Color palette for each NAMOBJ (22 distinct colors)
+const colorPalette = {
+  'BANGUNPURBA': '#FF6B6B',      // Coral Red
+  'BATANGKUIS': '#4ECDC4',       // Turquoise
+  'BERINGIN': '#45B7D1',         // Sky Blue
+  'BIRU-BIRU': '#96CEB4',        // Sage Green
+  'DELITUA': '#FFEAA7',          // Pale Yellow
+  'GALANG': '#DFE6E9',           // Light Gray
+  'GUNUNGMERIAH': '#74B9FF',     // Light Blue
+  'HAMPARANPERAK': '#A29BFE',    // Periwinkle
+  'KUTALIMBARU': '#FD79A8',      // Pink
+  'LABUHANDELI': '#FDCB6E',      // Orange Yellow
+  'LUBUKPAKAM': '#6C5CE7',       // Purple
+  'NAMORAMBE': '#00B894',        // Teal
+  'PAGARMERBAU': '#E17055',      // Terra Cotta
+  'PANCURBATU': '#55EFC4',       // Mint
+  'PANTAILABU': '#81ECEC',       // Cyan
+  'PATUMBAK': '#FAB1A0',         // Peach
+  'PERCUTSEITUAN': '#FF7675',    // Salmon
+  'SENEMBAHTANJUNGMUDA HILIR': '#FD79A8', // Rose
+  'SENEMBAHTANJUNGMUDA HULU': '#A29BFE',  // Lavender
+  'SIBOLANGIT': '#00CEC9',       // Aqua
+  'SUNGGAL': '#F8A5C2',          // Light Pink
+  'TANJUNGMORAWA': '#63CDDA'     // Ocean Blue
+};
+
+// Style function for kecamatan boundaries
+function kecamatanStyleFunction(feature) {
+  const namobj = feature.get('NAMOBJ');
+  const color = colorPalette[namobj] || '#CCCCCC'; // Default gray if not found
+  return new Style({
+    stroke: new Stroke({ color: '#333333', width: 2 }),
+    fill: new Fill({ color: color + '80' }) // Adding transparency (50%)
+  });
+}
 
 // Vector layers
 const pointStyle = new Style({
@@ -205,6 +241,7 @@ const initialBasemap = document.querySelector('input[name="basemap"]:checked');
 if(initialBasemap){ setBasemap(initialBasemap.value); }
 
 // Layer toggles
+const chkKecamatan = document.getElementById('chkKecamatan');
 const chkPoints = document.getElementById('chkPoints');
 const chkLines = document.getElementById('chkLines');
 const chkPolygons = document.getElementById('chkPolygons');
