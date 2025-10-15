@@ -152,19 +152,32 @@ function kecamatanStyle(feature){
   return style;
 }
 
-const kecamatanLayer = new VectorLayer({ source: new VectorSource(), style: kecamatanStyle, visible: true });
+const kecamatanLayer = new VectorLayer({
+  source: new VectorSource(),
+  style: kecamatanStyle,
+  visible: true,
+  zIndex: 1000
+});
 
 // Add kecamatan layer to map
 map.addLayer(kecamatanLayer);
 
 // Load data
 (async function loadData(){
-  const batas = await fetchJSON('./data/batas_kecamatan.geojson');
-  const fmt = new GeoJSON();
-  // Load Batas Kecamatan
-  kecamatanLayer.getSource().addFeatures(
-    fmt.readFeatures(batas, { featureProjection: map.getView().getProjection() })
-  );
+  try{
+    const batas = await fetchJSON('./data/batas_kecamatan.geojson');
+    const fmt = new GeoJSON();
+    const features = fmt.readFeatures(batas, {
+      dataProjection: 'EPSG:4326',
+      featureProjection: map.getView().getProjection()
+    });
+    if(!features || features.length === 0){
+      console.warn('batas_kecamatan.geojson parsed with 0 features');
+    }
+    kecamatanLayer.getSource().addFeatures(features);
+  }catch(err){
+    console.error('Failed to load ./data/batas_kecamatan.geojson', err);
+  }
   // Keep explicit center; avoid auto-fit overriding requested center
 })();
 
