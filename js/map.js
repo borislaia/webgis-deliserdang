@@ -16,11 +16,21 @@ const { Overlay } = ol;
 const centerLonLat = [106.827153, -6.175392]; // Jakarta Monas as example center
 const center = fromLonLat(centerLonLat);
 
-const osm = new TileLayer({ source: new OSM(), visible: true });
+// Use explicit OSM XYZ endpoint with CORS to avoid blank tiles on some hosts
+const osm = new TileLayer({
+  source: new XYZ({
+    url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attributions: '© OpenStreetMap contributors',
+    crossOrigin: 'anonymous',
+    maxZoom: 19
+  }),
+  visible: true
+});
 const stamen = new TileLayer({
   source: new XYZ({
     url: 'https://stamen-tiles.a.ssl.fastly.net/toner-lite/{z}/{x}/{y}.png',
     attributions: 'Map tiles by Stamen Design',
+    crossOrigin: 'anonymous',
     maxZoom: 20
   }),
   visible: false
@@ -29,6 +39,7 @@ const esriSat = new TileLayer({
   source: new XYZ({
     url: 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
     attributions: 'Source: Esri, Maxar, Earthstar Geographics',
+    crossOrigin: 'anonymous',
     maxZoom: 20
   }),
   visible: false
@@ -41,6 +52,11 @@ const map = new Map({
   controls: defaultControls({ attribution: true }),
   interactions: defaultInteractions()
 });
+
+// Ensure map resizes correctly after initial render (some hosts need this)
+window.addEventListener('load', () => map.updateSize());
+window.addEventListener('resize', () => map.updateSize());
+setTimeout(() => map.updateSize(), 0);
 
 // Vector layers
 const pointStyle = new Style({
@@ -137,6 +153,19 @@ map.on('singleclick', (evt) => {
     return true;
   }, { hitTolerance: 5 });
   if(!hit){ overlay.setPosition(undefined); }
+});
+
+// Log tile load errors and gently fallback to OSM if selected layer fails
+[osm, stamen, esriSat].forEach((layer) => {
+  layer.getSource().on('tileloaderror', () => {
+    // If current visible layer fails repeatedly, switch to OSM for reliability
+    const isVisible = layer.getVisible();
+    if(isVisible && layer !== osm){
+      osm.setVisible(true);
+      stamen.setVisible(false);
+      esriSat.setVisible(false);
+    }
+  });
 });
 
 // Fullscreen image modal
