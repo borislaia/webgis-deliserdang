@@ -1,27 +1,27 @@
-// Initialize VANTA.DOTS with transparent background to preserve white theme
+// Initialize VANTA.NET with provided settings
 let vantaInstance = null;
 
 function initVanta() {
   const target = document.getElementById('vanta-bg');
-  if (!target || !window.VANTA || !window.VANTA.DOTS) return;
+  if (!target || !window.VANTA || !window.VANTA.NET) return;
   if (vantaInstance) {
     try { vantaInstance.destroy(); } catch (_) {}
     vantaInstance = null;
   }
-  vantaInstance = window.VANTA.DOTS({
+  vantaInstance = window.VANTA.NET({
     el: target,
     mouseControls: true,
     touchControls: true,
     gyroControls: false,
-    minHeight: 200.0,
-    minWidth: 200.0,
-    scale: 1.0,
-    scaleMobile: 1.0,
-    color: 0x0a84ff,
-    color2: 0x5e5ce6,
-    backgroundAlpha: 0.0, // transparent so page's white theme shows
-    size: 2.8,
-    spacing: 28.0
+    minHeight: 200.00,
+    minWidth: 200.00,
+    scale: 1.00,
+    scaleMobile: 1.00,
+    color: 0x40000,
+    backgroundColor: 0xdedede,
+    points: 12.00,
+    maxDistance: 12.00,
+    spacing: 12.00
   });
 }
 
@@ -37,18 +37,18 @@ function ensureVantaContainerStyle() {
       z-index: 0;
       pointer-events: none;
     }
-    /* Ensure app content is above background */
-    #app, .app-header, .app-footer, .layout, .home, .map-container, .float-controls, .float-panel { position: relative; z-index: 1; }
+    /* Ensure main app wrapper paints above background without altering map layout */
+    #app { position: relative; z-index: 1; }
   `;
   document.head.appendChild(style);
 }
 
 function onScriptsReady(cb){
-  if (window.VANTA && window.VANTA.DOTS) { cb(); return; }
+  if (window.VANTA && window.VANTA.NET) { cb(); return; }
   let tries = 0;
   const t = setInterval(() => {
     tries++;
-    if (window.VANTA && window.VANTA.DOTS) { clearInterval(t); cb(); }
+    if (window.VANTA && window.VANTA.NET) { clearInterval(t); cb(); }
     if (tries > 100) { clearInterval(t); }
   }, 50);
 }
