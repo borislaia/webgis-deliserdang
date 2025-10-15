@@ -75,13 +75,21 @@ const map = new Map({
   interactions: defaultInteractions()
 });
 
-// Error handling for tile loading
-[googleHybrid, googleSat, osm, cartoDB, esriSat].forEach((layer, idx) => {
+// Error handling and fallback: if current basemap fails, switch to OSM
+function attachTileErrorFallback(layer){
   const source = layer.getSource();
-  source.on('tileloaderror', (event) => {
-    console.warn(`Tile loading error for layer ${idx}:`, event);
+  if(!source || typeof source.on !== 'function') return;
+  source.on('tileloaderror', () => {
+    if(layer.getVisible()){
+      console.warn('Basemap tile failed; switching to OSM fallback');
+      setBasemap('osm');
+      // Also update the radio button UI to reflect the change
+      const osmRadio = document.querySelector('input[name="basemap"][value="osm"]');
+      if(osmRadio){ osmRadio.checked = true; }
+    }
   });
-});
+}
+[googleHybrid, googleSat, cartoDB, esriSat].forEach(attachTileErrorFallback);
 
 // Vector layers
 const pointStyle = new Style({
@@ -191,6 +199,10 @@ function setBasemap(name){
 document.querySelectorAll('input[name="basemap"]').forEach(r => {
   r.addEventListener('change', (e) => setBasemap(e.target.value));
 });
+
+// Apply initial basemap based on the checked radio, ensuring visibility state sync
+const initialBasemap = document.querySelector('input[name="basemap"]:checked');
+if(initialBasemap){ setBasemap(initialBasemap.value); }
 
 // Layer toggles
 const chkPoints = document.getElementById('chkPoints');
