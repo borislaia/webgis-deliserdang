@@ -9,7 +9,7 @@ form.addEventListener('submit', (e) => {
   // Basic client-only auth: accept any non-empty credentials
   if(email && password){
     setAuth('demo-token');
-    location.href = '/dashboard.html';
+    location.href = 'dashboard.html';
   } else {
     alert('Please enter email and password');
   }
