@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="./css/base.css" />
   </head>
   <body>
+    <div id="vanta-bg"></div>
     <header class="app-header blur">
       <div class="brand">
         <img src="./assets/icons/logo-deliserdang.jpg" alt="Logo" class="brand-icon" />
@@ -52,5 +53,8 @@
     <script>
       document.getElementById('year').textContent = new Date().getFullYear();
     </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r121/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vanta@0.5.24/dist/vanta.dots.min.js"></script>
+    <script type="module" src="./js/vanta-init.js"></script>
   </body>
 </html>
