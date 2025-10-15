@@ -8,10 +8,14 @@ const { Tile: TileLayer, Vector: VectorLayer } = ol.layer;
 const { Vector: VectorSource } = ol.source;
 const { fromLonLat } = ol.proj;
 const { GeoJSON } = ol.format;
-const { Fill, Stroke, Style, Circle: CircleStyle, Icon } = ol.style;
-// In the UMD build, defaults are nested under `.defaults`
-const defaultControls = ol.control.defaults.defaults;
-const defaultInteractions = ol.interaction.defaults.defaults;
+const { Fill, Stroke, Style, Circle: CircleStyle } = ol.style;
+// Support both OL UMD shapes: `.defaults.defaults` (module->fn) and `.defaults` (fn)
+const defaultControls = (ol.control.defaults && ol.control.defaults.defaults)
+  ? ol.control.defaults.defaults
+  : ol.control.defaults;
+const defaultInteractions = (ol.interaction.defaults && ol.interaction.defaults.defaults)
+  ? ol.interaction.defaults.defaults
+  : ol.interaction.defaults;
 const { Select } = ol.interaction;
 const { Overlay } = ol;
 
@@ -91,41 +95,7 @@ function attachTileErrorFallback(layer){
 }
 [googleHybrid, googleSat, cartoDB, esriSat].forEach(attachTileErrorFallback);
 
-// Color palette for each NAMOBJ (22 distinct colors)
-const colorPalette = {
-  'BANGUNPURBA': '#FF6B6B',      // Coral Red
-  'BATANGKUIS': '#4ECDC4',       // Turquoise
-  'BERINGIN': '#45B7D1',         // Sky Blue
-  'BIRU-BIRU': '#96CEB4',        // Sage Green
-  'DELITUA': '#FFEAA7',          // Pale Yellow
-  'GALANG': '#DFE6E9',           // Light Gray
-  'GUNUNGMERIAH': '#74B9FF',     // Light Blue
-  'HAMPARANPERAK': '#A29BFE',    // Periwinkle
-  'KUTALIMBARU': '#FD79A8',      // Pink
-  'LABUHANDELI': '#FDCB6E',      // Orange Yellow
-  'LUBUKPAKAM': '#6C5CE7',       // Purple
-  'NAMORAMBE': '#00B894',        // Teal
-  'PAGARMERBAU': '#E17055',      // Terra Cotta
-  'PANCURBATU': '#55EFC4',       // Mint
-  'PANTAILABU': '#81ECEC',       // Cyan
-  'PATUMBAK': '#FAB1A0',         // Peach
-  'PERCUTSEITUAN': '#FF7675',    // Salmon
-  'SENEMBAHTANJUNGMUDA HILIR': '#FD79A8', // Rose
-  'SENEMBAHTANJUNGMUDA HULU': '#A29BFE',  // Lavender
-  'SIBOLANGIT': '#00CEC9',       // Aqua
-  'SUNGGAL': '#F8A5C2',          // Light Pink
-  'TANJUNGMORAWA': '#63CDDA'     // Ocean Blue
-};
-
-// Style function for kecamatan boundaries
-function kecamatanStyleFunction(feature) {
-  const namobj = feature.get('NAMOBJ');
-  const color = colorPalette[namobj] || '#CCCCCC'; // Default gray if not found
-  return new Style({
-    stroke: new Stroke({ color: '#333333', width: 2 }),
-    fill: new Fill({ color: color + '80' }) // Adding transparency (50%)
-  });
-}
+// (removed legacy, unused color/style function definitions)
 
 // Vector layers
 const pointStyle = new Style({
@@ -245,7 +215,6 @@ const chkKecamatan = document.getElementById('chkKecamatan');
 const chkPoints = document.getElementById('chkPoints');
 const chkLines = document.getElementById('chkLines');
 const chkPolygons = document.getElementById('chkPolygons');
-const chkKecamatan = document.getElementById('chkKecamatan');
 chkPoints.addEventListener('change', () => pointsLayer.setVisible(chkPoints.checked));
 chkLines.addEventListener('change', () => linesLayer.setVisible(chkLines.checked));
 chkPolygons.addEventListener('change', () => polygonsLayer.setVisible(chkPolygons.checked));
