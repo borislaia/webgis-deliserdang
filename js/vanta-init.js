@@ -37,8 +37,9 @@ function ensureVantaContainerStyle() {
       z-index: 0;
       pointer-events: none;
     }
-    /* Ensure content paints above the background */
-    #app, .app-header, .app-footer, .layout, .home, main, .map-container, .float-controls, .float-panel { position: relative; z-index: 1; }
+    /* Lift main wrappers above background without overriding existing positions */
+    #app { position: relative; z-index: 1; }
+    .map-container { z-index: 1; }
   `;
   document.head.appendChild(style);
 }
