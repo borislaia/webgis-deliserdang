@@ -25,7 +25,7 @@ const googleHybrid = new TileLayer({
     maxZoom: 20,
     crossOrigin: 'anonymous'
   }),
-  visible: true
+  visible: true // default basemap matches UI default
 });
 
 const googleSat = new TileLayer({
@@ -63,26 +63,7 @@ const esriSat = new TileLayer({
   visible: false
 });
 
-// Google basemaps
-const googleSat = new TileLayer({
-  source: new XYZ({
-    url: 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
-    attributions: '© Google',
-    maxZoom: 20,
-    crossOrigin: 'anonymous'
-  }),
-  visible: true // default basemap
-});
-
-const googleHybrid = new TileLayer({
-  source: new XYZ({
-    url: 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
-    attributions: '© Google',
-    maxZoom: 20,
-    crossOrigin: 'anonymous'
-  }),
-  visible: false
-});
+// (deduplicated basemap declarations above)
 
 const map = new Map({
   target: 'map',
@@ -94,13 +75,21 @@ const map = new Map({
   interactions: defaultInteractions()
 });
 
-// Error handling for tile loading
-[googleHybrid, googleSat, osm, cartoDB, esriSat].forEach((layer, idx) => {
+// Error handling and fallback: if current basemap fails, switch to OSM
+function attachTileErrorFallback(layer){
   const source = layer.getSource();
-  source.on('tileloaderror', (event) => {
-    console.warn(`Tile loading error for layer ${idx}:`, event);
+  if(!source || typeof source.on !== 'function') return;
+  source.on('tileloaderror', () => {
+    if(layer.getVisible()){
+      console.warn('Basemap tile failed; switching to OSM fallback');
+      setBasemap('osm');
+      // Also update the radio button UI to reflect the change
+      const osmRadio = document.querySelector('input[name="basemap"][value="osm"]');
+      if(osmRadio){ osmRadio.checked = true; }
+    }
   });
-});
+}
+[googleHybrid, googleSat, cartoDB, esriSat].forEach(attachTileErrorFallback);
 
 // Color palette for each NAMOBJ (22 distinct colors)
 const colorPalette = {
@@ -148,38 +137,90 @@ const polygonStyle = new Style({
   fill: new Fill({ color: 'rgba(59,130,246,0.18)' })
 });
 
-const kecamatanLayer = new VectorLayer({ 
-  source: new VectorSource(), 
-  style: kecamatanStyleFunction, 
-  visible: true 
-});
+// Batas Kecamatan layer — colored by NAMOBJ
+const categoryPalette = [
+  '#1f77b4','#aec7e8','#ff7f0e','#ffbb78','#2ca02c','#98df8a',
+  '#d62728','#ff9896','#9467bd','#c5b0d5','#8c564b','#c49c94',
+  '#e377c2','#f7b6d2','#7f7f7f','#c7c7c7','#bcbd22','#dbdb8d',
+  '#17becf','#9edae5'
+];
+const namToColor = new Map();
+let nextColorIndex = 0;
+function colorForName(name){
+  const key = name || 'Unknown';
+  if(!namToColor.has(key)){
+    const color = nextColorIndex < categoryPalette.length
+      ? categoryPalette[nextColorIndex]
+      : hslColorForString(key);
+    namToColor.set(key, color);
+    nextColorIndex++;
+  }
+  return namToColor.get(key);
+}
+function hslColorForString(str){
+  let hash = 0;
+  for(let i = 0; i < str.length; i++){
+    hash = (hash << 5) - hash + str.charCodeAt(i);
+    hash |= 0;
+  }
+  const hue = Math.abs(hash) % 360;
+  return `hsl(${hue}, 65%, 55%)`;
+}
+function hexToRgba(hex, alpha = 0.4){
+  const r = parseInt(hex.slice(1,3), 16);
+  const g = parseInt(hex.slice(3,5), 16);
+  const b = parseInt(hex.slice(5,7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+function applyAlpha(color, alpha){
+  if(color.startsWith('#')) return hexToRgba(color, alpha);
+  if(color.startsWith('hsl(')) return color.replace('hsl(', 'hsla(').replace(')', `, ${alpha})`);
+  return color;
+}
+const kecStyleCache = new Map();
+function kecamatanStyle(feature){
+  const name = feature.get('NAMOBJ') || 'Unknown';
+  const baseColor = colorForName(name);
+  let style = kecStyleCache.get(baseColor);
+  if(!style){
+    style = new Style({
+      stroke: new Stroke({ color: '#111827', width: 1 }),
+      fill: new Fill({ color: applyAlpha(baseColor, 0.35) })
+    });
+    kecStyleCache.set(baseColor, style);
+  }
+  return style;
+}
+
+const kecamatanLayer = new VectorLayer({ source: new VectorSource(), style: kecamatanStyle, visible: true });
+
 const pointsLayer = new VectorLayer({ source: new VectorSource(), style: pointStyle, visible: true });
 const linesLayer = new VectorLayer({ source: new VectorSource(), style: lineStyle, visible: true });
 const polygonsLayer = new VectorLayer({ source: new VectorSource(), style: polygonStyle, visible: true });
-map.addLayer(kecamatanLayer);
+// Layer draw order: polygons (sample), kecamatan (on top of sample polys), lines, points
 map.addLayer(polygonsLayer);
+map.addLayer(kecamatanLayer);
 map.addLayer(linesLayer);
 map.addLayer(pointsLayer);
 
 // Load data
 (async function loadData(){
-  const [kecamatan, points, lines, polys] = await Promise.all([
+  const [batas, points, lines, polys] = await Promise.all([
     fetchJSON('./data/batas_kecamatan.geojson'),
     fetchJSON('./data/points.geojson'),
     fetchJSON('./data/lines.geojson'),
     fetchJSON('./data/polygons.geojson')
   ]);
   const fmt = new GeoJSON();
-  kecamatanLayer.getSource().addFeatures(fmt.readFeatures(kecamatan, { featureProjection: map.getView().getProjection() }));
+  // Batas Kecamatan first
+  kecamatanLayer.getSource().addFeatures(
+    fmt.readFeatures(batas, { featureProjection: map.getView().getProjection() })
+  );
+  // Demo/sample data
   pointsLayer.getSource().addFeatures(fmt.readFeatures(points, { featureProjection: map.getView().getProjection() }));
   linesLayer.getSource().addFeatures(fmt.readFeatures(lines, { featureProjection: map.getView().getProjection() }));
   polygonsLayer.getSource().addFeatures(fmt.readFeatures(polys, { featureProjection: map.getView().getProjection() }));
-
-  // Fit to kecamatan boundaries if available
-  const extent = kecamatanLayer.getSource().getExtent();
-  if (extent && extent[0] !== Infinity) {
-    map.getView().fit(extent, { padding: [40, 40, 40, 40], duration: 500 });
-  }
+  // Keep explicit center; avoid auto-fit overriding requested center
 })();
 
 // Basemap switching
@@ -195,15 +236,22 @@ document.querySelectorAll('input[name="basemap"]').forEach(r => {
   r.addEventListener('change', (e) => setBasemap(e.target.value));
 });
 
+// Apply initial basemap based on the checked radio, ensuring visibility state sync
+const initialBasemap = document.querySelector('input[name="basemap"]:checked');
+if(initialBasemap){ setBasemap(initialBasemap.value); }
+
 // Layer toggles
 const chkKecamatan = document.getElementById('chkKecamatan');
 const chkPoints = document.getElementById('chkPoints');
 const chkLines = document.getElementById('chkLines');
 const chkPolygons = document.getElementById('chkPolygons');
-chkKecamatan.addEventListener('change', () => kecamatanLayer.setVisible(chkKecamatan.checked));
+const chkKecamatan = document.getElementById('chkKecamatan');
 chkPoints.addEventListener('change', () => pointsLayer.setVisible(chkPoints.checked));
 chkLines.addEventListener('change', () => linesLayer.setVisible(chkLines.checked));
 chkPolygons.addEventListener('change', () => polygonsLayer.setVisible(chkPolygons.checked));
+if(chkKecamatan){
+  chkKecamatan.addEventListener('change', () => kecamatanLayer.setVisible(chkKecamatan.checked));
+}
 
 // Controls
 const zoomInBtn = document.getElementById('zoomIn');
@@ -220,7 +268,7 @@ map.addOverlay(overlay);
 
 function renderPopup(feature){
   const props = feature.getProperties();
-  const title = props.name || 'Feature';
+  const title = props.NAMOBJ || props.name || 'Feature';
   const photo = props.photo;
   const desc = props.description || '';
   container.innerHTML = '';
