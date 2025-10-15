@@ -152,7 +152,7 @@ function kecamatanStyle(feature){
   return style;
 }
 
-const kecamatanLayer = new VectorLayer({ source: new VectorSource(), style: kecamatanStyle, visible: true });
+const kecamatanLayer = new VectorLayer({ source: new VectorSource(), style: kecamatanStyle, visible: true, zIndex: 10 });
 
 // Add kecamatan layer to map
 map.addLayer(kecamatanLayer);
@@ -163,7 +163,7 @@ map.addLayer(kecamatanLayer);
   const fmt = new GeoJSON();
   // Load Batas Kecamatan
   kecamatanLayer.getSource().addFeatures(
-    fmt.readFeatures(batas, { featureProjection: map.getView().getProjection() })
+    fmt.readFeatures(batas, { dataProjection: 'EPSG:4326', featureProjection: map.getView().getProjection() })
   );
   // Keep explicit center; avoid auto-fit overriding requested center
 })();
