@@ -19,39 +19,75 @@
       </header>
       <main class="home">
         <h1 class="sr-only">Home</h1>
-        <section class="menu-grid">
-          <!-- 8 circular menu items -->
-          <a class="menu-item" href="./login.html">
-            <span class="icon">📍</span>
-            <span class="label">Spatial</span>
+        
+        <!-- Hero Section -->
+        <section class="hero-section">
+          <h2 class="hero-title">Welcome to Kabupaten GIS</h2>
+          <p class="hero-subtitle">Your comprehensive Geographic Information System platform for spatial data management and analysis</p>
+          <div class="search-container">
+            <input type="text" id="searchInput" class="search-input" placeholder="Search features..." />
+            <span class="search-icon">🔍</span>
+          </div>
+        </section>
+
+        <!-- Enhanced Menu Grid -->
+        <section class="menu-grid" id="menuGrid">
+          <!-- 8 circular menu items with descriptions -->
+          <a class="menu-item" href="./login.html" data-category="spatial">
+            <div class="menu-item-inner">
+              <span class="icon">📍</span>
+              <span class="label">Spatial</span>
+              <span class="description">Manage spatial data and locations</span>
+            </div>
           </a>
-          <a class="menu-item" href="./login.html">
-            <span class="icon">🗺️</span>
-            <span class="label">Basemaps</span>
+          <a class="menu-item" href="./login.html" data-category="basemaps">
+            <div class="menu-item-inner">
+              <span class="icon">🗺️</span>
+              <span class="label">Basemaps</span>
+              <span class="description">Access and configure map layers</span>
+            </div>
           </a>
-          <a class="menu-item" href="./login.html">
-            <span class="icon">🏠</span>
-            <span class="label">Assets</span>
+          <a class="menu-item" href="./login.html" data-category="assets">
+            <div class="menu-item-inner">
+              <span class="icon">🏠</span>
+              <span class="label">Assets</span>
+              <span class="description">Track and manage property assets</span>
+            </div>
           </a>
-          <a class="menu-item" href="./login.html">
-            <span class="icon">📊</span>
-            <span class="label">Reports</span>
+          <a class="menu-item" href="./login.html" data-category="reports">
+            <div class="menu-item-inner">
+              <span class="icon">📊</span>
+              <span class="label">Reports</span>
+              <span class="description">Generate insights and analytics</span>
+            </div>
           </a>
-          <a class="menu-item" href="./login.html">
-            <span class="icon">📝</span>
-            <span class="label">Forms</span>
+          <a class="menu-item" href="./login.html" data-category="forms">
+            <div class="menu-item-inner">
+              <span class="icon">📝</span>
+              <span class="label">Forms</span>
+              <span class="description">Create and manage data forms</span>
+            </div>
           </a>
-          <a class="menu-item" href="./login.html">
-            <span class="icon">👥</span>
-            <span class="label">Users</span>
+          <a class="menu-item" href="./login.html" data-category="users">
+            <div class="menu-item-inner">
+              <span class="icon">👥</span>
+              <span class="label">Users</span>
+              <span class="description">Manage user accounts and permissions</span>
+            </div>
           </a>
-          <a class="menu-item" href="./login.html">
-            <span class="icon">⚙️</span>
-            <span class="label">Settings</span>
+          <a class="menu-item" href="./login.html" data-category="settings">
+            <div class="menu-item-inner">
+              <span class="icon">⚙️</span>
+              <span class="label">Settings</span>
+              <span class="description">Configure system preferences</span>
+            </div>
           </a>
-          <a class="menu-item" href="./login.html">
-            <span class="icon">ℹ️</span>
-            <span class="label">About</span>
+          <a class="menu-item" href="./login.html" data-category="about">
+            <div class="menu-item-inner">
+              <span class="icon">ℹ️</span>
+              <span class="label">About</span>
+              <span class="description">Learn more about the platform</span>
+            </div>
           </a>
         </section>
       </main>
@@ -62,6 +98,32 @@
     <script type="module" src="./js/utils.js"></script>
     <script>
       document.getElementById('year').textContent = new Date().getFullYear();
+      
+      // Search functionality
+      const searchInput = document.getElementById('searchInput');
+      const menuItems = document.querySelectorAll('.menu-item');
+      
+      searchInput.addEventListener('input', (e) => {
+        const searchTerm = e.target.value.toLowerCase();
+        
+        menuItems.forEach(item => {
+          const label = item.querySelector('.label').textContent.toLowerCase();
+          const description = item.querySelector('.description').textContent.toLowerCase();
+          const category = item.dataset.category || '';
+          
+          if (label.includes(searchTerm) || description.includes(searchTerm) || category.includes(searchTerm)) {
+            item.style.display = 'flex';
+            item.style.animation = 'fadeIn 0.3s ease';
+          } else {
+            item.style.display = 'none';
+          }
+        });
+      });
+      
+      // Add staggered animation on load
+      menuItems.forEach((item, index) => {
+        item.style.animationDelay = `${index * 0.1}s`;
+      });
     </script>
   </body>
 </html>
