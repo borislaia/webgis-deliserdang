@@ -18,6 +18,26 @@ const { Overlay } = ol;
 const centerLonLat = [106.827153, -6.175392]; // Jakarta Monas as example center
 const center = fromLonLat(centerLonLat);
 
+const googleHybrid = new TileLayer({
+  source: new XYZ({
+    url: 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+    attributions: '© Google',
+    maxZoom: 20,
+    crossOrigin: 'anonymous'
+  }),
+  visible: true
+});
+
+const googleSat = new TileLayer({
+  source: new XYZ({
+    url: 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+    attributions: '© Google',
+    maxZoom: 20,
+    crossOrigin: 'anonymous'
+  }),
+  visible: false
+});
+
 const osm = new TileLayer({ 
   source: new OSM(), 
   visible: false 
@@ -66,7 +86,7 @@ const googleHybrid = new TileLayer({
 
 const map = new Map({
   target: 'map',
-  layers: [googleSat, googleHybrid, osm, cartoDB, esriSat],
+  layers: [googleHybrid, googleSat, osm, cartoDB, esriSat],
   view: new View({ center, zoom: 11 }),
   // Remove default OL UI controls; we provide custom ones in the UI.
   // Also hides basemap attribution text.
@@ -75,7 +95,7 @@ const map = new Map({
 });
 
 // Error handling for tile loading
-[googleSat, googleHybrid, osm, cartoDB, esriSat].forEach((layer, idx) => {
+[googleHybrid, googleSat, osm, cartoDB, esriSat].forEach((layer, idx) => {
   const source = layer.getSource();
   source.on('tileloaderror', (event) => {
     console.warn(`Tile loading error for layer ${idx}:`, event);
@@ -120,8 +140,8 @@ map.addLayer(pointsLayer);
 
 // Basemap switching
 function setBasemap(name){
-  googleSat.setVisible(name === 'g-sat');
-  googleHybrid.setVisible(name === 'g-hybrid');
+  googleSat.setVisible(name === 'googleSat');
+  googleHybrid.setVisible(name === 'googleHybrid');
   osm.setVisible(name === 'osm');
   cartoDB.setVisible(name === 'carto');
   esriSat.setVisible(name === 'sat');
