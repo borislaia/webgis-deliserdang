@@ -16,20 +16,43 @@ const { Overlay } = ol;
 const centerLonLat = [106.827153, -6.175392]; // Jakarta Monas as example center
 const center = fromLonLat(centerLonLat);
 
-const osm = new TileLayer({ source: new OSM(), visible: true });
+// Use robust, HTTPS-only, CORS-friendly basemap sources for production hosting
+const osm = new TileLayer({
+  source: new XYZ({
+    urls: [
+      'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      'https://c.tile.openstreetmap.org/{z}/{x}/{y}.png'
+    ],
+    attributions: '© OpenStreetMap contributors',
+    maxZoom: 19,
+    crossOrigin: 'anonymous'
+  }),
+  visible: true
+});
+
+// Light basemap (Carto Positron) as a Stamen-like alternative without API key
 const stamen = new TileLayer({
   source: new XYZ({
-    url: 'https://stamen-tiles.a.ssl.fastly.net/toner-lite/{z}/{x}/{y}.png',
-    attributions: 'Map tiles by Stamen Design',
-    maxZoom: 20
+    urls: [
+      'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+      'https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+      'https://c.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+      'https://d.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
+    ],
+    attributions: '© OpenStreetMap contributors, © CARTO',
+    maxZoom: 20,
+    crossOrigin: 'anonymous'
   }),
   visible: false
 });
+
 const esriSat = new TileLayer({
   source: new XYZ({
     url: 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
     attributions: 'Source: Esri, Maxar, Earthstar Geographics',
-    maxZoom: 20
+    maxZoom: 20,
+    crossOrigin: 'anonymous'
   }),
   visible: false
 });
