@@ -1,4 +1,4 @@
-import { fetchJSON, el } from './utils.js';
+import { el } from './utils.js';
 
 // OpenLayers imports via global namespace (loaded from CDN)
 const ol = window.ol;
@@ -157,14 +157,58 @@ const kecamatanLayer = new VectorLayer({ source: new VectorSource(), style: keca
 // Add kecamatan layer to map
 map.addLayer(kecamatanLayer);
 
+// Helpers to robustly load and normalize GeoJSON
+async function fetchJsonWithFallback(paths){
+  for(const path of paths){
+    try{
+      const res = await fetch(path, { cache: 'no-cache' });
+      if(!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      return { data, usedPath: path };
+    }catch(err){
+      console.warn('Gagal memuat data:', path, err);
+    }
+  }
+  throw new Error('Semua percobaan memuat data batas kecamatan gagal');
+}
+
+function toFeatureCollection(data){
+  if(!data) return { type: 'FeatureCollection', features: [] };
+  if(Array.isArray(data)) return { type: 'FeatureCollection', features: data };
+  if(data.type === 'FeatureCollection' && Array.isArray(data.features)) return data;
+  if(data.type === 'Feature') return { type: 'FeatureCollection', features: [data] };
+  if(Array.isArray(data.features)) return { type: 'FeatureCollection', features: data.features };
+  return { type: 'FeatureCollection', features: [] };
+}
+
+function showInlineNotice(message){
+  const target = document.querySelector('.legend') || document.body;
+  const node = el('div', { class: 'card', html: message });
+  target.append(node);
+}
+
 // Load data
 (async function loadData(){
-  const batas = await fetchJSON('./data/batas_kecamatan.geojson');
-  const fmt = new GeoJSON();
-  // Load Batas Kecamatan
-  kecamatanLayer.getSource().addFeatures(
-    fmt.readFeatures(batas, { dataProjection: 'EPSG:4326', featureProjection: map.getView().getProjection() })
-  );
+  try{
+    const { data: rawBatas, usedPath } = await fetchJsonWithFallback([
+      './data/batas_kecamatan.geojson',
+      './data/batas_kecamatan.json'
+    ]);
+    const batas = toFeatureCollection(rawBatas);
+    const fmt = new GeoJSON();
+    const features = fmt.readFeatures(batas, {
+      dataProjection: 'EPSG:4326',
+      featureProjection: map.getView().getProjection()
+    });
+    if(features.length === 0){
+      console.warn('Tidak ada fitur yang berhasil diparse dari', usedPath);
+      showInlineNotice('Tidak ada data batas kecamatan yang dapat ditampilkan.');
+    }
+    kecamatanLayer.getSource().addFeatures(features);
+  }catch(err){
+    console.error('Gagal memuat batas kecamatan:', err);
+    showInlineNotice('Gagal memuat data batas kecamatan. Periksa koneksi atau format data.');
+  }
   // Keep explicit center; avoid auto-fit overriding requested center
 })();
 
