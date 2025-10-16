@@ -1,6 +1,6 @@
 import { fetchJSON, el } from './utils.js';
 
-// OpenLayers imports via global namespace (loaded from CDN)
+// OpenLayers imports via global namespace (loaded from CDN)  
 const ol = window.ol;
 const { Map, View } = ol;
 const { OSM, XYZ } = ol.source;
