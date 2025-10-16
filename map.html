@@ -19,7 +19,7 @@
       .expanding-search {
         position: fixed;
         top: 20px;
-        right: 20px;
+        left: 20px;
         display: flex;
         align-items: center;
         background: var(--card);
@@ -31,6 +31,7 @@
         width: 48px;
         z-index: 1000;
         overflow: hidden;
+        margin-top: 60px; /* Offset to avoid conflict with floating controls */
       }
       
       .expanding-search:hover {
@@ -69,7 +70,7 @@
       .search-results {
         position: absolute;
         top: 60px;
-        right: 0;
+        left: 0;
         width: 300px;
         max-height: 400px;
         overflow-y: auto;
