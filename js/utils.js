@@ -6,7 +6,14 @@ export function ensureAuthRedirect(to = '/login.html'){
 export function setAuth(token){ localStorage.setItem('auth_token', token); }
 export function clearAuth(){ localStorage.removeItem('auth_token'); }
 
-export function fetchJSON(path){ return fetch(path).then(r => r.json()); }
+// Resolve API base; allows overriding via global window.API_BASE or env during dev proxies
+const API_BASE = window.API_BASE || '';
+
+export function fetchJSON(path){
+  const isAbsoluteApi = typeof path === 'string' && path.startsWith('/api/');
+  const finalUrl = isAbsoluteApi ? `${API_BASE}${path}` : path;
+  return fetch(finalUrl).then(r => r.json());
+}
 
 export function el(tag, attrs={}, children=[]){
   const node = document.createElement(tag);

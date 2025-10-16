@@ -159,7 +159,8 @@ map.addLayer(kecamatanLayer);
 
 // Load data
 (async function loadData(){
-  const batas = await fetchJSON('./data/batas_kecamatan.json');
+  // Fetch via backend API to enable future auth/caching and avoid static file coupling
+  const batas = await fetchJSON('/api/batas_kecamatan');
   const fmt = new GeoJSON();
   // Normalize to FeatureCollection if the file is an array of Features
   let batasGeoJSON;
