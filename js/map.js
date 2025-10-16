@@ -95,64 +95,23 @@ function attachTileErrorFallback(layer){
 }
 [googleHybrid, googleSat, cartoDB, esriSat].forEach(attachTileErrorFallback);
 
-// (removed legacy, unused color/style function definitions)
+// Style sederhana untuk Batas Kecamatan
+const kecamatanStyle = new Style({
+  stroke: new Stroke({ 
+    color: '#1f77b4',  // Biru
+    width: 2 
+  }),
+  fill: new Fill({ 
+    color: 'rgba(31, 119, 180, 0.2)'  // Biru transparan
+  })
+});
 
-// Batas Kecamatan layer — colored by NAMOBJ
-const categoryPalette = [
-  '#1f77b4','#aec7e8','#ff7f0e','#ffbb78','#2ca02c','#98df8a',
-  '#d62728','#ff9896','#9467bd','#c5b0d5','#8c564b','#c49c94',
-  '#e377c2','#f7b6d2','#7f7f7f','#c7c7c7','#bcbd22','#dbdb8d',
-  '#17becf','#9edae5'
-];
-const namToColor = new Map();
-let nextColorIndex = 0;
-function colorForName(name){
-  const key = name || 'Unknown';
-  if(!namToColor.has(key)){
-    const color = nextColorIndex < categoryPalette.length
-      ? categoryPalette[nextColorIndex]
-      : hslColorForString(key);
-    namToColor.set(key, color);
-    nextColorIndex++;
-  }
-  return namToColor.get(key);
-}
-function hslColorForString(str){
-  let hash = 0;
-  for(let i = 0; i < str.length; i++){
-    hash = (hash << 5) - hash + str.charCodeAt(i);
-    hash |= 0;
-  }
-  const hue = Math.abs(hash) % 360;
-  return `hsl(${hue}, 65%, 55%)`;
-}
-function hexToRgba(hex, alpha = 0.4){
-  const r = parseInt(hex.slice(1,3), 16);
-  const g = parseInt(hex.slice(3,5), 16);
-  const b = parseInt(hex.slice(5,7), 16);
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
-function applyAlpha(color, alpha){
-  if(color.startsWith('#')) return hexToRgba(color, alpha);
-  if(color.startsWith('hsl(')) return color.replace('hsl(', 'hsla(').replace(')', `, ${alpha})`);
-  return color;
-}
-const kecStyleCache = new Map();
-function kecamatanStyle(feature){
-  const name = feature.get('NAMOBJ') || 'Unknown';
-  const baseColor = colorForName(name);
-  let style = kecStyleCache.get(baseColor);
-  if(!style){
-    style = new Style({
-      stroke: new Stroke({ color: '#111827', width: 1 }),
-      fill: new Fill({ color: applyAlpha(baseColor, 0.35) })
-    });
-    kecStyleCache.set(baseColor, style);
-  }
-  return style;
-}
-
-const kecamatanLayer = new VectorLayer({ source: new VectorSource(), style: kecamatanStyle, visible: true, zIndex: 10 });
+const kecamatanLayer = new VectorLayer({ 
+  source: new VectorSource(), 
+  style: kecamatanStyle, 
+  visible: true, 
+  zIndex: 10 
+});
 
 // Add kecamatan layer to map
 map.addLayer(kecamatanLayer);
