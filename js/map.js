@@ -159,25 +159,49 @@ map.addLayer(kecamatanLayer);
 
 // Load data
 (async function loadData(){
-  const batas = await fetchJSON('./data/batas_kecamatan.json');
-  const fmt = new GeoJSON();
-  // Normalize to FeatureCollection if the file is an array of Features
-  let batasGeoJSON;
-  if(Array.isArray(batas)){
-    batasGeoJSON = { type: 'FeatureCollection', features: batas };
-  } else if(batas && batas.type === 'FeatureCollection' && Array.isArray(batas.features)){
-    batasGeoJSON = batas;
-  } else if(batas && Array.isArray(batas.features)){
-    batasGeoJSON = { type: 'FeatureCollection', features: batas.features };
-  } else {
-    console.warn('Unexpected GeoJSON format for batas_kecamatan.json', batas);
-    batasGeoJSON = { type: 'FeatureCollection', features: [] };
+  try {
+    console.log('Loading batas_kecamatan.json...');
+    const batas = await fetchJSON('./data/batas_kecamatan.json');
+    console.log('Data loaded:', batas);
+    
+    const fmt = new GeoJSON();
+    // Normalize to FeatureCollection if the file is an array of Features
+    let batasGeoJSON;
+    if(Array.isArray(batas)){
+      batasGeoJSON = { type: 'FeatureCollection', features: batas };
+    } else if(batas && batas.type === 'FeatureCollection' && Array.isArray(batas.features)){
+      batasGeoJSON = batas;
+    } else if(batas && Array.isArray(batas.features)){
+      batasGeoJSON = { type: 'FeatureCollection', features: batas.features };
+    } else {
+      console.warn('Unexpected GeoJSON format for batas_kecamatan.json', batas);
+      batasGeoJSON = { type: 'FeatureCollection', features: [] };
+    }
+    
+    console.log('Processing GeoJSON with', batasGeoJSON.features?.length || 0, 'features');
+    
+    // Load Batas Kecamatan
+    const features = fmt.readFeatures(batasGeoJSON, { 
+      dataProjection: 'EPSG:4326', 
+      featureProjection: map.getView().getProjection() 
+    });
+    
+    console.log('Features created:', features.length);
+    kecamatanLayer.getSource().addFeatures(features);
+    
+    // Zoom to extent of loaded features if they exist
+    if(features.length > 0) {
+      const extent = kecamatanLayer.getSource().getExtent();
+      console.log('Features extent:', extent);
+      // Optional: uncomment to auto-fit to data
+      // map.getView().fit(extent, { padding: [50, 50, 50, 50], duration: 1000 });
+    }
+    
+    console.log('✅ Kecamatan layer loaded successfully!');
+  } catch(error) {
+    console.error('❌ Error loading kecamatan data:', error);
+    alert('Gagal memuat data peta. Pastikan server sudah berjalan (npm run backend)');
   }
-  // Load Batas Kecamatan
-  kecamatanLayer.getSource().addFeatures(
-    fmt.readFeatures(batasGeoJSON, { dataProjection: 'EPSG:4326', featureProjection: map.getView().getProjection() })
-  );
-  // Keep explicit center; avoid auto-fit overriding requested center
 })();
 
 // Basemap switching

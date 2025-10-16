@@ -21,8 +21,14 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static files dari root directory
-app.use(express.static(path.join(__dirname, '..')));
+// IMPORTANT: Serve static files dengan headers yang benar untuk JSON/GeoJSON
+app.use(express.static(path.join(__dirname, '..'), {
+  setHeaders: (res, filepath) => {
+    if (filepath.endsWith('.json') || filepath.endsWith('.geojson')) {
+      res.setHeader('Content-Type', 'application/json');
+    }
+  }
+}));
 
 // API Routes
 app.use('/api', apiRoutes);
@@ -54,4 +60,5 @@ app.use((err, req, res, next) => {
 app.listen(PORT, () => {
   console.log(`🚀 Server berjalan di http://localhost:${PORT}`);
   console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`📁 Serving static files dari: ${path.join(__dirname, '..')}`);
 });
