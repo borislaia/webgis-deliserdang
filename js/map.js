@@ -263,9 +263,87 @@ if(chkKecamatan){
 const zoomInBtn = document.getElementById('zoomIn');
 const zoomOutBtn = document.getElementById('zoomOut');
 const resetViewBtn = document.getElementById('resetView');
+const searchBtn = document.getElementById('searchBtn');
+const homeBtn = document.getElementById('homeBtn');
+const dashboardBtn = document.getElementById('dashboardBtn');
+
 zoomInBtn.addEventListener('click', () => map.getView().setZoom(map.getView().getZoom() + 1));
 zoomOutBtn.addEventListener('click', () => map.getView().setZoom(map.getView().getZoom() - 1));
 resetViewBtn.addEventListener('click', () => map.getView().animate({ center, zoom: 11, duration: 400 }));
+
+// Navigation controls
+homeBtn.addEventListener('click', () => window.location.href = './index.html');
+dashboardBtn.addEventListener('click', () => window.location.href = './dashboard.html');
+
+// Search functionality
+const searchPanel = document.getElementById('searchPanel');
+const searchInput = document.getElementById('searchInput');
+const searchResults = document.getElementById('searchResults');
+const closeSearch = document.getElementById('closeSearch');
+
+searchBtn.addEventListener('click', () => {
+  searchPanel.style.display = searchPanel.style.display === 'none' ? 'block' : 'none';
+  if (searchPanel.style.display === 'block') {
+    searchInput.focus();
+  }
+});
+
+closeSearch.addEventListener('click', () => {
+  searchPanel.style.display = 'none';
+  searchInput.value = '';
+  searchResults.innerHTML = '';
+});
+
+// Search input handler
+searchInput.addEventListener('input', (e) => {
+  const query = e.target.value.toLowerCase().trim();
+  searchResults.innerHTML = '';
+  
+  if (query.length < 2) {
+    searchResults.innerHTML = '<div style="padding: 8px; color: #666;">Ketik minimal 2 karakter untuk mencari...</div>';
+    return;
+  }
+  
+  const features = kecamatanLayer.getSource().getFeatures();
+  const matches = features.filter(f => {
+    const name = (f.get('NAMOBJ') || '').toLowerCase();
+    return name.includes(query);
+  });
+  
+  if (matches.length === 0) {
+    searchResults.innerHTML = '<div style="padding: 8px; color: #666;">Tidak ada hasil ditemukan</div>';
+    return;
+  }
+  
+  matches.forEach(feature => {
+    const name = feature.get('NAMOBJ') || 'Tidak diketahui';
+    const div = document.createElement('div');
+    div.className = 'search-result-item';
+    div.innerHTML = `<strong>${name}</strong>`;
+    div.addEventListener('click', () => {
+      // Zoom to feature
+      const geometry = feature.getGeometry();
+      const extent = geometry.getExtent();
+      map.getView().fit(extent, { 
+        padding: [50, 50, 50, 50], 
+        duration: 1000,
+        maxZoom: 14
+      });
+      
+      // Highlight feature temporarily
+      feature.setStyle(kecamatanHoverStyle);
+      setTimeout(() => {
+        feature.setStyle(undefined);
+      }, 3000);
+      
+      // Close search panel
+      searchPanel.style.display = 'none';
+      searchInput.value = '';
+      searchResults.innerHTML = '';
+    });
+    searchResults.appendChild(div);
+  });
+});
 
 // Popup overlay
 const container = el('div', { class: 'ol-popup card' });

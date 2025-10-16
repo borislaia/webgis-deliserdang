@@ -14,6 +14,31 @@
       .ol-popup .title{ font-weight:600; margin-bottom:4px; }
       .ol-popup img{ width:100%; border-radius:10px; margin-top:6px; cursor:pointer; }
       .toolbar .btn{ padding:8px 10px; }
+      .search-panel {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        width: 300px;
+        max-width: 90vw;
+        background: var(--card);
+        padding: 16px;
+        border-radius: 12px;
+        border: 1px solid var(--stroke);
+        z-index: 1000;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      }
+      .search-result-item {
+        padding: 8px 12px;
+        margin: 4px 0;
+        background: var(--bg);
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .search-result-item:hover {
+        background: var(--stroke);
+        transform: translateX(4px);
+      }
     </style>
   </head>
   <body>
@@ -21,9 +46,22 @@
 
     <!-- Floating controls -->
     <div class="float-controls">
-      <button id="zoomIn" class="btn">＋</button>
-      <button id="zoomOut" class="btn">－</button>
-      <button id="resetView" class="btn">⤾</button>
+      <button id="searchBtn" class="btn" title="Search Kecamatan">🔍</button>
+      <button id="homeBtn" class="btn" title="Home">🏠</button>
+      <button id="dashboardBtn" class="btn" title="Dashboard">📊</button>
+      <button id="resetView" class="btn" title="Reset View">⤾</button>
+      <button id="zoomIn" class="btn" title="Zoom In">＋</button>
+      <button id="zoomOut" class="btn" title="Zoom Out">－</button>
+    </div>
+
+    <!-- Search Panel -->
+    <div id="searchPanel" class="search-panel card" style="display: none;">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 10px;">
+        <strong>Cari Kecamatan</strong>
+        <button id="closeSearch" class="btn" style="padding: 4px 8px;">✕</button>
+      </div>
+      <input type="text" id="searchInput" placeholder="Ketik nama kecamatan..." style="width: 100%; padding: 8px; border: 1px solid var(--stroke); border-radius: 6px; font-size: 14px;" />
+      <div id="searchResults" style="margin-top: 10px; max-height: 300px; overflow-y: auto;"></div>
     </div>
 
     <!-- Floating layer panel -->
