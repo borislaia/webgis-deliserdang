@@ -19,7 +19,7 @@ const defaultInteractions = (ol.interaction.defaults && ol.interaction.defaults.
 const { Select } = ol.interaction;
 const { Overlay } = ol;
 
-const centerLonLat = [98.8664408999889, 3.550706892846442]; // Deli Serdang, North Sumatra
+const centerLonLat = [98.69870163855006, 3.5460256535269954]; // Deli Serdang, North Sumatra
 const center = fromLonLat(centerLonLat);
 
 const googleHybrid = new TileLayer({
