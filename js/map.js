@@ -159,11 +159,23 @@ map.addLayer(kecamatanLayer);
 
 // Load data
 (async function loadData(){
-  const batas = await fetchJSON('./data/batas_kecamatan.geojson');
+  const batas = await fetchJSON('./data/batas_kecamatan.json');
   const fmt = new GeoJSON();
+  // Normalize to FeatureCollection if the file is an array of Features
+  let batasGeoJSON;
+  if(Array.isArray(batas)){
+    batasGeoJSON = { type: 'FeatureCollection', features: batas };
+  } else if(batas && batas.type === 'FeatureCollection' && Array.isArray(batas.features)){
+    batasGeoJSON = batas;
+  } else if(batas && Array.isArray(batas.features)){
+    batasGeoJSON = { type: 'FeatureCollection', features: batas.features };
+  } else {
+    console.warn('Unexpected GeoJSON format for batas_kecamatan.json', batas);
+    batasGeoJSON = { type: 'FeatureCollection', features: [] };
+  }
   // Load Batas Kecamatan
   kecamatanLayer.getSource().addFeatures(
-    fmt.readFeatures(batas, { dataProjection: 'EPSG:4326', featureProjection: map.getView().getProjection() })
+    fmt.readFeatures(batasGeoJSON, { dataProjection: 'EPSG:4326', featureProjection: map.getView().getProjection() })
   );
   // Keep explicit center; avoid auto-fit overriding requested center
 })();
