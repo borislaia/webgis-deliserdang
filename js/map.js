@@ -106,6 +106,17 @@ const kecamatanStyle = new Style({
   })
 });
 
+// Style untuk hover effect
+const kecamatanHoverStyle = new Style({
+  stroke: new Stroke({ 
+    color: '#ff7f0e',  // Orange
+    width: 3 
+  }),
+  fill: new Fill({ 
+    color: 'rgba(255, 127, 14, 0.4)'  // Orange transparan lebih terang
+  })
+});
+
 const kecamatanLayer = new VectorLayer({ 
   source: new VectorSource(), 
   style: kecamatanStyle, 
@@ -115,6 +126,68 @@ const kecamatanLayer = new VectorLayer({
 
 // Add kecamatan layer to map
 map.addLayer(kecamatanLayer);
+
+// Tooltip untuk hover
+const tooltipElement = el('div', { class: 'ol-tooltip' });
+tooltipElement.style.cssText = `
+  position: absolute;
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 9999;
+`;
+const tooltipOverlay = new Overlay({
+  element: tooltipElement,
+  offset: [10, 0],
+  positioning: 'center-left'
+});
+map.addOverlay(tooltipOverlay);
+
+// Hover interaction
+let currentFeature = null;
+map.on('pointermove', (evt) => {
+  if (evt.dragging) return;
+  
+  const pixel = evt.pixel;
+  let feature = null;
+  
+  // Cari feature yang di-hover
+  map.forEachFeatureAtPixel(pixel, (f, layer) => {
+    if (layer === kecamatanLayer) {
+      feature = f;
+      return true;
+    }
+  });
+  
+  // Reset style feature sebelumnya
+  if (currentFeature && currentFeature !== feature) {
+    currentFeature.setStyle(undefined);
+  }
+  
+  // Set hover style dan tampilkan tooltip
+  if (feature) {
+    feature.setStyle(kecamatanHoverStyle);
+    currentFeature = feature;
+    
+    // Tampilkan nama kecamatan di tooltip
+    const namaKecamatan = feature.get('NAMOBJ') || 'Tidak diketahui';
+    tooltipElement.innerHTML = `<strong>${namaKecamatan}</strong>`;
+    tooltipOverlay.setPosition(evt.coordinate);
+    
+    // Ubah cursor jadi pointer
+    map.getTargetElement().style.cursor = 'pointer';
+  } else {
+    // Sembunyikan tooltip
+    tooltipOverlay.setPosition(undefined);
+    currentFeature = null;
+    map.getTargetElement().style.cursor = '';
+  }
+});
 
 // Load data
 (async function loadData(){
