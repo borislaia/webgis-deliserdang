@@ -263,7 +263,6 @@ if(chkKecamatan){
 const zoomInBtn = document.getElementById('zoomIn');
 const zoomOutBtn = document.getElementById('zoomOut');
 const resetViewBtn = document.getElementById('resetView');
-const searchBtn = document.getElementById('searchBtn');
 const homeBtn = document.getElementById('homeBtn');
 const dashboardBtn = document.getElementById('dashboardBtn');
 
@@ -275,23 +274,38 @@ resetViewBtn.addEventListener('click', () => map.getView().animate({ center, zoo
 homeBtn.addEventListener('click', () => window.location.href = './index.html');
 dashboardBtn.addEventListener('click', () => window.location.href = './dashboard.html');
 
-// Search functionality
-const searchPanel = document.getElementById('searchPanel');
+// Expanding Search Bar functionality
 const searchInput = document.getElementById('searchInput');
 const searchResults = document.getElementById('searchResults');
-const closeSearch = document.getElementById('closeSearch');
 
-searchBtn.addEventListener('click', () => {
-  searchPanel.style.display = searchPanel.style.display === 'none' ? 'block' : 'none';
-  if (searchPanel.style.display === 'block') {
-    searchInput.focus();
-  }
+// Keep search results visible when hovering over them
+let isSearchActive = false;
+const expandingSearch = document.querySelector('.expanding-search');
+
+expandingSearch.addEventListener('mouseenter', () => {
+  isSearchActive = true;
 });
 
-closeSearch.addEventListener('click', () => {
-  searchPanel.style.display = 'none';
-  searchInput.value = '';
-  searchResults.innerHTML = '';
+expandingSearch.addEventListener('mouseleave', () => {
+  setTimeout(() => {
+    if (!searchResults.matches(':hover')) {
+      isSearchActive = false;
+      if (searchInput.value.trim() === '') {
+        searchResults.classList.remove('active');
+      }
+    }
+  }, 200);
+});
+
+searchResults.addEventListener('mouseenter', () => {
+  isSearchActive = true;
+});
+
+searchResults.addEventListener('mouseleave', () => {
+  isSearchActive = false;
+  if (searchInput.value.trim() === '') {
+    searchResults.classList.remove('active');
+  }
 });
 
 // Search input handler
@@ -299,8 +313,14 @@ searchInput.addEventListener('input', (e) => {
   const query = e.target.value.toLowerCase().trim();
   searchResults.innerHTML = '';
   
+  if (query.length === 0) {
+    searchResults.classList.remove('active');
+    return;
+  }
+  
   if (query.length < 2) {
-    searchResults.innerHTML = '<div style="padding: 8px; color: #666;">Ketik minimal 2 karakter untuk mencari...</div>';
+    searchResults.classList.add('active');
+    searchResults.innerHTML = '<div class="search-no-results">Ketik minimal 2 karakter untuk mencari...</div>';
     return;
   }
   
@@ -311,10 +331,12 @@ searchInput.addEventListener('input', (e) => {
   });
   
   if (matches.length === 0) {
-    searchResults.innerHTML = '<div style="padding: 8px; color: #666;">Tidak ada hasil ditemukan</div>';
+    searchResults.classList.add('active');
+    searchResults.innerHTML = '<div class="search-no-results">Tidak ada hasil ditemukan</div>';
     return;
   }
   
+  searchResults.classList.add('active');
   matches.forEach(feature => {
     const name = feature.get('NAMOBJ') || 'Tidak diketahui';
     const div = document.createElement('div');
@@ -336,13 +358,22 @@ searchInput.addEventListener('input', (e) => {
         feature.setStyle(undefined);
       }, 3000);
       
-      // Close search panel
-      searchPanel.style.display = 'none';
+      // Clear search
       searchInput.value = '';
       searchResults.innerHTML = '';
+      searchResults.classList.remove('active');
     });
     searchResults.appendChild(div);
   });
+});
+
+// Clear search when clicking outside
+document.addEventListener('click', (e) => {
+  if (!expandingSearch.contains(e.target) && !searchResults.contains(e.target)) {
+    searchInput.value = '';
+    searchResults.innerHTML = '';
+    searchResults.classList.remove('active');
+  }
 });
 
 // Popup overlay
