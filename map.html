@@ -14,54 +14,116 @@
       .ol-popup .title{ font-weight:600; margin-bottom:4px; }
       .ol-popup img{ width:100%; border-radius:10px; margin-top:6px; cursor:pointer; }
       .toolbar .btn{ padding:8px 10px; }
-      .search-panel {
+      
+      /* Expanding Search Bar */
+      .expanding-search {
         position: fixed;
         top: 20px;
         right: 20px;
-        width: 300px;
-        max-width: 90vw;
+        display: flex;
+        align-items: center;
         background: var(--card);
-        padding: 16px;
-        border-radius: 12px;
         border: 1px solid var(--stroke);
+        border-radius: 24px;
+        padding: 10px 14px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        width: 48px;
         z-index: 1000;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        overflow: hidden;
       }
+      
+      .expanding-search:hover {
+        width: 300px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+      }
+      
+      .search-icon {
+        font-size: 20px;
+        flex-shrink: 0;
+        cursor: pointer;
+        user-select: none;
+      }
+      
+      .search-input {
+        border: none;
+        outline: none;
+        background: transparent;
+        font-size: 14px;
+        padding: 0 0 0 12px;
+        width: 0;
+        opacity: 0;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        color: var(--text);
+      }
+      
+      .expanding-search:hover .search-input {
+        width: 240px;
+        opacity: 1;
+      }
+      
+      .search-input::placeholder {
+        color: var(--muted);
+      }
+      
+      .search-results {
+        position: absolute;
+        top: 60px;
+        right: 0;
+        width: 300px;
+        max-height: 400px;
+        overflow-y: auto;
+        background: var(--card);
+        border: 1px solid var(--stroke);
+        border-radius: 12px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+        display: none;
+        padding: 8px;
+      }
+      
+      .search-results.active {
+        display: block;
+      }
+      
       .search-result-item {
-        padding: 8px 12px;
+        padding: 10px 12px;
         margin: 4px 0;
         background: var(--bg);
-        border-radius: 6px;
+        border-radius: 8px;
         cursor: pointer;
         transition: all 0.2s;
       }
+      
       .search-result-item:hover {
         background: var(--stroke);
         transform: translateX(4px);
+      }
+      
+      .search-no-results {
+        padding: 12px;
+        color: var(--muted);
+        text-align: center;
+        font-size: 14px;
       }
     </style>
   </head>
   <body>
     <div class="map-container" id="map"></div>
 
+    <!-- Expanding Search Bar -->
+    <div class="expanding-search">
+      <div class="search-icon">🔍</div>
+      <input type="text" id="searchInput" class="search-input" placeholder="Search" />
+      <div id="searchResults" class="search-results"></div>
+    </div>
+
     <!-- Floating controls -->
     <div class="float-controls">
-      <button id="searchBtn" class="btn" title="Search Kecamatan">🔍</button>
       <button id="homeBtn" class="btn" title="Home">🏠</button>
       <button id="dashboardBtn" class="btn" title="Dashboard">📊</button>
       <button id="resetView" class="btn" title="Reset View">⤾</button>
       <button id="zoomIn" class="btn" title="Zoom In">＋</button>
       <button id="zoomOut" class="btn" title="Zoom Out">－</button>
-    </div>
-
-    <!-- Search Panel -->
-    <div id="searchPanel" class="search-panel card" style="display: none;">
-      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 10px;">
-        <strong>Cari Kecamatan</strong>
-        <button id="closeSearch" class="btn" style="padding: 4px 8px;">✕</button>
-      </div>
-      <input type="text" id="searchInput" placeholder="Ketik nama kecamatan..." style="width: 100%; padding: 8px; border: 1px solid var(--stroke); border-radius: 6px; font-size: 14px;" />
-      <div id="searchResults" style="margin-top: 10px; max-height: 300px; overflow-y: auto;"></div>
     </div>
 
     <!-- Floating layer panel -->
