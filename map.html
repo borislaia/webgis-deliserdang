@@ -55,16 +55,29 @@
         opacity: 0;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         color: var(--text);
+        pointer-events: none;
       }
       
       .expanding-search:hover .search-input {
         width: 140px;
         opacity: 1;
+        pointer-events: auto;
+      }
+      
+      .expanding-search:focus-within .search-input {
+        width: 140px;
+        opacity: 1;
+        pointer-events: auto;
       }
       
       .search-input::placeholder {
         color: var(--muted);
         font-size: 12px;
+      }
+      
+      .search-input:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
       }
       
       .search-results {
@@ -123,7 +136,7 @@
       <!-- Search Bar integrated with controls -->
       <div class="expanding-search">
         <div class="search-icon">🔍</div>
-        <input type="text" id="searchInput" class="search-input" placeholder="Search kecamatan..." />
+        <input type="text" id="searchInput" class="search-input" placeholder="Loading data..." disabled />
         <div id="searchResults" class="search-results"></div>
       </div>
     </div>

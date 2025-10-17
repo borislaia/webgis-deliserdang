@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Search Bar</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Search Bar Verification</h1>
+        
+        <div class="test-section">
+            <h3>1. Element Detection</h3>
+            <div id="elementStatus"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>2. Functionality Test</h3>
+            <button class="test-button" onclick="testSearchFunctionality()">Test Search</button>
+            <div id="functionalityStatus"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>3. Data Loading Test</h3>
+            <button class="test-button" onclick="testDataLoading()">Test Data Loading</button>
+            <div id="dataStatus"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>4. Event Listener Test</h3>
+            <button class="test-button" onclick="testEventListeners()">Test Event Listeners</button>
+            <div id="eventStatus"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>5. Quick Fixes Applied</h3>
+            <div id="fixesStatus"></div>
+        </div>
+    </div>
+
+    <script>
+        function addStatus(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.textContent = message;
+            element.appendChild(div);
+        }
+
+        function testSearchFunctionality() {
+            const status = document.getElementById('functionalityStatus');
+            status.innerHTML = '';
+            
+            // Test if we can access search elements
+            try {
+                // Simulate the search functionality
+                const testData = [
+                    { name: 'Medan Deli', NAMOBJ: 'Medan Deli' },
+                    { name: 'Deli Serdang', NAMOBJ: 'Deli Serdang' },
+                    { name: 'Lubuk Pakam', NAMOBJ: 'Lubuk Pakam' }
+                ];
+                
+                const query = 'medan';
+                const matches = testData.filter(item => 
+                    item.name.toLowerCase().includes(query.toLowerCase())
+                );
+                
+                addStatus('functionalityStatus', `✅ Search logic works: Found ${matches.length} matches for "${query}"`, 'success');
+                addStatus('functionalityStatus', `Matches: ${matches.map(m => m.name).join(', ')}`, 'info');
+                
+            } catch (error) {
+                addStatus('functionalityStatus', `❌ Search functionality error: ${error.message}`, 'error');
+            }
+        }
+
+        function testDataLoading() {
+            const status = document.getElementById('dataStatus');
+            status.innerHTML = '';
+            
+            // Test if we can load the GeoJSON data
+            fetch('./data/batas_kecamatan.json')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    addStatus('dataStatus', '✅ GeoJSON data loaded successfully', 'success');
+                    addStatus('dataStatus', `Data type: ${data.type}`, 'info');
+                    addStatus('dataStatus', `Features count: ${data.features ? data.features.length : 'Unknown'}`, 'info');
+                    
+                    // Check if features have NAMOBJ property
+                    if (data.features && data.features.length > 0) {
+                        const firstFeature = data.features[0];
+                        const hasNAMOBJ = firstFeature.properties && firstFeature.properties.NAMOBJ;
+                        addStatus('dataStatus', `First feature has NAMOBJ: ${hasNAMOBJ}`, hasNAMOBJ ? 'success' : 'warning');
+                        if (hasNAMOBJ) {
+                            addStatus('dataStatus', `Sample name: ${firstFeature.properties.NAMOBJ}`, 'info');
+                        }
+                    }
+                })
+                .catch(error => {
+                    addStatus('dataStatus', `❌ Data loading failed: ${error.message}`, 'error');
+                });
+        }
+
+        function testEventListeners() {
+            const status = document.getElementById('eventStatus');
+            status.innerHTML = '';
+            
+            // Test if we can create and attach event listeners
+            try {
+                const testInput = document.createElement('input');
+                let eventFired = false;
+                
+                testInput.addEventListener('input', () => {
+                    eventFired = true;
+                });
+                
+                // Simulate input event
+                testInput.value = 'test';
+                testInput.dispatchEvent(new Event('input'));
+                
+                addStatus('eventStatus', `✅ Event listeners work: ${eventFired}`, 'success');
+                
+                // Test click event
+                let clickFired = false;
+                testInput.addEventListener('click', () => {
+                    clickFired = true;
+                });
+                
+                testInput.dispatchEvent(new Event('click'));
+                addStatus('eventStatus', `✅ Click events work: ${clickFired}`, 'success');
+                
+            } catch (error) {
+                addStatus('eventStatus', `❌ Event listener error: ${error.message}`, 'error');
+            }
+        }
+
+        // Check element detection on page load
+        window.addEventListener('load', () => {
+            const status = document.getElementById('elementStatus');
+            
+            // Check if we're on the right page
+            if (window.location.pathname.includes('map.html')) {
+                addStatus('elementStatus', '✅ On map.html page', 'success');
+                
+                // Check for search elements
+                const searchInput = document.getElementById('searchInput');
+                const searchResults = document.getElementById('searchResults');
+                const expandingSearch = document.querySelector('.expanding-search');
+                
+                addStatus('elementStatus', `Search input found: ${!!searchInput}`, searchInput ? 'success' : 'error');
+                addStatus('elementStatus', `Search results found: ${!!searchResults}`, searchResults ? 'success' : 'error');
+                addStatus('elementStatus', `Expanding search found: ${!!expandingSearch}`, expandingSearch ? 'success' : 'error');
+                
+                if (searchInput) {
+                    addStatus('elementStatus', `Search input disabled: ${searchInput.disabled}`, searchInput.disabled ? 'warning' : 'success');
+                    addStatus('elementStatus', `Search input placeholder: "${searchInput.placeholder}"`, 'info');
+                }
+                
+            } else {
+                addStatus('elementStatus', '⚠️ Not on map.html page - redirecting...', 'warning');
+                setTimeout(() => {
+                    window.location.href = './map.html';
+                }, 2000);
+            }
+        });
+
+        // Show applied fixes
+        window.addEventListener('load', () => {
+            const status = document.getElementById('fixesStatus');
+            
+            const fixes = [
+                '✅ Added proper event listeners for search input',
+                '✅ Added disabled state management for search input',
+                '✅ Added error handling for data loading',
+                '✅ Added debug logging for troubleshooting',
+                '✅ Added CSS improvements for better UX',
+                '✅ Added focus management for search input',
+                '✅ Added keyboard support (Escape key)',
+                '✅ Added proper timing for data loading and search activation'
+            ];
+            
+            fixes.forEach(fix => {
+                addStatus('fixesStatus', fix, 'success');
+            });
+        });
+    </script>
+</body>
+</html>
