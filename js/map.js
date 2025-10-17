@@ -117,15 +117,15 @@ const kecamatanHoverStyle = new Style({
   })
 });
 
-const kecamatanLayer = new VectorLayer({ 
-  source: new VectorSource(), 
-  style: kecamatanStyle, 
-  visible: true, 
-  zIndex: 10 
-});
-
-// Add kecamatan layer to map
-map.addLayer(kecamatanLayer);
+// Create kecamatan layer using layer manager
+const kecamatanSource = new VectorSource();
+const kecamatanLayer = layerManager.addLayer(
+  'Batas Kecamatan', 
+  kecamatanSource, 
+  kecamatanStyle, 
+  true, 
+  ['NAMOBJ', 'name', 'KECAMATAN']
+);
 
 // Tooltip untuk hover
 const tooltipElement = el('div', { class: 'ol-tooltip' });
@@ -148,19 +148,24 @@ const tooltipOverlay = new Overlay({
 });
 map.addOverlay(tooltipOverlay);
 
-// Hover interaction
+// Hover interaction - Updated to work with all layers
 let currentFeature = null;
 map.on('pointermove', (evt) => {
   if (evt.dragging) return;
   
   const pixel = evt.pixel;
   let feature = null;
+  let layerName = '';
   
-  // Cari feature yang di-hover
+  // Cari feature yang di-hover dari semua layers
   map.forEachFeatureAtPixel(pixel, (f, layer) => {
-    if (layer === kecamatanLayer) {
-      feature = f;
-      return true;
+    // Check if this layer is managed by our layer manager
+    for (const [name, managedLayer] of layerManager.layers) {
+      if (layer === managedLayer) {
+        feature = f;
+        layerName = name;
+        return true;
+      }
     }
   });
   
@@ -174,9 +179,9 @@ map.on('pointermove', (evt) => {
     feature.setStyle(kecamatanHoverStyle);
     currentFeature = feature;
     
-    // Tampilkan nama kecamatan di tooltip
-    const namaKecamatan = feature.get('NAMOBJ') || 'Tidak diketahui';
-    tooltipElement.innerHTML = `<strong>${namaKecamatan}</strong>`;
+    // Tampilkan nama feature di tooltip
+    const featureName = feature.get('NAMOBJ') || feature.get('name') || 'Tidak diketahui';
+    tooltipElement.innerHTML = `<strong>${featureName}</strong><br><small>${layerName}</small>`;
     tooltipOverlay.setPosition(evt.coordinate);
     
     // Ubah cursor jadi pointer
@@ -189,49 +194,114 @@ map.on('pointermove', (evt) => {
   }
 });
 
-// Load data
-(async function loadData(){
+// Function to load GeoJSON file
+async function loadGeoJSONFile(filePath, layerName, style, searchableFields = ['NAMOBJ', 'name']) {
   try {
-    console.log('Loading batas_kecamatan.json...');
-    const batas = await fetchJSON('./data/batas_kecamatan.json');
-    console.log('Data loaded:', batas);
+    console.log(`Loading ${filePath}...`);
+    const data = await fetchJSON(filePath);
+    console.log('Data loaded:', data);
     
     const fmt = new GeoJSON();
     // Normalize to FeatureCollection if the file is an array of Features
-    let batasGeoJSON;
-    if(Array.isArray(batas)){
-      batasGeoJSON = { type: 'FeatureCollection', features: batas };
-    } else if(batas && batas.type === 'FeatureCollection' && Array.isArray(batas.features)){
-      batasGeoJSON = batas;
-    } else if(batas && Array.isArray(batas.features)){
-      batasGeoJSON = { type: 'FeatureCollection', features: batas.features };
+    let geoJSON;
+    if(Array.isArray(data)){
+      geoJSON = { type: 'FeatureCollection', features: data };
+    } else if(data && data.type === 'FeatureCollection' && Array.isArray(data.features)){
+      geoJSON = data;
+    } else if(data && Array.isArray(data.features)){
+      geoJSON = { type: 'FeatureCollection', features: data.features };
     } else {
-      console.warn('Unexpected GeoJSON format for batas_kecamatan.json', batas);
-      batasGeoJSON = { type: 'FeatureCollection', features: [] };
+      console.warn(`Unexpected GeoJSON format for ${filePath}`, data);
+      geoJSON = { type: 'FeatureCollection', features: [] };
     }
     
-    console.log('Processing GeoJSON with', batasGeoJSON.features?.length || 0, 'features');
+    console.log(`Processing GeoJSON with ${geoJSON.features?.length || 0} features`);
     
-    // Load Batas Kecamatan
-    const features = fmt.readFeatures(batasGeoJSON, { 
+    // Load features
+    const features = fmt.readFeatures(geoJSON, { 
       dataProjection: 'EPSG:4326', 
       featureProjection: map.getView().getProjection() 
     });
     
     console.log('Features created:', features.length);
-    kecamatanLayer.getSource().addFeatures(features);
+    
+    // Create layer using layer manager
+    const source = new VectorSource();
+    const layer = layerManager.addLayer(layerName, source, style, true, searchableFields);
+    source.addFeatures(features);
     
     // Zoom to extent of loaded features if they exist
     if(features.length > 0) {
-      const extent = kecamatanLayer.getSource().getExtent();
+      const extent = source.getExtent();
       console.log('Features extent:', extent);
-      // Optional: uncomment to auto-fit to data
-      // map.getView().fit(extent, { padding: [50, 50, 50, 50], duration: 1000 });
     }
     
-    console.log('✅ Kecamatan layer loaded successfully!');
+    console.log(`✅ ${layerName} layer loaded successfully!`);
+    return layer;
   } catch(error) {
-    console.error('❌ Error loading kecamatan data:', error);
+    console.error(`❌ Error loading ${filePath}:`, error);
+    return null;
+  }
+}
+
+// Load data
+(async function loadData(){
+  try {
+    // Load Batas Kecamatan
+    await loadGeoJSONFile(
+      './data/batas_kecamatan.json', 
+      'Batas Kecamatan', 
+      kecamatanStyle, 
+      ['NAMOBJ', 'name', 'KECAMATAN']
+    );
+    
+    // Load additional GeoJSON files if they exist
+    const additionalFiles = [
+      { path: './data/sungai.json', name: 'Sungai', fields: ['NAMOBJ', 'name', 'SUNGAI'] },
+      { path: './data/danau.json', name: 'Danau', fields: ['NAMOBJ', 'name', 'DANAU'] },
+      { path: './data/irigasi.json', name: 'Irigasi', fields: ['NAMOBJ', 'name', 'IRIGASI'] },
+      { path: './data/bencana.json', name: 'Rawan Bencana', fields: ['NAMOBJ', 'name', 'BENCANA'] }
+    ];
+    
+    // Create different styles for different layer types
+    const sungaiStyle = new Style({
+      stroke: new Stroke({ color: '#0066cc', width: 2 }),
+      fill: new Fill({ color: 'rgba(0, 102, 204, 0.2)' })
+    });
+    
+    const danauStyle = new Style({
+      stroke: new Stroke({ color: '#00cc66', width: 2 }),
+      fill: new Fill({ color: 'rgba(0, 204, 102, 0.3)' })
+    });
+    
+    const irigasiStyle = new Style({
+      stroke: new Stroke({ color: '#cc6600', width: 2 }),
+      fill: new Fill({ color: 'rgba(204, 102, 0, 0.2)' })
+    });
+    
+    const bencanaStyle = new Style({
+      stroke: new Stroke({ color: '#cc0000', width: 2 }),
+      fill: new Fill({ color: 'rgba(204, 0, 0, 0.3)' })
+    });
+    
+    const styleMap = {
+      'Sungai': sungaiStyle,
+      'Danau': danauStyle,
+      'Irigasi': irigasiStyle,
+      'Rawan Bencana': bencanaStyle
+    };
+    
+    // Try to load additional files
+    for (const file of additionalFiles) {
+      try {
+        await loadGeoJSONFile(file.path, file.name, styleMap[file.name], file.fields);
+      } catch (error) {
+        console.log(`File ${file.path} not found, skipping...`);
+      }
+    }
+    
+  } catch(error) {
+    console.error('❌ Error loading data:', error);
     alert('Gagal memuat data peta. Pastikan server sudah berjalan (npm run backend)');
   }
 })();
@@ -253,11 +323,31 @@ document.querySelectorAll('input[name="basemap"]').forEach(r => {
 const initialBasemap = document.querySelector('input[name="basemap"]:checked');
 if(initialBasemap){ setBasemap(initialBasemap.value); }
 
-// Layer toggles
-const chkKecamatan = document.getElementById('chkKecamatan');
-if(chkKecamatan){
-  chkKecamatan.addEventListener('change', () => kecamatanLayer.setVisible(chkKecamatan.checked));
+// Layer toggles - Update to support multiple layers
+function updateLayerToggles() {
+  const layerPanel = document.querySelector('.float-panel .legend');
+  if (!layerPanel) return;
+  
+  // Clear existing toggles
+  layerPanel.innerHTML = '';
+  
+  // Add toggles for each layer
+  layerManager.layers.forEach((layer, name) => {
+    const toggleId = `chk${name.replace(/\s+/g, '')}`;
+    const div = document.createElement('div');
+    div.innerHTML = `<label><input id="${toggleId}" type="checkbox" checked /> ${name}</label>`;
+    layerPanel.appendChild(div);
+    
+    // Add event listener
+    const checkbox = document.getElementById(toggleId);
+    if (checkbox) {
+      checkbox.addEventListener('change', () => layer.setVisible(checkbox.checked));
+    }
+  });
 }
+
+// Update layer toggles after data is loaded
+setTimeout(updateLayerToggles, 2000);
 
 // Controls
 const zoomInBtn = document.getElementById('zoomIn');
@@ -274,114 +364,197 @@ resetViewBtn.addEventListener('click', () => map.getView().animate({ center, zoo
 homeBtn.addEventListener('click', () => window.location.href = './index.html');
 dashboardBtn.addEventListener('click', () => window.location.href = './dashboard.html');
 
-// Expanding Search Bar functionality
-const searchInput = document.getElementById('searchInput');
-const searchResults = document.getElementById('searchResults');
-
-// Keep search results visible when hovering over them
-let isSearchActive = false;
-const expandingSearch = document.querySelector('.expanding-search');
-
-expandingSearch.addEventListener('mouseenter', () => {
-  isSearchActive = true;
-});
-
-expandingSearch.addEventListener('mouseleave', () => {
-  setTimeout(() => {
-    if (!searchResults.matches(':hover')) {
-      isSearchActive = false;
-      if (searchInput.value.trim() === '') {
-        searchResults.classList.remove('active');
-      }
-    }
-  }, 200);
-});
-
-searchResults.addEventListener('mouseenter', () => {
-  isSearchActive = true;
-});
-
-searchResults.addEventListener('mouseleave', () => {
-  isSearchActive = false;
-  if (searchInput.value.trim() === '') {
-    searchResults.classList.remove('active');
+// GeoJSON Layer Manager
+class GeoJSONLayerManager {
+  constructor(map) {
+    this.map = map;
+    this.layers = new Map(); // Store layers by name
+    this.searchableFields = new Map(); // Store searchable fields for each layer
   }
-});
 
-// Search input handler
-searchInput.addEventListener('input', (e) => {
-  const query = e.target.value.toLowerCase().trim();
-  searchResults.innerHTML = '';
-  
-  if (query.length === 0) {
-    searchResults.classList.remove('active');
-    return;
+  addLayer(name, source, style, visible = true, searchableFields = ['NAMOBJ', 'name']) {
+    const layer = new VectorLayer({
+      source: source,
+      style: style,
+      visible: visible,
+      zIndex: 10
+    });
+    
+    this.layers.set(name, layer);
+    this.searchableFields.set(name, searchableFields);
+    this.map.addLayer(layer);
+    
+    return layer;
   }
-  
-  if (query.length < 2) {
-    searchResults.classList.add('active');
-    searchResults.innerHTML = '<div class="search-no-results">Ketik minimal 2 karakter untuk mencari...</div>';
-    return;
+
+  getLayer(name) {
+    return this.layers.get(name);
   }
-  
-  const features = kecamatanLayer.getSource().getFeatures();
-  const matches = features.filter(f => {
-    const name = (f.get('NAMOBJ') || '').toLowerCase();
-    return name.includes(query);
-  });
-  
-  if (matches.length === 0) {
-    searchResults.classList.add('active');
-    searchResults.innerHTML = '<div class="search-no-results">Tidak ada hasil ditemukan</div>';
-    return;
-  }
-  
-  searchResults.classList.add('active');
-  matches.forEach(feature => {
-    const name = feature.get('NAMOBJ') || 'Tidak diketahui';
-    const div = document.createElement('div');
-    div.className = 'search-result-item';
-    div.innerHTML = `<strong>${name}</strong>`;
-    div.addEventListener('click', () => {
-      // Zoom to feature
-      const geometry = feature.getGeometry();
-      const extent = geometry.getExtent();
-      map.getView().fit(extent, { 
-        padding: [50, 50, 50, 50], 
-        duration: 1000,
-        maxZoom: 14
+
+  getAllFeatures() {
+    const allFeatures = [];
+    this.layers.forEach((layer, name) => {
+      const features = layer.getSource().getFeatures();
+      features.forEach(feature => {
+        allFeatures.push({
+          feature: feature,
+          layerName: name,
+          searchableFields: this.searchableFields.get(name)
+        });
       });
+    });
+    return allFeatures;
+  }
+
+  searchFeatures(query) {
+    const allFeatures = this.getAllFeatures();
+    const matches = [];
+    
+    allFeatures.forEach(({ feature, layerName, searchableFields }) => {
+      let isMatch = false;
+      let displayName = '';
       
-      // Highlight feature temporarily
-      feature.setStyle(kecamatanHoverStyle);
-      setTimeout(() => {
-        feature.setStyle(undefined);
-      }, 3000);
+      // Check each searchable field
+      for (const field of searchableFields) {
+        const value = feature.get(field);
+        if (value && value.toLowerCase().includes(query.toLowerCase())) {
+          isMatch = true;
+          displayName = value;
+          break;
+        }
+      }
       
-      // Clear search
+      if (isMatch) {
+        matches.push({
+          feature: feature,
+          layerName: layerName,
+          displayName: displayName
+        });
+      }
+    });
+    
+    return matches;
+  }
+}
+
+// Initialize layer manager
+const layerManager = new GeoJSONLayerManager(map);
+
+// Expanding Search Bar functionality - Initialize after DOM is ready
+function initializeSearchBar() {
+  const searchInput = document.getElementById('searchInput');
+  const searchResults = document.getElementById('searchResults');
+  const expandingSearch = document.querySelector('.expanding-search');
+
+  if (!searchInput || !searchResults || !expandingSearch) {
+    console.warn('Search elements not found, retrying...');
+    setTimeout(initializeSearchBar, 100);
+    return;
+  }
+
+  // Keep search results visible when hovering over them
+  let isSearchActive = false;
+
+  expandingSearch.addEventListener('mouseenter', () => {
+    isSearchActive = true;
+  });
+
+  expandingSearch.addEventListener('mouseleave', () => {
+    setTimeout(() => {
+      if (!searchResults.matches(':hover')) {
+        isSearchActive = false;
+        if (searchInput.value.trim() === '') {
+          searchResults.classList.remove('active');
+        }
+      }
+    }, 200);
+  });
+
+  searchResults.addEventListener('mouseenter', () => {
+    isSearchActive = true;
+  });
+
+  searchResults.addEventListener('mouseleave', () => {
+    isSearchActive = false;
+    if (searchInput.value.trim() === '') {
+      searchResults.classList.remove('active');
+    }
+  });
+
+  // Search input handler
+  searchInput.addEventListener('input', (e) => {
+    const query = e.target.value.toLowerCase().trim();
+    searchResults.innerHTML = '';
+    
+    if (query.length === 0) {
+      searchResults.classList.remove('active');
+      return;
+    }
+    
+    if (query.length < 2) {
+      searchResults.classList.add('active');
+      searchResults.innerHTML = '<div class="search-no-results">Ketik minimal 2 karakter untuk mencari...</div>';
+      return;
+    }
+    
+    // Search in all layers
+    const matches = layerManager.searchFeatures(query);
+    
+    if (matches.length === 0) {
+      searchResults.classList.add('active');
+      searchResults.innerHTML = '<div class="search-no-results">Tidak ada hasil ditemukan</div>';
+      return;
+    }
+    
+    searchResults.classList.add('active');
+    matches.forEach(({ feature, layerName, displayName }) => {
+      const div = document.createElement('div');
+      div.className = 'search-result-item';
+      div.innerHTML = `<strong>${displayName}</strong><br><small>${layerName}</small>`;
+      div.addEventListener('click', () => {
+        // Zoom to feature
+        const geometry = feature.getGeometry();
+        const extent = geometry.getExtent();
+        map.getView().fit(extent, { 
+          padding: [50, 50, 50, 50], 
+          duration: 1000,
+          maxZoom: 14
+        });
+        
+        // Highlight feature temporarily
+        feature.setStyle(kecamatanHoverStyle);
+        setTimeout(() => {
+          feature.setStyle(undefined);
+        }, 3000);
+        
+        // Clear search
+        searchInput.value = '';
+        searchResults.innerHTML = '';
+        searchResults.classList.remove('active');
+      });
+      searchResults.appendChild(div);
+    });
+  });
+
+  // Clear search when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!expandingSearch.contains(e.target) && !searchResults.contains(e.target)) {
       searchInput.value = '';
       searchResults.innerHTML = '';
       searchResults.classList.remove('active');
-    });
-    searchResults.appendChild(div);
+    }
   });
-});
+}
 
-// Clear search when clicking outside
-document.addEventListener('click', (e) => {
-  if (!expandingSearch.contains(e.target) && !searchResults.contains(e.target)) {
-    searchInput.value = '';
-    searchResults.innerHTML = '';
-    searchResults.classList.remove('active');
-  }
-});
+// Initialize search bar when DOM is ready
+document.addEventListener('DOMContentLoaded', initializeSearchBar);
 
 // Popup overlay
 const container = el('div', { class: 'ol-popup card' });
 const overlay = new Overlay({ element: container, autoPan: { animation: { duration: 250 } } });
 map.addOverlay(overlay);
 
-function renderPopup(feature){
+function renderPopup(feature, layerName = ''){
   const props = feature.getProperties();
   const title = props.NAMOBJ || props.name || 'Feature';
   const photo = props.photo;
@@ -389,6 +562,7 @@ function renderPopup(feature){
   container.innerHTML = '';
   container.append(
     el('div', { class: 'title', html: title }),
+    el('div', { html: `<small>Layer: ${layerName}</small>` }),
     el('div', { html: desc })
   );
   if(photo){
@@ -401,11 +575,19 @@ function renderPopup(feature){
 map.on('singleclick', (evt) => {
   const pixel = evt.pixel;
   let hit = false;
-  map.forEachFeatureAtPixel(pixel, (feature) => {
-    hit = true;
-    renderPopup(feature);
-    overlay.setPosition(evt.coordinate);
-    return true;
+  let layerName = '';
+  
+  map.forEachFeatureAtPixel(pixel, (feature, layer) => {
+    // Check if this layer is managed by our layer manager
+    for (const [name, managedLayer] of layerManager.layers) {
+      if (layer === managedLayer) {
+        hit = true;
+        layerName = name;
+        renderPopup(feature, layerName);
+        overlay.setPosition(evt.coordinate);
+        return true;
+      }
+    }
   }, { hitTolerance: 5 });
   if(!hit){ overlay.setPosition(undefined); }
 });
