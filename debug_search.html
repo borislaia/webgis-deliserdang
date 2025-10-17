@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Search Bar</title>
+    <link rel="stylesheet" href="./css/base.css" />
+    <style>
+        .debug-container {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 12px;
+            z-index: 9999;
+            max-width: 300px;
+        }
+        .debug-item {
+            margin: 5px 0;
+        }
+        .debug-success { color: #4CAF50; }
+        .debug-error { color: #F44336; }
+        .debug-warning { color: #FF9800; }
+    </style>
+</head>
+<body>
+    <div class="debug-container" id="debugContainer">
+        <div class="debug-item"><strong>Search Bar Debug</strong></div>
+        <div class="debug-item" id="debugStatus">Initializing...</div>
+    </div>
+
+    <script>
+        function addDebugMessage(message, type = 'info') {
+            const container = document.getElementById('debugContainer');
+            const status = document.getElementById('debugStatus');
+            
+            const div = document.createElement('div');
+            div.className = `debug-item debug-${type}`;
+            div.textContent = message;
+            
+            container.insertBefore(div, status);
+        }
+
+        // Check if we're on the map page
+        if (window.location.pathname.includes('map.html')) {
+            addDebugMessage('Map page detected', 'success');
+            
+            // Wait for DOM to load
+            document.addEventListener('DOMContentLoaded', () => {
+                addDebugMessage('DOM loaded', 'success');
+                
+                // Check for search elements
+                const searchInput = document.getElementById('searchInput');
+                const searchResults = document.getElementById('searchResults');
+                const expandingSearch = document.querySelector('.expanding-search');
+                
+                addDebugMessage(`Search input found: ${!!searchInput}`, searchInput ? 'success' : 'error');
+                addDebugMessage(`Search results found: ${!!searchResults}`, searchResults ? 'success' : 'error');
+                addDebugMessage(`Expanding search found: ${!!expandingSearch}`, expandingSearch ? 'success' : 'error');
+                
+                if (searchInput) {
+                    addDebugMessage(`Search input disabled: ${searchInput.disabled}`, searchInput.disabled ? 'warning' : 'success');
+                    addDebugMessage(`Search input placeholder: ${searchInput.placeholder}`, 'info');
+                }
+                
+                // Test event listeners
+                if (searchInput) {
+                    searchInput.addEventListener('input', (e) => {
+                        addDebugMessage(`Input event triggered: "${e.target.value}"`, 'success');
+                    });
+                    
+                    searchInput.addEventListener('focus', (e) => {
+                        addDebugMessage('Search input focused', 'success');
+                    });
+                }
+                
+                if (expandingSearch) {
+                    expandingSearch.addEventListener('click', (e) => {
+                        addDebugMessage('Expanding search clicked', 'success');
+                    });
+                    
+                    expandingSearch.addEventListener('mouseenter', (e) => {
+                        addDebugMessage('Expanding search hovered', 'success');
+                    });
+                }
+            });
+        } else {
+            addDebugMessage('Not on map page - redirecting...', 'warning');
+            setTimeout(() => {
+                window.location.href = './map.html';
+            }, 2000);
+        }
+    </script>
+</body>
+</html>

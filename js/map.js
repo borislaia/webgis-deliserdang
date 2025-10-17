@@ -196,6 +196,12 @@ map.on('pointermove', (evt) => {
     const batas = await fetchJSON('./data/batas_kecamatan.json');
     console.log('Data loaded:', batas);
     
+    // Ensure search elements are available before proceeding
+    if (!searchInput || !searchResults) {
+      console.error('Search elements not found during data loading');
+      return;
+    }
+    
     const fmt = new GeoJSON();
     // Normalize to FeatureCollection if the file is an array of Features
     let batasGeoJSON;
@@ -243,9 +249,31 @@ map.on('pointermove', (evt) => {
       chkKecamatan.checked = true;
     }
     
+    // Enable search functionality after data is loaded
+    if (searchInput) {
+      searchInput.disabled = false;
+      searchInput.placeholder = 'Cari kecamatan...';
+      console.log('Search functionality enabled');
+      
+      // Test search functionality
+      const testFeatures = kecamatanLayer.getSource().getFeatures();
+      console.log('Search test - available features:', testFeatures.length);
+      if (testFeatures.length > 0) {
+        const firstFeature = testFeatures[0];
+        const testName = firstFeature.get('NAMOBJ');
+        console.log('Search test - first feature name:', testName);
+      }
+    }
+    
   } catch(error) {
     console.error('❌ Error loading kecamatan data:', error);
     alert('Gagal memuat data peta. Pastikan file batas_kecamatan.json tersedia.');
+    
+    // Update search input to show error state
+    if (searchInput) {
+      searchInput.disabled = true;
+      searchInput.placeholder = 'Error loading data';
+    }
   }
 })();
 
@@ -294,9 +322,16 @@ dashboardBtn.addEventListener('click', () => window.location.href = './dashboard
 const searchInput = document.getElementById('searchInput');
 const searchResults = document.getElementById('searchResults');
 
+console.log('Search elements found:', {
+  searchInput: !!searchInput,
+  searchResults: !!searchResults
+});
+
 // Keep search results visible when hovering over them
 let isSearchActive = false;
 const expandingSearch = document.querySelector('.expanding-search');
+
+console.log('Expanding search element found:', !!expandingSearch);
 
 if (expandingSearch) {
   expandingSearch.addEventListener('mouseenter', () => {
@@ -312,6 +347,15 @@ if (expandingSearch) {
         }
       }
     }, 200);
+  });
+  
+  // Click to focus search input
+  expandingSearch.addEventListener('click', (e) => {
+    if (e.target.classList.contains('search-icon') || e.target.classList.contains('expanding-search')) {
+      if (!searchInput.disabled) {
+        searchInput.focus();
+      }
+    }
   });
 }
 
@@ -330,9 +374,16 @@ if (searchResults) {
 
 // Search input handler
 if (searchInput) {
+  console.log('Setting up search input handler');
+  
   searchInput.addEventListener('input', (e) => {
     const query = e.target.value.toLowerCase().trim();
-    if (!searchResults) return;
+    console.log('Search query:', query);
+    
+    if (!searchResults) {
+      console.error('Search results element not found');
+      return;
+    }
     
     searchResults.innerHTML = '';
     
@@ -350,6 +401,7 @@ if (searchInput) {
     // Check if kecamatan layer is loaded
     const source = kecamatanLayer.getSource();
     if (!source) {
+      console.warn('Kecamatan source not available');
       searchResults.classList.add('active');
       searchResults.innerHTML = '<div class="search-no-results">Data belum dimuat...</div>';
       return;
@@ -385,6 +437,7 @@ if (searchInput) {
       div.className = 'search-result-item';
       div.innerHTML = `<strong>${name}</strong>`;
       div.addEventListener('click', () => {
+        console.log('Clicked on search result:', name);
         // Zoom to feature
         const geometry = feature.getGeometry();
         if (geometry) {
@@ -410,6 +463,29 @@ if (searchInput) {
       searchResults.appendChild(div);
     });
   });
+  
+  // Also add keydown event for better UX
+  searchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      searchInput.value = '';
+      searchResults.innerHTML = '';
+      searchResults.classList.remove('active');
+    }
+  });
+  
+  // Add click event to ensure input is focusable
+  searchInput.addEventListener('click', (e) => {
+    e.stopPropagation();
+  });
+  
+  // Add focus event to show search results if there's text
+  searchInput.addEventListener('focus', (e) => {
+    if (e.target.value.trim().length >= 2) {
+      searchResults.classList.add('active');
+    }
+  });
+} else {
+  console.error('Search input element not found');
 }
 
 // Clear search when clicking outside
@@ -422,6 +498,18 @@ document.addEventListener('click', (e) => {
     }
   }
 });
+
+// Focus search input when expanding search is hovered
+if (expandingSearch && searchInput) {
+  expandingSearch.addEventListener('mouseenter', () => {
+    if (!searchInput.disabled) {
+      // Small delay to ensure CSS transition completes
+      setTimeout(() => {
+        searchInput.focus();
+      }, 100);
+    }
+  });
+}
 
 // Popup overlay
 const container = el('div', { class: 'ol-popup card' });
