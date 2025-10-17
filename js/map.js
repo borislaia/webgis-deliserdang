@@ -219,20 +219,33 @@ map.on('pointermove', (evt) => {
     });
     
     console.log('Features created:', features.length);
+    
+    // Clear existing features first
+    kecamatanLayer.getSource().clear();
     kecamatanLayer.getSource().addFeatures(features);
+    
+    // Force layer refresh
+    kecamatanLayer.setVisible(true);
     
     // Zoom to extent of loaded features if they exist
     if(features.length > 0) {
       const extent = kecamatanLayer.getSource().getExtent();
       console.log('Features extent:', extent);
-      // Optional: uncomment to auto-fit to data
-      // map.getView().fit(extent, { padding: [50, 50, 50, 50], duration: 1000 });
+      // Auto-fit to data for better visibility
+      map.getView().fit(extent, { padding: [50, 50, 50, 50], duration: 1000 });
     }
     
     console.log('✅ Kecamatan layer loaded successfully!');
+    
+    // Update layer checkbox to reflect loaded state
+    const chkKecamatan = document.getElementById('chkKecamatan');
+    if(chkKecamatan) {
+      chkKecamatan.checked = true;
+    }
+    
   } catch(error) {
     console.error('❌ Error loading kecamatan data:', error);
-    alert('Gagal memuat data peta. Pastikan server sudah berjalan (npm run backend)');
+    alert('Gagal memuat data peta. Pastikan file batas_kecamatan.json tersedia.');
   }
 })();
 
@@ -256,7 +269,10 @@ if(initialBasemap){ setBasemap(initialBasemap.value); }
 // Layer toggles
 const chkKecamatan = document.getElementById('chkKecamatan');
 if(chkKecamatan){
-  chkKecamatan.addEventListener('change', () => kecamatanLayer.setVisible(chkKecamatan.checked));
+  chkKecamatan.addEventListener('change', () => {
+    kecamatanLayer.setVisible(chkKecamatan.checked);
+    console.log('Kecamatan layer visibility:', chkKecamatan.checked);
+  });
 }
 
 // Controls
@@ -282,97 +298,128 @@ const searchResults = document.getElementById('searchResults');
 let isSearchActive = false;
 const expandingSearch = document.querySelector('.expanding-search');
 
-expandingSearch.addEventListener('mouseenter', () => {
-  isSearchActive = true;
-});
+if (expandingSearch) {
+  expandingSearch.addEventListener('mouseenter', () => {
+    isSearchActive = true;
+  });
 
-expandingSearch.addEventListener('mouseleave', () => {
-  setTimeout(() => {
-    if (!searchResults.matches(':hover')) {
-      isSearchActive = false;
-      if (searchInput.value.trim() === '') {
-        searchResults.classList.remove('active');
+  expandingSearch.addEventListener('mouseleave', () => {
+    setTimeout(() => {
+      if (!searchResults.matches(':hover')) {
+        isSearchActive = false;
+        if (searchInput.value.trim() === '') {
+          searchResults.classList.remove('active');
+        }
       }
+    }, 200);
+  });
+}
+
+if (searchResults) {
+  searchResults.addEventListener('mouseenter', () => {
+    isSearchActive = true;
+  });
+
+  searchResults.addEventListener('mouseleave', () => {
+    isSearchActive = false;
+    if (searchInput.value.trim() === '') {
+      searchResults.classList.remove('active');
     }
-  }, 200);
-});
-
-searchResults.addEventListener('mouseenter', () => {
-  isSearchActive = true;
-});
-
-searchResults.addEventListener('mouseleave', () => {
-  isSearchActive = false;
-  if (searchInput.value.trim() === '') {
-    searchResults.classList.remove('active');
-  }
-});
+  });
+}
 
 // Search input handler
-searchInput.addEventListener('input', (e) => {
-  const query = e.target.value.toLowerCase().trim();
-  searchResults.innerHTML = '';
-  
-  if (query.length === 0) {
-    searchResults.classList.remove('active');
-    return;
-  }
-  
-  if (query.length < 2) {
-    searchResults.classList.add('active');
-    searchResults.innerHTML = '<div class="search-no-results">Ketik minimal 2 karakter untuk mencari...</div>';
-    return;
-  }
-  
-  const features = kecamatanLayer.getSource().getFeatures();
-  const matches = features.filter(f => {
-    const name = (f.get('NAMOBJ') || '').toLowerCase();
-    return name.includes(query);
-  });
-  
-  if (matches.length === 0) {
-    searchResults.classList.add('active');
-    searchResults.innerHTML = '<div class="search-no-results">Tidak ada hasil ditemukan</div>';
-    return;
-  }
-  
-  searchResults.classList.add('active');
-  matches.forEach(feature => {
-    const name = feature.get('NAMOBJ') || 'Tidak diketahui';
-    const div = document.createElement('div');
-    div.className = 'search-result-item';
-    div.innerHTML = `<strong>${name}</strong>`;
-    div.addEventListener('click', () => {
-      // Zoom to feature
-      const geometry = feature.getGeometry();
-      const extent = geometry.getExtent();
-      map.getView().fit(extent, { 
-        padding: [50, 50, 50, 50], 
-        duration: 1000,
-        maxZoom: 14
-      });
-      
-      // Highlight feature temporarily
-      feature.setStyle(kecamatanHoverStyle);
-      setTimeout(() => {
-        feature.setStyle(undefined);
-      }, 3000);
-      
-      // Clear search
-      searchInput.value = '';
-      searchResults.innerHTML = '';
+if (searchInput) {
+  searchInput.addEventListener('input', (e) => {
+    const query = e.target.value.toLowerCase().trim();
+    if (!searchResults) return;
+    
+    searchResults.innerHTML = '';
+    
+    if (query.length === 0) {
       searchResults.classList.remove('active');
+      return;
+    }
+    
+    if (query.length < 2) {
+      searchResults.classList.add('active');
+      searchResults.innerHTML = '<div class="search-no-results">Ketik minimal 2 karakter...</div>';
+      return;
+    }
+    
+    // Check if kecamatan layer is loaded
+    const source = kecamatanLayer.getSource();
+    if (!source) {
+      searchResults.classList.add('active');
+      searchResults.innerHTML = '<div class="search-no-results">Data belum dimuat...</div>';
+      return;
+    }
+    
+    const features = source.getFeatures();
+    console.log('Searching in', features.length, 'features for:', query);
+    
+    if (features.length === 0) {
+      searchResults.classList.add('active');
+      searchResults.innerHTML = '<div class="search-no-results">Tidak ada data kecamatan</div>';
+      return;
+    }
+    
+    const matches = features.filter(f => {
+      const name = (f.get('NAMOBJ') || f.get('name') || '').toLowerCase();
+      const description = (f.get('description') || '').toLowerCase();
+      return name.includes(query) || description.includes(query);
     });
-    searchResults.appendChild(div);
+    
+    console.log('Found', matches.length, 'matches for query:', query);
+    
+    if (matches.length === 0) {
+      searchResults.classList.add('active');
+      searchResults.innerHTML = '<div class="search-no-results">Tidak ada hasil ditemukan</div>';
+      return;
+    }
+    
+    searchResults.classList.add('active');
+    matches.slice(0, 10).forEach(feature => { // Limit to 10 results
+      const name = feature.get('NAMOBJ') || feature.get('name') || 'Tidak diketahui';
+      const div = document.createElement('div');
+      div.className = 'search-result-item';
+      div.innerHTML = `<strong>${name}</strong>`;
+      div.addEventListener('click', () => {
+        // Zoom to feature
+        const geometry = feature.getGeometry();
+        if (geometry) {
+          const extent = geometry.getExtent();
+          map.getView().fit(extent, { 
+            padding: [50, 50, 50, 50], 
+            duration: 1000,
+            maxZoom: 14
+          });
+          
+          // Highlight feature temporarily
+          feature.setStyle(kecamatanHoverStyle);
+          setTimeout(() => {
+            feature.setStyle(undefined);
+          }, 3000);
+        }
+        
+        // Clear search
+        searchInput.value = '';
+        searchResults.innerHTML = '';
+        searchResults.classList.remove('active');
+      });
+      searchResults.appendChild(div);
+    });
   });
-});
+}
 
 // Clear search when clicking outside
 document.addEventListener('click', (e) => {
-  if (!expandingSearch.contains(e.target) && !searchResults.contains(e.target)) {
-    searchInput.value = '';
-    searchResults.innerHTML = '';
-    searchResults.classList.remove('active');
+  if (expandingSearch && searchResults && searchInput) {
+    if (!expandingSearch.contains(e.target) && !searchResults.contains(e.target)) {
+      searchInput.value = '';
+      searchResults.innerHTML = '';
+      searchResults.classList.remove('active');
+    }
   }
 });
 
