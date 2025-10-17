@@ -15,34 +15,34 @@
       .ol-popup img{ width:100%; border-radius:10px; margin-top:6px; cursor:pointer; }
       .toolbar .btn{ padding:8px 10px; }
       
-      /* Expanding Search Bar */
+      /* Search Bar integrated with controls */
       .expanding-search {
-        position: fixed;
-        top: 20px;
-        left: 80px; /* Move right to avoid conflict with floating controls */
+        position: relative;
         display: flex;
         align-items: center;
         background: var(--card);
         border: 1px solid var(--stroke);
-        border-radius: 24px;
+        border-radius: 12px;
         padding: 10px 14px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        box-shadow: 0 2px 0 rgba(0,0,0,0.06);
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         width: 48px;
-        z-index: 1000;
         overflow: hidden;
+        margin-top: 8px;
       }
       
       .expanding-search:hover {
-        width: 300px;
-        box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+        width: 200px;
+        box-shadow: 0 6px 14px rgba(0,0,0,0.08);
+        transform: translateY(-1px);
       }
       
       .search-icon {
-        font-size: 20px;
+        font-size: 16px;
         flex-shrink: 0;
         cursor: pointer;
         user-select: none;
+        color: var(--text);
       }
       
       .search-input {
@@ -58,20 +58,21 @@
       }
       
       .expanding-search:hover .search-input {
-        width: 240px;
+        width: 140px;
         opacity: 1;
       }
       
       .search-input::placeholder {
         color: var(--muted);
+        font-size: 12px;
       }
       
       .search-results {
         position: absolute;
         top: 50px;
         left: 0;
-        width: 300px;
-        max-height: 400px;
+        width: 200px;
+        max-height: 300px;
         overflow-y: auto;
         background: var(--card);
         border: 1px solid var(--stroke);
@@ -111,13 +112,6 @@
   <body>
     <div class="map-container" id="map"></div>
 
-    <!-- Expanding Search Bar -->
-    <div class="expanding-search">
-      <div class="search-icon">🔍</div>
-      <input type="text" id="searchInput" class="search-input" placeholder="Search" />
-      <div id="searchResults" class="search-results"></div>
-    </div>
-
     <!-- Floating controls -->
     <div class="float-controls">
       <button id="homeBtn" class="btn" title="Home">🏠</button>
@@ -125,6 +119,13 @@
       <button id="resetView" class="btn" title="Reset View">⤾</button>
       <button id="zoomIn" class="btn" title="Zoom In">＋</button>
       <button id="zoomOut" class="btn" title="Zoom Out">－</button>
+      
+      <!-- Search Bar integrated with controls -->
+      <div class="expanding-search">
+        <div class="search-icon">🔍</div>
+        <input type="text" id="searchInput" class="search-input" placeholder="Search kecamatan..." />
+        <div id="searchResults" class="search-results"></div>
+      </div>
     </div>
 
     <!-- Floating layer panel -->
