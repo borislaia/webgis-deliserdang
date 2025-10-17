@@ -196,11 +196,6 @@ map.on('pointermove', (evt) => {
     const batas = await fetchJSON('./data/batas_kecamatan.json');
     console.log('Data loaded:', batas);
     
-    // Ensure search elements are available before proceeding
-    if (!searchInput || !searchResults) {
-      console.error('Search elements not found during data loading');
-      return;
-    }
     
     const fmt = new GeoJSON();
     // Normalize to FeatureCollection if the file is an array of Features
@@ -249,31 +244,11 @@ map.on('pointermove', (evt) => {
       chkKecamatan.checked = true;
     }
     
-    // Enable search functionality after data is loaded
-    if (searchInput) {
-      searchInput.disabled = false;
-      searchInput.placeholder = 'Cari kecamatan...';
-      console.log('Search functionality enabled');
-      
-      // Test search functionality
-      const testFeatures = kecamatanLayer.getSource().getFeatures();
-      console.log('Search test - available features:', testFeatures.length);
-      if (testFeatures.length > 0) {
-        const firstFeature = testFeatures[0];
-        const testName = firstFeature.get('NAMOBJ');
-        console.log('Search test - first feature name:', testName);
-      }
-    }
     
   } catch(error) {
     console.error('❌ Error loading kecamatan data:', error);
     alert('Gagal memuat data peta. Pastikan file batas_kecamatan.json tersedia.');
     
-    // Update search input to show error state
-    if (searchInput) {
-      searchInput.disabled = true;
-      searchInput.placeholder = 'Error loading data';
-    }
   }
 })();
 
