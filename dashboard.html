@@ -31,7 +31,7 @@
           <div style="margin-top:12px; display:flex; flex-direction:column; gap:10px;">
             <button class="btn" onclick="location.href='map.html'">Open Map</button>
             <button class="btn" onclick="alert('Reports coming soon')">Reports</button>
-            <button class="btn" onclick="alert('Users coming soon')">Users</button>
+            <button class="btn" id="usersBtn" onclick="toggleUsersPanel()">Users</button>
             <button class="btn" onclick="alert('Settings coming soon')">Settings</button>
           </div>
         </div>
@@ -40,6 +40,17 @@
         <h2 style="margin-top:0;">Welcome back</h2>
         <div class="card" style="padding:18px;">
           <p>Use the side panel to navigate. Click <strong>Open Map</strong> to view the GIS.</p>
+        </div>
+        
+        <!-- User Management Panel (Admin only) -->
+        <div id="usersPanel" class="card" style="padding:18px; margin-top:20px; display:none;">
+          <h3>User Management</h3>
+          <div id="usersList">
+            <p>Loading users...</p>
+          </div>
+          <div style="margin-top:16px;">
+            <button class="btn primary" onclick="refreshUsers()">Refresh Users</button>
+          </div>
         </div>
       </main>
     </div>
@@ -69,17 +80,47 @@
     </script>
     <script type="module" src="./js/utils.js"></script>
     <script type="module" src="./js/auth-guard.js"></script>
-    <script>
+    <script type="module">
+      import { getCurrentUser, isAdmin } from './js/auth-guard.js';
+      import { apiRequest } from './js/utils.js';
+      
       document.getElementById('year').textContent = new Date().getFullYear();
       
-      // Add logout functionality
-      const logoutBtn = document.getElementById('logoutBtn');
-      if(logoutBtn){
-        logoutBtn.addEventListener('click', () => {
-          localStorage.removeItem('auth_token');
-          location.href = 'index.html';
-        });
+      // Check if user is admin and show/hide admin features
+      const user = getCurrentUser();
+      if (!isAdmin()) {
+        document.getElementById('usersBtn').style.display = 'none';
       }
+      
+      // User management functions
+      window.toggleUsersPanel = function() {
+        const panel = document.getElementById('usersPanel');
+        panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+        if (panel.style.display === 'block') {
+          refreshUsers();
+        }
+      };
+      
+      window.refreshUsers = async function() {
+        const usersList = document.getElementById('usersList');
+        usersList.innerHTML = '<p>Loading users...</p>';
+        
+        try {
+          // Note: This would need a backend endpoint to list users
+          // For now, we'll show a placeholder
+          usersList.innerHTML = `
+            <div style="padding: 16px; background: #f5f5f5; border-radius: 4px; margin: 8px 0;">
+              <strong>Admin Feature</strong><br>
+              User management requires additional backend endpoints to be implemented.
+              <br><br>
+              Current user: ${user ? user.email : 'Unknown'} (${user ? user.role : 'Unknown'})
+            </div>
+          `;
+        } catch (error) {
+          console.error('Error loading users:', error);
+          usersList.innerHTML = '<p style="color: red;">Error loading users</p>';
+        }
+      };
     </script>
     
   </body>

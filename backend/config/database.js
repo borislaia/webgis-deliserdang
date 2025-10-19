@@ -1,24 +1,66 @@
-// Database configuration
-// Uncomment dan sesuaikan jika menggunakan database
-
-/*
-import { Pool } from 'pg';
+// Supabase Database configuration
+import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-const pool = new Pool({
-  host: process.env.DB_HOST || 'localhost',
-  port: process.env.DB_PORT || 5432,
-  database: process.env.DB_NAME,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-});
+// Initialize Supabase client
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_ANON_KEY;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-export default pool;
-*/
+if (!supabaseUrl || !supabaseKey) {
+  console.error('Missing Supabase environment variables');
+  process.exit(1);
+}
 
-// Sementara gunakan data dummy
+// Client for user operations (uses anon key)
+export const supabase = createClient(supabaseUrl, supabaseKey);
+
+// Admin client for server-side operations (uses service role key)
+export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+
+// Helper function to get user role
+export const getUserRole = async (userId) => {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userId)
+      .single();
+    
+    if (error) {
+      console.error('Error fetching user role:', error);
+      return 'user'; // default role
+    }
+    
+    return data?.role || 'user';
+  } catch (error) {
+    console.error('Error in getUserRole:', error);
+    return 'user';
+  }
+};
+
+// Helper function to set user role
+export const setUserRole = async (userId, role) => {
+  try {
+    const { error } = await supabaseAdmin
+      .from('user_roles')
+      .upsert({ user_id: userId, role: role });
+    
+    if (error) {
+      console.error('Error setting user role:', error);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error in setUserRole:', error);
+    return false;
+  }
+};
+
+// Fallback dummy data (keep for compatibility)
 export const dummyData = {
   kecamatan: [],
   irigasi: [],
