@@ -1,27 +1,26 @@
-import { ensureAuthRedirect, clearAuth, getAuthSession, apiRequest } from './utils.js';
+import { auth, supabase } from './supabase.js';
+import { clearAuth } from './utils.js';
 
 // Check authentication status
 async function checkAuthStatus() {
-  const session = getAuthSession();
-  if (!session) {
-    location.href = 'login.html';
-    return;
-  }
-
   try {
-    const response = await apiRequest('/api/auth/status');
-    const data = await response.json();
+    const { data: { user }, error } = await supabase.auth.getUser();
     
-    if (!data.authenticated) {
+    if (error || !user) {
       clearAuth();
       location.href = 'login.html';
       return;
     }
 
-    // Store user info for use in the app
-    if (data.user) {
-      localStorage.setItem('user_info', JSON.stringify(data.user));
-    }
+    // Get user role and store user info
+    const userRole = await auth.getUserRole(user.id);
+    const userInfo = {
+      id: user.id,
+      email: user.email,
+      role: userRole
+    };
+    
+    localStorage.setItem('user_info', JSON.stringify(userInfo));
   } catch (error) {
     console.error('Auth check failed:', error);
     clearAuth();
@@ -37,13 +36,7 @@ const logoutBtn = document.getElementById('logoutBtn');
 if(logoutBtn){
   logoutBtn.addEventListener('click', async () => {
     try {
-      const session = getAuthSession();
-      if (session && session.refresh_token) {
-        await apiRequest('/api/auth/logout', {
-          method: 'POST',
-          body: JSON.stringify({ refresh_token: session.refresh_token })
-        });
-      }
+      await auth.signOut();
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
