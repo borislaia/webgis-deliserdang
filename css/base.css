@@ -20,7 +20,7 @@ body{
 .brand{ display:flex; align-items:center; gap:10px; font-weight:600; }
 .brand-icon{ width:24px; height:24px; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.1)); }
 .brand-text{ letter-spacing:0.2px; }
-.app-footer{ position:fixed; align:center; bottom:0; display:flex; align-items:center; justify-content:center; padding:12px; color:var(--muted); }
+.app-footer{ position:fixed; bottom:0; display:flex; align-items:center; justify-content:center; padding:12px; color:var(--muted); }
 
 .home{ display:grid; place-items:center; padding:40px 16px; }
 /* Clean container: no big rectangle behind the grid */
