@@ -41,6 +41,40 @@ export const getUserRole = async (userId) => {
   }
 };
 
+// Helper function to get all users from auth.users
+export const getAllUsers = async () => {
+  try {
+    const { data, error } = await supabaseAdmin.auth.admin.listUsers();
+    
+    if (error) {
+      console.error('Error fetching users:', error);
+      return [];
+    }
+    
+    return data.users || [];
+  } catch (error) {
+    console.error('Error in getAllUsers:', error);
+    return [];
+  }
+};
+
+// Helper function to get user by ID from auth.users
+export const getUserById = async (userId) => {
+  try {
+    const { data, error } = await supabaseAdmin.auth.admin.getUserById(userId);
+    
+    if (error) {
+      console.error('Error fetching user:', error);
+      return null;
+    }
+    
+    return data.user;
+  } catch (error) {
+    console.error('Error in getUserById:', error);
+    return null;
+  }
+};
+
 // Helper function to set user role
 export const setUserRole = async (userId, role) => {
   try {
