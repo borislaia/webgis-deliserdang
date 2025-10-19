@@ -2,12 +2,23 @@
   "name": "webgis-deliserdang",
   "version": "1.0.0",
   "description": "WebGIS Deli Serdang - Aplikasi GIS berbasis web",
+  "type": "module",
   "scripts": {
     "backend": "cd backend && npm install && npm run dev",
     "backend:start": "cd backend && npm start",
-    "backend:install": "cd backend && npm install"
+    "backend:install": "cd backend && npm install",
+    "test-supabase": "node test-supabase.js",
+    "setup-admin": "node setup-admin.js"
   },
-  "keywords": ["webgis", "gis", "deliserdang"],
+  "keywords": [
+    "webgis",
+    "gis",
+    "deliserdang"
+  ],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.75.1",
+    "dotenv": "^17.2.3"
+  }
 }

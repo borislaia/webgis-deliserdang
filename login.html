@@ -19,7 +19,11 @@
     </header>
     <main class="home" style="padding-top:80px;">
       <div class="card" style="width:min(480px, 92vw); padding:28px;">
-        <h2 style="margin:0 0 18px 0;">Login</h2>
+        <div style="display:flex; justify-content:space-between; margin-bottom:18px;">
+          <h2 style="margin:0;">Login</h2>
+          <button id="toggleMode" class="btn" style="padding:8px 16px; font-size:14px;">Register</button>
+        </div>
+        
         <form id="loginForm" class="form" autocomplete="off">
           <div class="form-row">
             <label for="email">Email</label>
@@ -28,6 +32,13 @@
           <div class="form-row" style="margin-top:12px;">
             <label for="password">Password</label>
             <input class="input" id="password" name="password" type="password" required placeholder="••••••••" />
+          </div>
+          <div id="roleRow" class="form-row" style="margin-top:12px; display:none;">
+            <label for="role">Role</label>
+            <select class="input" id="role" name="role">
+              <option value="user">User</option>
+              <option value="admin">Admin</option>
+            </select>
           </div>
           <div style="display:flex; align-items:center; justify-content:space-between; margin-top:18px;">
             <button class="btn primary" type="submit">Login</button>
