@@ -8,6 +8,8 @@
     "backend:start": "cd backend && npm start",
     "backend:install": "cd backend && npm install",
     "test-supabase": "node test-supabase.js",
+    "test-supabase-comprehensive": "node test-supabase-comprehensive.js",
+    "demo-data-operations": "node demo-data-operations.js",
     "setup-admin": "node setup-admin.js"
   },
   "keywords": [
