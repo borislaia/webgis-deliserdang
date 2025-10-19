@@ -71,6 +71,15 @@
     <script type="module" src="./js/auth-guard.js"></script>
     <script>
       document.getElementById('year').textContent = new Date().getFullYear();
+      
+      // Add logout functionality
+      const logoutBtn = document.getElementById('logoutBtn');
+      if(logoutBtn){
+        logoutBtn.addEventListener('click', () => {
+          localStorage.removeItem('auth_token');
+          location.href = 'index.html';
+        });
+      }
     </script>
     
   </body>
