@@ -1,111 +1,86 @@
 // Authentication utilities for Supabase
+import { supabase, auth } from './supabase.js';
+
 export function ensureAuthRedirect(to = '/login.html'){
-  const session = getAuthSession();
-  if(!session || isTokenExpired(session.expires_at)){ 
-    clearAuth();
-    location.href = to; 
-  }
+  // Check if user is authenticated using Supabase
+  supabase.auth.getUser().then(({ data: { user }, error }) => {
+    if (error || !user) {
+      location.href = to;
+    }
+  });
 }
 
 export function setAuth(sessionData){
-  if(sessionData && sessionData.access_token){
-    localStorage.setItem('auth_session', JSON.stringify(sessionData));
-  }
+  // This function is now handled by Supabase automatically
+  // Keeping for compatibility but not needed
+  console.log('setAuth called - Supabase handles session management automatically');
 }
 
 export function clearAuth(){
+  // Clear any legacy auth data
   localStorage.removeItem('auth_session');
-  localStorage.removeItem('auth_token'); // Legacy support
+  localStorage.removeItem('auth_token');
+  localStorage.removeItem('user_info');
 }
 
 export function getAuthSession(){
-  try {
-    const sessionData = localStorage.getItem('auth_session');
-    return sessionData ? JSON.parse(sessionData) : null;
-  } catch (error) {
-    console.error('Error parsing auth session:', error);
-    return null;
-  }
+  // This function is now handled by Supabase
+  // Return null to maintain compatibility
+  return null;
 }
 
 export function isTokenExpired(expiresAt){
-  if(!expiresAt) return true;
-  const now = Math.floor(Date.now() / 1000);
-  return now >= expiresAt;
+  // Supabase handles token expiration automatically
+  return false;
 }
 
 export function getAuthHeaders(){
-  const session = getAuthSession();
-  if(session && !isTokenExpired(session.expires_at)){
+  // Get auth headers from Supabase session
+  return supabase.auth.getSession().then(({ data: { session } }) => {
+    if (session) {
+      return {
+        'Authorization': `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json'
+      };
+    }
     return {
-      'Authorization': `Bearer ${session.access_token}`,
       'Content-Type': 'application/json'
     };
-  }
-  return {
-    'Content-Type': 'application/json'
-  };
+  });
 }
 
 // API helper with authentication
 export async function apiRequest(url, options = {}){
+  const session = await supabase.auth.getSession();
   const headers = {
-    ...getAuthHeaders(),
+    'Content-Type': 'application/json',
     ...options.headers
   };
+  
+  if (session.data.session) {
+    headers['Authorization'] = `Bearer ${session.data.session.access_token}`;
+  }
   
   const response = await fetch(url, {
     ...options,
     headers
   });
   
-  // If token expired, try to refresh
-  if(response.status === 401 && getAuthSession()){
-    const refreshed = await refreshAuthToken();
-    if(refreshed){
-      // Retry with new token
-      const newHeaders = {
-        ...getAuthHeaders(),
-        ...options.headers
-      };
-      return fetch(url, {
-        ...options,
-        headers: newHeaders
-      });
-    } else {
-      // Refresh failed, redirect to login
-      clearAuth();
-      location.href = '/login.html';
-      return response;
-    }
+  // If token expired, Supabase will handle refresh automatically
+  if(response.status === 401){
+    // Clear auth and redirect to login
+    await supabase.auth.signOut();
+    location.href = '/login.html';
+    return response;
   }
   
   return response;
 }
 
-// Refresh authentication token
+// Refresh authentication token - handled by Supabase automatically
 export async function refreshAuthToken(){
-  try {
-    const session = getAuthSession();
-    if(!session || !session.refresh_token) return false;
-    
-    const response = await fetch('/api/auth/refresh', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refresh_token: session.refresh_token })
-    });
-    
-    if(response.ok){
-      const data = await response.json();
-      setAuth(data.session);
-      return true;
-    }
-    
-    return false;
-  } catch (error) {
-    console.error('Error refreshing token:', error);
-    return false;
-  }
+  // Supabase handles token refresh automatically
+  return true;
 }
 
 export function fetchJSON(path){ return fetch(path).then(r => r.json()); }

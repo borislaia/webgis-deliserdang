@@ -1,0 +1,143 @@
+// Supabase client configuration for frontend
+import { createClient } from '@supabase/supabase-js';
+
+// Supabase configuration
+const supabaseUrl = 'https://yyagythhwzdncantoszf.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5YWd5dGhod3pkbmNhbnRvc3pmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1NzkzMzcsImV4cCI6MjA3NjE1NTMzN30.R1fbe6pwq6d7ZJ5posqv2m4lhWhdnN9GxeJx-NDv0Yo';
+
+// Create Supabase client
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+// Authentication functions
+export const auth = {
+  // Sign up with email and password
+  async signUp(email, password, role = 'user') {
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+
+      // Set user role in our custom table
+      if (data.user) {
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .insert({ user_id: data.user.id, role: role });
+        
+        if (roleError) {
+          console.error('Error setting user role:', roleError);
+        }
+      }
+
+      return { data, error: null };
+    } catch (error) {
+      console.error('Sign up error:', error);
+      return { data: null, error };
+    }
+  },
+
+  // Sign in with email and password
+  async signIn(email, password) {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+
+      // Get user role
+      const userRole = await this.getUserRole(data.user.id);
+
+      return { 
+        data: {
+          ...data,
+          user: {
+            ...data.user,
+            role: userRole
+          }
+        }, 
+        error: null 
+      };
+    } catch (error) {
+      console.error('Sign in error:', error);
+      return { data: null, error };
+    }
+  },
+
+  // Sign out
+  async signOut() {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      return { error: null };
+    } catch (error) {
+      console.error('Sign out error:', error);
+      return { error };
+    }
+  },
+
+  // Get current user
+  async getCurrentUser() {
+    try {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error) throw error;
+
+      if (user) {
+        const userRole = await this.getUserRole(user.id);
+        return {
+          ...user,
+          role: userRole
+        };
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Get current user error:', error);
+      return null;
+    }
+  },
+
+  // Get user role from custom table
+  async getUserRole(userId) {
+    try {
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching user role:', error);
+        return 'user'; // default role
+      }
+
+      return data?.role || 'user';
+    } catch (error) {
+      console.error('Error in getUserRole:', error);
+      return 'user';
+    }
+  },
+
+  // Listen to auth state changes
+  onAuthStateChange(callback) {
+    return supabase.auth.onAuthStateChange(callback);
+  },
+
+  // Get current session
+  async getSession() {
+    try {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error) throw error;
+      return session;
+    } catch (error) {
+      console.error('Get session error:', error);
+      return null;
+    }
+  }
+};
+
+// Export supabase client for other uses
+export default supabase;

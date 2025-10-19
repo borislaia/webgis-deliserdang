@@ -1,4 +1,4 @@
-import { setAuth, apiRequest } from './utils.js';
+import { auth } from './supabase.js';
 
 const form = document.getElementById('loginForm');
 const toggleModeBtn = document.getElementById('toggleMode');
@@ -66,31 +66,41 @@ form.addEventListener('submit', async (e) => {
   }
 
   try {
-    const endpoint = isLoginMode ? '/api/auth/login' : '/api/auth/register';
-    const body = isLoginMode 
-      ? { email, password }
-      : { email, password, role };
+    if(isLoginMode) {
+      // Login with Supabase
+      const { data, error } = await auth.signIn(email, password);
+      
+      if(error) {
+        showError(error.message || 'Login failed');
+        return;
+      }
 
-    const response = await apiRequest(endpoint, {
-      method: 'POST',
-      body: JSON.stringify(body)
-    });
-
-    const data = await response.json();
-
-    if(data.success){
-      if(isLoginMode) {
-        setAuth(data.session);
+      if(data.user) {
+        // Store user info for use in the app
+        localStorage.setItem('user_info', JSON.stringify({
+          id: data.user.id,
+          email: data.user.email,
+          role: data.user.role
+        }));
+        
         location.href = 'dashboard.html';
-      } else {
+      }
+    } else {
+      // Register with Supabase
+      const { data, error } = await auth.signUp(email, password, role);
+      
+      if(error) {
+        showError(error.message || 'Registration failed');
+        return;
+      }
+
+      if(data.user) {
         showError('Registration successful! Please check your email to verify your account, then you can login.');
         setTimeout(() => toggleMode(), 2000);
       }
-    } else {
-      showError(data.message || (isLoginMode ? 'Login failed' : 'Registration failed'));
     }
   } catch (error) {
     console.error('Auth error:', error);
-    showError('Network error. Please try again.');
+    showError('An error occurred. Please try again.');
   }
 });
