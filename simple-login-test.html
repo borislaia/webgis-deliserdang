@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Login Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 400px; margin: 0 auto; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; }
+        input { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        button { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; width: 100%; }
+        button:hover { background: #0056b3; }
+        .result { margin-top: 15px; padding: 10px; border-radius: 4px; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Simple Login Test</h2>
+        
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="email">Email:</label>
+                <input type="email" id="email" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password" required>
+            </div>
+            
+            <button type="submit">Login</button>
+        </form>
+        
+        <div id="result"></div>
+    </div>
+
+    <script type="module">
+        import { createClient } from 'https://cdn.skypack.dev/@supabase/supabase-js@2';
+        
+        // Supabase configuration
+        const supabaseUrl = 'https://yyagythhwzdncantoszf.supabase.co';
+        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5YWd5dGhod3pkbmNhbnRvc3pmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1NzkzMzcsImV4cCI6MjA3NjE1NTMzN30.R1fbe6pwq6d7ZJ5posqv2m4lhWhdnN9GxeJx-NDv0Yo';
+        
+        // Create Supabase client
+        const supabase = createClient(supabaseUrl, supabaseAnonKey);
+        
+        const form = document.getElementById('loginForm');
+        const resultDiv = document.getElementById('result');
+        
+        function showResult(message, type = 'error') {
+            resultDiv.innerHTML = `<div class="result ${type}">${message}</div>`;
+        }
+        
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value.trim();
+            
+            if (!email || !password) {
+                showResult('Please enter both email and password', 'error');
+                return;
+            }
+            
+            showResult('Logging in...', 'info');
+            
+            try {
+                // Direct Supabase login
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email,
+                    password,
+                });
+                
+                if (error) {
+                    console.error('Login error:', error);
+                    showResult(`Login failed: ${error.message}`, 'error');
+                    return;
+                }
+                
+                if (data.user) {
+                    console.log('Login successful:', data.user);
+                    
+                    // Check if email is confirmed
+                    if (!data.user.email_confirmed_at) {
+                        showResult('Please check your email and click the confirmation link before logging in.', 'error');
+                        return;
+                    }
+                    
+                    // Try to get user role
+                    let role = 'user';
+                    try {
+                        const { data: roleData, error: roleError } = await supabase
+                            .from('user_roles')
+                            .select('role')
+                            .eq('user_id', data.user.id)
+                            .single();
+                        
+                        if (roleData) {
+                            role = roleData.role;
+                        } else if (roleError && roleError.code === 'PGRST116') {
+                            // Table doesn't exist or no role found, create default
+                            console.log('Creating default role for user');
+                            await supabase
+                                .from('user_roles')
+                                .insert({ user_id: data.user.id, role: 'user' });
+                        }
+                    } catch (roleError) {
+                        console.warn('Could not get/create user role:', roleError);
+                    }
+                    
+                    showResult(`
+                        <strong>Login successful!</strong><br>
+                        User ID: ${data.user.id}<br>
+                        Email: ${data.user.email}<br>
+                        Role: ${role}<br>
+                        Email Confirmed: ${data.user.email_confirmed_at ? 'Yes' : 'No'}
+                    `, 'success');
+                    
+                    // Store user info
+                    localStorage.setItem('user_info', JSON.stringify({
+                        id: data.user.id,
+                        email: data.user.email,
+                        role: role
+                    }));
+                    
+                } else {
+                    showResult('Login failed: No user data returned', 'error');
+                }
+                
+            } catch (error) {
+                console.error('Login error:', error);
+                showResult(`Login error: ${error.message}`, 'error');
+            }
+        });
+        
+        // Check current session on page load
+        window.addEventListener('load', async () => {
+            try {
+                const { data: { session }, error } = await supabase.auth.getSession();
+                if (session) {
+                    showResult(`Already logged in as: ${session.user.email}`, 'info');
+                }
+            } catch (error) {
+                console.log('No existing session');
+            }
+        });
+    </script>
+</body>
+</html>
