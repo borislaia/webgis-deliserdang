@@ -68,14 +68,18 @@ form.addEventListener('submit', async (e) => {
   try {
     if(isLoginMode) {
       // Login with Supabase
+      console.log('Attempting login...');
       const { data, error } = await auth.signIn(email, password);
       
       if(error) {
+        console.error('Login error:', error);
         showError(error.message || 'Login failed');
         return;
       }
 
-      if(data.user) {
+      if(data && data.user) {
+        console.log('Login successful, user:', data.user);
+        
         // Store user info for use in the app
         localStorage.setItem('user_info', JSON.stringify({
           id: data.user.id,
@@ -83,7 +87,11 @@ form.addEventListener('submit', async (e) => {
           role: data.user.role
         }));
         
+        console.log('Redirecting to dashboard...');
         location.href = 'dashboard.html';
+      } else {
+        console.error('No user data returned');
+        showError('Login failed: No user data returned');
       }
     } else {
       // Register with Supabase

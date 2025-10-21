@@ -41,15 +41,29 @@ export const auth = {
   // Sign in with email and password
   async signIn(email, password) {
     try {
+      console.log('Attempting login for email:', email);
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase login error:', error);
+        return { data: null, error };
+      }
 
-      // Get user role
-      const userRole = await this.getUserRole(data.user.id);
+      console.log('Login successful, user data:', data.user);
+
+      // Get user role with better error handling
+      let userRole = 'user'; // default role
+      try {
+        userRole = await this.getUserRole(data.user.id);
+        console.log('User role retrieved:', userRole);
+      } catch (roleError) {
+        console.warn('Could not get user role, using default:', roleError);
+        // Don't fail login if role retrieval fails
+      }
 
       return { 
         data: {
@@ -103,6 +117,8 @@ export const auth = {
   // Get user role from custom table
   async getUserRole(userId) {
     try {
+      console.log('Fetching role for user ID:', userId);
+      
       const { data, error } = await supabase
         .from('user_roles')
         .select('role')
@@ -111,9 +127,23 @@ export const auth = {
 
       if (error) {
         console.error('Error fetching user role:', error);
+        
+        // If table doesn't exist or user doesn't have a role, create one
+        if (error.code === 'PGRST116' || error.message.includes('No rows found')) {
+          console.log('Creating default role for user');
+          const { error: insertError } = await supabase
+            .from('user_roles')
+            .insert({ user_id: userId, role: 'user' });
+          
+          if (insertError) {
+            console.error('Error creating user role:', insertError);
+          }
+        }
+        
         return 'user'; // default role
       }
 
+      console.log('User role found:', data?.role);
       return data?.role || 'user';
     } catch (error) {
       console.error('Error in getUserRole:', error);
