@@ -1,15 +1,14 @@
-import { auth, supabase } from './supabase.js';
+import { auth, supabase } from './config/supabase.js';
 import { clearAuth } from './utils.js';
 
-// Check authentication status
-async function checkAuthStatus() {
+// Sync user data between localStorage and Supabase
+async function syncUserData() {
   try {
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user) {
       clearAuth();
-      location.href = 'login.html';
-      return;
+      return null;
     }
 
     // Get user role and store user info
@@ -21,6 +20,23 @@ async function checkAuthStatus() {
     };
     
     localStorage.setItem('user_info', JSON.stringify(userInfo));
+    return userInfo;
+  } catch (error) {
+    console.error('Sync user data failed:', error);
+    clearAuth();
+    return null;
+  }
+}
+
+// Check authentication status
+async function checkAuthStatus() {
+  try {
+    const userInfo = await syncUserData();
+    
+    if (!userInfo) {
+      location.href = 'login.html';
+      return;
+    }
   } catch (error) {
     console.error('Auth check failed:', error);
     clearAuth();
