@@ -1,4 +1,6 @@
-import { auth } from './supabase.js';
+import { auth } from './config/supabase.js';
+import { ERROR_MESSAGES, SUCCESS_MESSAGES, LOADING_MESSAGES } from './utils/constants.js';
+import { validateLoginForm, validateRegistrationForm, sanitizeInput } from './utils/validators.js';
 
 const form = document.getElementById('loginForm');
 const toggleModeBtn = document.getElementById('toggleMode');
@@ -7,12 +9,13 @@ const submitBtn = form.querySelector('button[type="submit"]');
 const errorDiv = document.getElementById('error-message') || createErrorDiv();
 
 let isLoginMode = true;
+let isLoading = false;
 
 function createErrorDiv() {
   const div = document.createElement('div');
   div.id = 'error-message';
   div.className = 'error-message';
-  div.style.cssText = 'color: red; margin-top: 10px; padding: 10px; background: #ffe6e6; border: 1px solid #ffcccc; border-radius: 4px; display: none;';
+  div.style.cssText = 'color: #dc2626; margin-top: 10px; padding: 12px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; display: none; font-size: 14px;';
   form.appendChild(div);
   return div;
 }
@@ -20,10 +23,37 @@ function createErrorDiv() {
 function showError(message) {
   errorDiv.textContent = message;
   errorDiv.style.display = 'block';
+  errorDiv.style.background = '#fef2f2';
+  errorDiv.style.borderColor = '#fecaca';
+  errorDiv.style.color = '#dc2626';
+}
+
+function showSuccess(message) {
+  errorDiv.textContent = message;
+  errorDiv.style.display = 'block';
+  errorDiv.style.background = '#f0fdf4';
+  errorDiv.style.borderColor = '#bbf7d0';
+  errorDiv.style.color = '#166534';
 }
 
 function hideError() {
   errorDiv.style.display = 'none';
+}
+
+function setLoading(loading) {
+  isLoading = loading;
+  submitBtn.disabled = loading;
+  submitBtn.textContent = loading 
+    ? (isLoginMode ? LOADING_MESSAGES.LOGGING_IN : LOADING_MESSAGES.REGISTERING)
+    : (isLoginMode ? 'Login' : 'Register');
+  
+  // Disable form inputs during loading
+  const inputs = form.querySelectorAll('input, select, button');
+  inputs.forEach(input => {
+    if (input !== submitBtn) {
+      input.disabled = loading;
+    }
+  });
 }
 
 function toggleMode() {
@@ -51,19 +81,23 @@ form.addEventListener('submit', async (e) => {
   e.preventDefault();
   hideError();
   
-  const email = /** @type {HTMLInputElement} */(document.getElementById('email')).value.trim();
-  const password = /** @type {HTMLInputElement} */(document.getElementById('password')).value.trim();
+  if (isLoading) return; // Prevent multiple submissions
+  
+  const email = sanitizeInput(/** @type {HTMLInputElement} */(document.getElementById('email')).value);
+  const password = sanitizeInput(/** @type {HTMLInputElement} */(document.getElementById('password')).value);
   const role = /** @type {HTMLSelectElement} */(document.getElementById('role')).value;
 
-  if(!email || !password){
-    showError('Please enter both email and password');
+  // Validate form
+  const validation = isLoginMode 
+    ? validateLoginForm(email, password)
+    : validateRegistrationForm(email, password, role);
+    
+  if (!validation.isValid) {
+    showError(validation.message);
     return;
   }
 
-  if(!isLoginMode && password.length < 6){
-    showError('Password must be at least 6 characters long');
-    return;
-  }
+  setLoading(true);
 
   try {
     if(isLoginMode) {
@@ -73,7 +107,7 @@ form.addEventListener('submit', async (e) => {
       
       if(error) {
         console.error('Login error:', error);
-        showError(error.message || 'Login failed');
+        showError(error.message || ERROR_MESSAGES.LOGIN_FAILED);
         return;
       }
 
@@ -87,28 +121,33 @@ form.addEventListener('submit', async (e) => {
           role: data.user.role
         }));
         
+        showSuccess(SUCCESS_MESSAGES.LOGIN_SUCCESS);
         console.log('Redirecting to dashboard...');
-        location.href = 'dashboard.html';
+        setTimeout(() => {
+          location.href = 'dashboard.html';
+        }, 1000);
       } else {
         console.error('No user data returned');
-        showError('Login failed: No user data returned');
+        showError(ERROR_MESSAGES.LOGIN_FAILED);
       }
     } else {
       // Register with Supabase
       const { data, error } = await auth.signUp(email, password, role);
       
       if(error) {
-        showError(error.message || 'Registration failed');
+        showError(error.message || ERROR_MESSAGES.REGISTRATION_FAILED);
         return;
       }
 
       if(data.user) {
-        showError('Registration successful! Please check your email to verify your account, then you can login.');
-        setTimeout(() => toggleMode(), 2000);
+        showSuccess(SUCCESS_MESSAGES.REGISTRATION_SUCCESS);
+        setTimeout(() => toggleMode(), 3000);
       }
     }
   } catch (error) {
     console.error('Auth error:', error);
-    showError('An error occurred. Please try again.');
+    showError(ERROR_MESSAGES.UNKNOWN_ERROR);
+  } finally {
+    setLoading(false);
   }
 });

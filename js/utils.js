@@ -1,5 +1,5 @@
 // Authentication utilities for Supabase
-import { supabase, auth } from './supabase.js';
+import { supabase, auth } from './config/supabase.js';
 
 export function ensureAuthRedirect(to = '/login.html'){
   // Check if user is authenticated using Supabase
