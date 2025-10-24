@@ -1,4 +1,4 @@
-import { auth } from './config/supabase.js';
+import { firebaseAuth as auth } from './config/firebase-auth.js';
 import { ERROR_MESSAGES, SUCCESS_MESSAGES, LOADING_MESSAGES } from './utils/constants.js';
 import { validateLoginForm, validateRegistrationForm, sanitizeInput } from './utils/validators.js';
 
