@@ -12,7 +12,12 @@ export default defineConfig({
     minify: 'esbuild'
   },
   define: {
-    'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(process.env.VITE_SUPABASE_URL || 'https://yyagythhwzdncantoszf.supabase.co'),
-    'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5YWd5dGhod3pkbmNhbnRvc3pmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1NzkzMzcsImV4cCI6MjA3NjE1NTMzN30.R1fbe6pwq6d7ZJ5posqv2m4lhWhdnN9GxeJx-NDv0Yo')
+    'import.meta.env.VITE_FIREBASE_API_KEY': JSON.stringify(process.env.VITE_FIREBASE_API_KEY || 'AIzaSyC2r1nUf2eT9GMa2Mb5XOy2MOVFs39Gttk'),
+    'import.meta.env.VITE_FIREBASE_AUTH_DOMAIN': JSON.stringify(process.env.VITE_FIREBASE_AUTH_DOMAIN || 'webgis-deliserdang.firebaseapp.com'),
+    'import.meta.env.VITE_FIREBASE_PROJECT_ID': JSON.stringify(process.env.VITE_FIREBASE_PROJECT_ID || 'webgis-deliserdang'),
+    'import.meta.env.VITE_FIREBASE_STORAGE_BUCKET': JSON.stringify(process.env.VITE_FIREBASE_STORAGE_BUCKET || 'webgis-deliserdang.firebasestorage.app'),
+    'import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID': JSON.stringify(process.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '178538591157'),
+    'import.meta.env.VITE_FIREBASE_APP_ID': JSON.stringify(process.env.VITE_FIREBASE_APP_ID || '1:178538591157:web:08c55fa9443970ed1b5ffc'),
+    'import.meta.env.VITE_FIREBASE_MEASUREMENT_ID': JSON.stringify(process.env.VITE_FIREBASE_MEASUREMENT_ID || 'G-VG6MF0WV9V')
   }
 });

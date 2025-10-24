@@ -51,9 +51,15 @@ const logoutBtn = document.getElementById('logoutBtn');
 if(logoutBtn){
   logoutBtn.addEventListener('click', async () => {
     try {
+      // Show loading state
+      logoutBtn.disabled = true;
+      logoutBtn.textContent = 'Logging out...';
+      
       await auth.signOut();
+      console.log('Logout successful');
     } catch (error) {
       console.error('Logout error:', error);
+      // Still clear local data even if server logout fails
     } finally {
       clearAuth();
       localStorage.removeItem('user_info');
@@ -66,9 +72,21 @@ if(logoutBtn){
 export function getCurrentUser() {
   try {
     const userInfo = localStorage.getItem('user_info');
-    return userInfo ? JSON.parse(userInfo) : null;
+    if (!userInfo) return null;
+    
+    const parsed = JSON.parse(userInfo);
+    // Validate user object structure
+    if (!parsed || typeof parsed !== 'object' || !parsed.id || !parsed.email) {
+      console.warn('Invalid user info structure, clearing localStorage');
+      localStorage.removeItem('user_info');
+      return null;
+    }
+    
+    return parsed;
   } catch (error) {
     console.error('Error parsing user info:', error);
+    // Clear corrupted data
+    localStorage.removeItem('user_info');
     return null;
   }
 }

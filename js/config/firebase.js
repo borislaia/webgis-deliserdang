@@ -19,6 +19,11 @@ if (!firebaseConfig.apiKey || !firebaseConfig.authDomain || !firebaseConfig.proj
   throw new Error('Firebase configuration is missing');
 }
 
+// Warn if using hardcoded values in production
+if (import.meta.env.PROD && !import.meta.env.VITE_FIREBASE_API_KEY) {
+  console.warn('⚠️ Using hardcoded Firebase config in production. Consider setting environment variables.');
+}
+
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);

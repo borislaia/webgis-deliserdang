@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="./css/base.css" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v7.4.0/ol/ol.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v7.4.0/ol/ol.css" onerror="console.warn('OpenLayers CSS failed to load')">
     <style>
       .ol-popup { position: absolute; background: var(--card); padding: 8px; border-radius: 12px; border: 1px solid var(--stroke); min-width: 220px; }
       .ol-popup .title{ font-weight:600; margin-bottom:4px; }
@@ -53,7 +53,7 @@
     <!-- Image modal -->
     <div id="imgModal" class="modal" aria-hidden="true"><img id="modalImg" alt="photo" /></div>
 
-    <script src="https://cdn.jsdelivr.net/npm/ol@v7.4.0/dist/ol.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ol@v7.4.0/dist/ol.js" onerror="console.error('Failed to load OpenLayers from CDN'); document.body.innerHTML='<div style=\"display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:20px;\"><h2>❌ Error Loading Map</h2><p>Failed to load OpenLayers library. Please check your internet connection.</p><button onclick=\"location.reload()\" class=\"btn primary\">Retry</button></div>'"></script>
     <script type="module" src="./js/config/firebase.js"></script>
     <script type="module" src="./js/utils.js"></script>
     <script type="module" src="./js/auth-guard.js"></script>
