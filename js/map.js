@@ -21,6 +21,7 @@ const { Overlay } = ol;
 
 const centerLonLat = [98.69870163855006, 3.5460256535269954]; // Deli Serdang, North Sumatra
 const center = fromLonLat(centerLonLat);
+const defaultZoom = 11; // Zoom default untuk reset view
 
 const googleHybrid = new TileLayer({
   source: new XYZ({
@@ -72,7 +73,7 @@ const esriSat = new TileLayer({
 const map = new Map({
   target: 'map',
   layers: [googleHybrid, googleSat, osm, cartoDB, esriSat],
-  view: new View({ center, zoom: 11 }),
+  view: new View({ center, zoom: defaultZoom }),
   // Remove default OL UI controls; we provide custom ones in the UI.
   // Also hides basemap attribution text.
   controls: defaultControls({ attribution: false, zoom: false, rotate: false }),
@@ -287,7 +288,7 @@ const dashboardBtn = document.getElementById('dashboardBtn');
 
 zoomInBtn.addEventListener('click', () => map.getView().setZoom(map.getView().getZoom() + 1));
 zoomOutBtn.addEventListener('click', () => map.getView().setZoom(map.getView().getZoom() - 1));
-resetViewBtn.addEventListener('click', () => map.getView().animate({ center, zoom: 11, duration: 400 }));
+resetViewBtn.addEventListener('click', () => map.getView().animate({ center, zoom: defaultZoom, duration: 400 }));
 
 // Navigation controls
 homeBtn.addEventListener('click', () => window.location.href = './index.html');
