@@ -100,7 +100,13 @@ function toggleMode() {
   }
 }
 
-toggleModeBtn.addEventListener('click', toggleMode);
+toggleModeBtn.addEventListener('click', (e) => {
+  try {
+    toggleMode();
+  } catch (error) {
+    console.error('Error in toggle mode click:', error);
+  }
+});
 
 form.addEventListener('submit', async (e) => {
   try {
@@ -182,6 +188,11 @@ form.addEventListener('submit', async (e) => {
     console.error('Auth error:', error);
     showError(ERROR_MESSAGES.UNKNOWN_ERROR);
   } finally {
+    setLoading(false);
+  }
+  } catch (error) {
+    console.error('Error in form submission:', error);
+    showError('Terjadi kesalahan saat memproses form');
     setLoading(false);
   }
 });

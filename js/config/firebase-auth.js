@@ -121,7 +121,12 @@ export const firebaseAuth = {
 
   // Listen to auth state changes
   onAuthStateChange(callback) {
-    return onAuthStateChanged(auth, callback);
+    try {
+      return onAuthStateChanged(auth, callback);
+    } catch (error) {
+      console.error('Error setting up auth state listener:', error);
+      return null;
+    }
   },
 
   // Get current session

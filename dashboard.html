@@ -95,41 +95,57 @@
       import { getCurrentUser, isAdmin } from './js/auth-guard.js';
       import { apiRequest } from './js/utils.js';
       
-      document.getElementById('year').textContent = new Date().getFullYear();
+      try {
+        document.getElementById('year').textContent = new Date().getFullYear();
+      } catch (error) {
+        console.error('Error setting year:', error);
+      }
       
       // Check if user is admin and show/hide admin features
-      const user = getCurrentUser();
-      if (!isAdmin()) {
-        document.getElementById('usersBtn').style.display = 'none';
+      try {
+        const user = getCurrentUser();
+        if (!isAdmin()) {
+          document.getElementById('usersBtn').style.display = 'none';
+        }
+      } catch (error) {
+        console.error('Error checking admin status:', error);
       }
       
       // User management functions
       window.toggleUsersPanel = function() {
-        const panel = document.getElementById('usersPanel');
-        panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
-        if (panel.style.display === 'block') {
-          refreshUsers();
+        try {
+          const panel = document.getElementById('usersPanel');
+          panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+          if (panel.style.display === 'block') {
+            refreshUsers();
+          }
+        } catch (error) {
+          console.error('Error toggling users panel:', error);
         }
       };
       
       window.refreshUsers = async function() {
-        const usersList = document.getElementById('usersList');
-        usersList.innerHTML = '<p>Loading users...</p>';
-        
         try {
-          // Note: This would need a backend endpoint to list users
-          // For now, we'll show a placeholder
-          usersList.innerHTML = `
-            <div style="padding: 16px; background: #f5f5f5; border-radius: 4px; margin: 8px 0;">
-              <strong>Admin Feature</strong><br>
-              User management requires additional backend endpoints to be implemented.
-              <br><br>
-              Current user: ${user ? user.email : 'Unknown'} (${user ? user.role : 'Unknown'})
-            </div>
-          `;
+          const usersList = document.getElementById('usersList');
+          usersList.innerHTML = '<p>Loading users...</p>';
+          
+          try {
+            // Note: This would need a backend endpoint to list users
+            // For now, we'll show a placeholder
+            usersList.innerHTML = `
+              <div style="padding: 16px; background: #f5f5f5; border-radius: 4px; margin: 8px 0;">
+                <strong>Admin Feature</strong><br>
+                User management requires additional backend endpoints to be implemented.
+                <br><br>
+                Current user: ${user ? user.email : 'Unknown'} (${user ? user.role : 'Unknown'})
+              </div>
+            `;
+          } catch (error) {
+            console.error('Error loading users:', error);
+            usersList.innerHTML = '<p style="color: red;">Error loading users</p>';
+          }
         } catch (error) {
-          console.error('Error loading users:', error);
-          usersList.innerHTML = '<p style="color: red;">Error loading users</p>';
+          console.error('Error in refreshUsers:', error);
         }
       };
     </script>

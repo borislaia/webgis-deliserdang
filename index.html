@@ -83,7 +83,11 @@
     </script>
     <script type="module" src="./js/utils.js"></script>
     <script>
-      document.getElementById('year').textContent = new Date().getFullYear();
+      try {
+        document.getElementById('year').textContent = new Date().getFullYear();
+      } catch (error) {
+        console.error('Error setting year:', error);
+      }
     </script>
     <!-- Removed duplicate Vanta initialization to avoid double overlays -->
   </body>

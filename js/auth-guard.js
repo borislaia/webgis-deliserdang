@@ -93,6 +93,11 @@ export function getCurrentUser() {
 
 // Helper function to check if user is admin
 export function isAdmin() {
-  const user = getCurrentUser();
-  return user && user.role === 'admin';
+  try {
+    const user = getCurrentUser();
+    return user && user.role === 'admin';
+  } catch (error) {
+    console.error('Error checking admin status:', error);
+    return false;
+  }
 }
