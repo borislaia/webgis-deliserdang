@@ -20,6 +20,12 @@
       </header>
       <main class="home">
         <h1 class="sr-only">Home</h1>
+        <div class="info-banner" style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 12px; padding: 16px; margin-bottom: 24px; text-align: center; color: #1e40af;">
+          <p style="margin: 0; font-size: 14px;">
+            <strong>Selamat datang di WebGIS Deli Serdang!</strong><br>
+            Silakan login terlebih dahulu untuk mengakses fitur-fitur GIS.
+          </p>
+        </div>
         <section class="menu-grid">
           <!-- 8 circular menu items -->
           <a class="menu-item" href="./login.html">
@@ -72,6 +78,7 @@
       });
     </script>
     <script type="module" src="./js/utils.js"></script>
+    <script src="./js/navigation.js"></script>
     <script>
       document.getElementById('year').textContent = new Date().getFullYear();
     </script>
