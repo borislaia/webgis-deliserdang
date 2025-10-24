@@ -103,7 +103,7 @@ export async function apiRequest(url, options = {}){
     if(response.status === 401){
       // Clear auth and redirect to login
       await auth.signOut();
-      location.href = '/login.html';
+      location.href = 'login.html';
       return response;
     }
     
