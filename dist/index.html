@@ -23,28 +23,28 @@
         <h1 class="sr-only">Home</h1>
         <section class="menu-grid">
           <!-- 8 circular menu items -->
-          <a class="menu-item" href="./login.html">
+          <a class="menu-item" href="./login.html" data-route="/login">
             <span class="label">Daerah Irigasi</span>
           </a>
-          <a class="menu-item" href="./login.html">
+          <a class="menu-item" href="./login.html" data-route="/login">
             <span class="label">Pemanfaatan SDA</span>
           </a>
-          <a class="menu-item" href="./login.html">
+          <a class="menu-item" href="./login.html" data-route="/login">
             <span class="label">Rawan Bencana</span>
           </a>
-          <a class="menu-item" href="./login.html">
+          <a class="menu-item" href="./login.html" data-route="/login">
             <span class="label">Infrastruktur SDA</span>
           </a>
-          <a class="menu-item" href="./login.html">
+          <a class="menu-item" href="./login.html" data-route="/login">
             <span class="label">Pos STA Curah Hujan <br> dan AWLR</span>
           </a>
-          <a class="menu-item" href="./login.html">
+          <a class="menu-item" href="./login.html" data-route="/login">
             <span class="label">Danau, Situ, <br> dan Embung</span>
           </a>
-          <a class="menu-item" href="./login.html">
+          <a class="menu-item" href="./login.html" data-route="/login">
             <span class="label">Saluran Pembuang/ <br> Sungai</span>
           </a>
-          <a class="menu-item" href="./login.html">
+          <a class="menu-item" href="./login.html" data-route="/login">
             <span class="label">Garis Pantai</span>
           </a>
         </section>
@@ -53,27 +53,62 @@
         <span>© <span id="year"></span> Deli Serdang</span>
       </footer>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.134.0/build/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/vanta@0.5.24/dist/vanta.fog.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.134.0/build/three.min.js" onerror="console.error('Failed to load Three.js from CDN')"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vanta@0.5.24/dist/vanta.fog.min.js" onerror="console.warn('Vanta.js failed to load, using fallback background'); document.getElementById('vanta-bg').style.background='linear-gradient(135deg, #667eea 0%, #764ba2 100%)'"></script>
     <script>
-      VANTA.FOG({
-        el: "#vanta-bg",
-        mouseControls: true,
-        touchControls: true,
-        gyroControls: false,
-        minHeight: 200.00,
-        minWidth: 200.00,
-        highlightColor: 0xffffff,
-        midtoneColor: 0xf2ff,
-        lowlightColor: 0xd9d9d9,
-        baseColor: 0xffffff,
-        blurFactor: 0.57,
-        speed: 1.60,
-        zoom: 0.80
-      });
+      try {
+        if (typeof VANTA !== 'undefined' && VANTA.FOG) {
+          VANTA.FOG({
+            el: "#vanta-bg",
+            mouseControls: true,
+            touchControls: true,
+            gyroControls: false,
+            minHeight: 200.00,
+            minWidth: 200.00,
+            highlightColor: 0xffffff,
+            midtoneColor: 0xf2ff,
+            lowlightColor: 0xd9d9d9,
+            baseColor: 0xffffff,
+            blurFactor: 0.57,
+            speed: 1.60,
+            zoom: 0.80
+          });
+        } else {
+          console.warn('VANTA.FOG not available, using fallback background');
+          document.getElementById('vanta-bg').style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+        }
+      } catch (error) {
+        console.error('Error initializing Vanta.js:', error);
+        document.getElementById('vanta-bg').style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+      }
     </script>
     <script>
-      document.getElementById('year').textContent = new Date().getFullYear();
+      try {
+        document.getElementById('year').textContent = new Date().getFullYear();
+        
+        // Handle menu clicks with better UX
+        document.addEventListener('DOMContentLoaded', () => {
+          const menuItems = document.querySelectorAll('.menu-item[data-route]');
+          menuItems.forEach(item => {
+            item.addEventListener('click', (e) => {
+              e.preventDefault();
+              const route = item.getAttribute('data-route');
+              console.log('Menu clicked, navigating to:', route);
+              
+              // Add loading state
+              item.style.opacity = '0.7';
+              item.style.pointerEvents = 'none';
+              
+              // Navigate after a short delay for better UX
+              setTimeout(() => {
+                window.location.href = './login.html';
+              }, 150);
+            });
+          });
+        });
+      } catch (error) {
+        console.error('Error setting year:', error);
+      }
     </script>
     <!-- Removed duplicate Vanta initialization to avoid double overlays -->
   </body>
