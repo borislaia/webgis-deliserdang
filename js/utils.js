@@ -1,19 +1,19 @@
-// Authentication utilities for Supabase
-import { supabase, auth } from './config/supabase.js';
+// Authentication utilities for Firebase
+import { firebaseAuth as auth } from './config/firebase-auth.js';
 
 export function ensureAuthRedirect(to = '/login.html'){
-  // Check if user is authenticated using Supabase
-  supabase.auth.getUser().then(({ data: { user }, error }) => {
-    if (error || !user) {
+  // Check if user is authenticated using Firebase
+  auth.getCurrentUser().then((user) => {
+    if (!user) {
       location.href = to;
     }
   });
 }
 
 export function setAuth(sessionData){
-  // This function is now handled by Supabase automatically
+  // This function is now handled by Firebase automatically
   // Keeping for compatibility but not needed
-  console.log('setAuth called - Supabase handles session management automatically');
+  console.log('setAuth called - Firebase handles session management automatically');
 }
 
 export function clearAuth(){
@@ -24,52 +24,51 @@ export function clearAuth(){
 }
 
 export function getAuthSession(){
-  // This function is now handled by Supabase
+  // This function is now handled by Firebase
   // Return null to maintain compatibility
   return null;
 }
 
 export function isTokenExpired(expiresAt){
-  // Supabase handles token expiration automatically
+  // Firebase handles token expiration automatically
   return false;
 }
 
-export function getAuthHeaders(){
-  // Get auth headers from Supabase session
-  return supabase.auth.getSession().then(({ data: { session } }) => {
-    if (session) {
-      return {
-        'Authorization': `Bearer ${session.access_token}`,
-        'Content-Type': 'application/json'
-      };
-    }
+export async function getAuthHeaders(){
+  // Get auth headers from Firebase session
+  const user = await auth.getCurrentUser();
+  if (user) {
+    // Firebase doesn't use Bearer tokens in the same way
+    // You might need to get ID token instead
     return {
       'Content-Type': 'application/json'
     };
-  });
+  }
+  return {
+    'Content-Type': 'application/json'
+  };
 }
 
 // API helper with authentication
 export async function apiRequest(url, options = {}){
-  const session = await supabase.auth.getSession();
+  const user = await auth.getCurrentUser();
   const headers = {
     'Content-Type': 'application/json',
     ...options.headers
   };
   
-  if (session.data.session) {
-    headers['Authorization'] = `Bearer ${session.data.session.access_token}`;
-  }
+  // Firebase doesn't use Bearer tokens in the same way
+  // You might need to get ID token instead
   
   const response = await fetch(url, {
     ...options,
     headers
   });
   
-  // If token expired, Supabase will handle refresh automatically
+  // If token expired, Firebase will handle refresh automatically
   if(response.status === 401){
     // Clear auth and redirect to login
-    await supabase.auth.signOut();
+    await auth.signOut();
     location.href = '/login.html';
     return response;
   }
@@ -77,9 +76,9 @@ export async function apiRequest(url, options = {}){
   return response;
 }
 
-// Refresh authentication token - handled by Supabase automatically
+// Refresh authentication token - handled by Firebase automatically
 export async function refreshAuthToken(){
-  // Supabase handles token refresh automatically
+  // Firebase handles token refresh automatically
   return true;
 }
 

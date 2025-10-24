@@ -15,10 +15,10 @@
   ],
   "author": "",
   "license": "ISC",
-  "dependencies": {
-    "@supabase/supabase-js": "^2.75.1"
-  },
   "devDependencies": {
     "vite": "^5.0.0"
+  },
+  "dependencies": {
+    "firebase": "^12.4.0"
   }
 }

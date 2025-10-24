@@ -1,22 +1,21 @@
-import { auth, supabase } from './config/supabase.js';
+import { firebaseAuth as auth } from './config/firebase-auth.js';
 import { clearAuth } from './utils.js';
 
-// Sync user data between localStorage and Supabase
+// Sync user data between localStorage and Firebase
 async function syncUserData() {
   try {
-    const { data: { user }, error } = await supabase.auth.getUser();
+    const user = await auth.getCurrentUser();
     
-    if (error || !user) {
+    if (!user) {
       clearAuth();
       return null;
     }
 
-    // Get user role and store user info
-    const userRole = await auth.getUserRole(user.id);
+    // Store user info
     const userInfo = {
       id: user.id,
       email: user.email,
-      role: userRole
+      role: user.role
     };
     
     localStorage.setItem('user_info', JSON.stringify(userInfo));
