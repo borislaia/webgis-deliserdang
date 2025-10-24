@@ -74,6 +74,26 @@
     <script type="module" src="./js/utils.js"></script>
     <script>
       document.getElementById('year').textContent = new Date().getFullYear();
+      
+      // Ensure circular menu items work properly
+      document.addEventListener('DOMContentLoaded', function() {
+        const menuItems = document.querySelectorAll('.menu-item');
+        
+        menuItems.forEach(item => {
+          // Add click event listener as backup
+          item.addEventListener('click', function(e) {
+            console.log('Menu item clicked:', this.href);
+            // Let the default behavior (navigation) happen
+            // Don't prevent default
+          });
+          
+          // Ensure the link is clickable
+          item.style.cursor = 'pointer';
+          item.style.pointerEvents = 'auto';
+        });
+        
+        console.log('Circular menu items initialized:', menuItems.length);
+      });
     </script>
     <!-- Removed duplicate Vanta initialization to avoid double overlays -->
   </body>
