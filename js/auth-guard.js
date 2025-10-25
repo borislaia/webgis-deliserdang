@@ -30,9 +30,16 @@ async function syncUserData() {
 // Check authentication status
 async function checkAuthStatus() {
   try {
+    // Skip auth check if we're on login page
+    if (window.location.pathname.includes('login.html')) {
+      console.log('Skipping auth check on login page');
+      return;
+    }
+    
     const userInfo = await syncUserData();
     
     if (!userInfo) {
+      console.log('No user info found, redirecting to login');
       location.href = 'login.html';
       return;
     }

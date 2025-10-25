@@ -21,6 +21,23 @@ function initializeAuth() {
     console.error('Login form not found!');
     return;
   }
+
+  // Clear URL parameters to prevent form submission via GET
+  if (window.location.search) {
+    console.log('Clearing URL parameters:', window.location.search);
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
+
+  // Prevent form from submitting via GET by ensuring method is POST
+  form.setAttribute('method', 'post');
+  form.setAttribute('action', 'javascript:void(0)');
+  
+  // Add additional event listener to prevent form submission via GET
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+  }, true);
   
   const submitBtn = form.querySelector('button[type="submit"]');
   const errorDiv = document.getElementById('error-message') || createErrorDiv(form);
@@ -130,16 +147,22 @@ function initializeAuth() {
 
   toggleModeBtn.addEventListener('click', (e) => {
     try {
+      e.preventDefault();
+      e.stopPropagation();
       toggleMode();
     } catch (error) {
       console.error('Error in toggle mode click:', error);
     }
   });
 
+  // Add multiple event listeners to ensure form doesn't submit via GET
+  // Add event listener to prevent form submission via GET
   form.addEventListener('submit', async (e) => {
     try {
       console.log('Form submit event triggered');
       e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
       hideError();
       
       if (isLoading) {
@@ -204,8 +227,17 @@ function initializeAuth() {
           
           showSuccess(SUCCESS_MESSAGES.LOGIN_SUCCESS);
           console.log('Redirecting to dashboard...');
+          
+          // Use a more reliable redirect method
           setTimeout(() => {
-            location.href = 'dashboard.html';
+            try {
+              // Clear any existing URL parameters
+              const baseUrl = window.location.origin + window.location.pathname.replace('login.html', 'dashboard.html');
+              window.location.replace(baseUrl);
+            } catch (redirectError) {
+              console.error('Redirect error:', redirectError);
+              window.location.href = './dashboard.html';
+            }
           }, 1000);
         } else {
           console.error('No user data returned from auth.signIn');

@@ -24,7 +24,7 @@
           <button id="toggleMode" class="btn" style="padding:8px 16px; font-size:14px;">Register</button>
         </div>
         
-        <form id="loginForm" class="form" autocomplete="off">
+        <form id="loginForm" class="form" autocomplete="off" method="post">
           <div class="form-row">
             <label for="email">Email</label>
             <input class="input" id="email" name="email" type="email" required placeholder="you@example.com" />
@@ -75,6 +75,78 @@
         console.error('Error initializing Vanta.js:', error);
         document.getElementById('vanta-bg').style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
       }
+    </script>
+    <script>
+      // Clear URL parameters on page load to prevent form submission via GET
+      if (window.location.search) {
+        console.log('Clearing URL parameters on page load:', window.location.search);
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+      
+      // Consolidated function to ensure form method is POST
+      function ensureFormMethod() {
+        const form = document.getElementById('loginForm');
+        if (form) {
+          form.setAttribute('method', 'post');
+          form.setAttribute('action', 'javascript:void(0)');
+        }
+      }
+      
+      // Prevent form submission via GET
+      document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('loginForm');
+        if (form) {
+          // Set form method to POST and action to prevent GET submission
+          form.setAttribute('method', 'post');
+          form.setAttribute('action', 'javascript:void(0)');
+          
+          // Add event listener to prevent form submission
+          form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+          }, true);
+          
+          // Also prevent form submission on button click
+          const submitBtn = form.querySelector('button[type="submit"]');
+          if (submitBtn) {
+            submitBtn.addEventListener('click', function(e) {
+              e.preventDefault();
+              e.stopPropagation();
+              e.stopImmediatePropagation();
+            }, true);
+          }
+        }
+      });
+      
+      // Essential event listeners for form protection
+      const essentialEvents = [
+        'load', 'focus', 'blur', 'resize', 'scroll', 
+        'visibilitychange', 'orientationchange'
+      ];
+      
+      essentialEvents.forEach(eventType => {
+        if (eventType === 'visibilitychange') {
+          document.addEventListener(eventType, ensureFormMethod);
+        } else {
+          window.addEventListener(eventType, ensureFormMethod);
+        }
+      });
+      
+      // Clean up on page unload
+      window.addEventListener('beforeunload', function() {
+        const form = document.getElementById('loginForm');
+        if (form) {
+          form.reset();
+        }
+      });
+      
+      window.addEventListener('unload', function() {
+        const form = document.getElementById('loginForm');
+        if (form) {
+          form.reset();
+        }
+      });
     </script>
     <script type="module" src="./js/config/firebase.js"></script>
     <script type="module" src="./js/config/firebase-auth.js"></script>
