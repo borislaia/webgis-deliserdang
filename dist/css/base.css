@@ -28,7 +28,6 @@ body{
 /* Perfect circular tiles */
 .menu-item{ display:flex; flex-direction:column; align-items:center; justify-content:center; width:min(100%, 200px); aspect-ratio:1 / 1; border-radius:50%; text-decoration:none; color:var(--text); background:var(--card); border:1px solid var(--stroke); box-shadow: 0 10px 30px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.6); transition: transform .25s ease, box-shadow .25s ease, background .25s ease; justify-self:center; }
 .menu-item:hover{ transform: translateY(-4px); box-shadow: 0 18px 40px rgba(0,0,0,0.10); }
-.menu-item .icon{ font-size:28px; margin-bottom:10px; }
 .menu-item .label{ font-weight:600; letter-spacing:0.2px; }
 
 @media (max-width: 900px){ .menu-grid{ grid-template-columns: repeat(3, 1fr); } }
@@ -40,6 +39,11 @@ body{
 .btn.primary{ background: linear-gradient(180deg, #1ea1ff, #0a84ff); color:white; border:none; }
 .input{ width:100%; padding:12px 14px; border-radius:12px; border:1px solid var(--stroke); background: linear-gradient(180deg, #fff, #f8fafc); }
 .form-row{ display:flex; flex-direction:column; gap:8px; }
+.error-message{ color: #dc2626; margin-top: 10px; padding: 12px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; font-size: 14px; }
+.ol-tooltip{ position: absolute; background-color: rgba(0, 0, 0, 0.8); color: white; padding: 8px 12px; border-radius: 4px; font-size: 14px; font-weight: 500; pointer-events: none; white-space: nowrap; z-index: 9999; }
+.ol-popup{ position: absolute; background: var(--card); padding: 8px; border-radius: 12px; border: 1px solid var(--stroke); min-width: 220px; }
+.ol-popup .title{ font-weight: 600; margin-bottom: 4px; }
+.ol-popup img{ width: 100%; border-radius: 10px; margin-top: 6px; cursor: pointer; }
 .layout{ display:grid; grid-template-columns: 260px 1fr; min-height: calc(100vh - 100px); }
 .sidebar{ padding:20px; }
 .content{ padding:24px; }
@@ -51,8 +55,6 @@ body{
 .float-card{ padding:12px; }
 .badge{ font-size:12px; padding:4px 8px; border-radius:999px; background:rgba(10,132,255,0.15); color:#0a84ff; border:1px solid rgba(10,132,255,0.25); }
 .legend{ display:flex; flex-direction:column; gap:8px; }
-.legend-row{ display:flex; align-items:center; gap:8px; }
-.legend-swatch{ width:14px; height:14px; border-radius:4px; border:1px solid rgba(0,0,0,0.1); }
 
 .modal{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,0.6); z-index:9999; }
 .modal.open{ display:flex; }
