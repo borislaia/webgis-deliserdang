@@ -141,7 +141,7 @@ form.addEventListener('submit', async (e) => {
 
   try {
     if(isLoginMode) {
-      // Login with Supabase
+      // Login with Firebase
       console.log('Attempting login...');
       const { data, error } = await auth.signIn(email, password);
       
@@ -171,7 +171,7 @@ form.addEventListener('submit', async (e) => {
         showError(ERROR_MESSAGES.LOGIN_FAILED);
       }
     } else {
-      // Register with Supabase
+      // Register with Firebase
       const { data, error } = await auth.signUp(email, password, role);
       
       if(error) {
