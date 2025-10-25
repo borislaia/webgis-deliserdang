@@ -25,7 +25,13 @@ if (import.meta.env.PROD && !import.meta.env.VITE_FIREBASE_API_KEY) {
 }
 
 // Initialize Firebase
+console.log('Initializing Firebase with config:', firebaseConfig);
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+
+console.log('Firebase initialized successfully');
+console.log('Auth object:', auth);
+console.log('DB object:', db);
+
 export default app;
