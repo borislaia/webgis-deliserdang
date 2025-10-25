@@ -48,13 +48,3 @@ export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // Password requirements
 export const PASSWORD_MIN_LENGTH = 6;
-
-// API endpoints
-export const API_ENDPOINTS = {
-  LOGIN: '/api/auth/login',
-  REGISTER: '/api/auth/register',
-  LOGOUT: '/api/auth/logout',
-  STATUS: '/api/auth/status',
-  REFRESH: '/api/auth/refresh',
-  USERS: '/api/auth/users'
-};

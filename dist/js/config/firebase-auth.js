@@ -2,8 +2,7 @@
 import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
-  signOut, 
-  onAuthStateChanged
+  signOut
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { auth, db } from './firebase.js';
@@ -119,24 +118,4 @@ export const firebaseAuth = {
     }
   },
 
-  // Listen to auth state changes
-  onAuthStateChange(callback) {
-    try {
-      return onAuthStateChanged(auth, callback);
-    } catch (error) {
-      console.error('Error setting up auth state listener:', error);
-      return null;
-    }
-  },
-
-  // Get current session
-  async getSession() {
-    try {
-      const user = auth.currentUser;
-      return user ? { user } : null;
-    } catch (error) {
-      console.error('Get session error:', error);
-      return null;
-    }
-  }
 };

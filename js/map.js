@@ -13,7 +13,7 @@ const { Tile: TileLayer, Vector: VectorLayer } = ol.layer;
 const { Vector: VectorSource } = ol.source;
 const { fromLonLat } = ol.proj;
 const { GeoJSON } = ol.format;
-const { Fill, Stroke, Style, Circle: CircleStyle } = ol.style;
+const { Fill, Stroke, Style } = ol.style;
 // Support both OL UMD shapes: `.defaults.defaults` (module->fn) and `.defaults` (fn)
 const defaultControls = (ol.control.defaults && ol.control.defaults.defaults)
   ? ol.control.defaults.defaults
@@ -21,7 +21,6 @@ const defaultControls = (ol.control.defaults && ol.control.defaults.defaults)
 const defaultInteractions = (ol.interaction.defaults && ol.interaction.defaults.defaults)
   ? ol.interaction.defaults.defaults
   : ol.interaction.defaults;
-const { Select } = ol.interaction;
 const { Overlay } = ol;
 
 const centerLonLat = [98.69870163855006, 3.5460256535269954]; // Deli Serdang, North Sumatra

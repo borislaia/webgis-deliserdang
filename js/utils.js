@@ -1,32 +1,6 @@
 // Authentication utilities for Firebase
 import { firebaseAuth as auth } from './config/firebase-auth.js';
 
-export function ensureAuthRedirect(to = '/login.html'){
-  try {
-    // Check if user is authenticated using Firebase
-    auth.getCurrentUser().then((user) => {
-      if (!user) {
-        location.href = to;
-      }
-    }).catch((error) => {
-      console.error('Error checking auth status:', error);
-      location.href = to;
-    });
-  } catch (error) {
-    console.error('Error in ensureAuthRedirect:', error);
-    location.href = to;
-  }
-}
-
-export function setAuth(sessionData){
-  try {
-    // This function is now handled by Firebase automatically
-    // Keeping for compatibility but not needed
-    console.log('setAuth called - Firebase handles session management automatically');
-  } catch (error) {
-    console.error('Error in setAuth:', error);
-  }
-}
 
 export function clearAuth(){
   try {
@@ -39,48 +13,6 @@ export function clearAuth(){
   }
 }
 
-export function getAuthSession(){
-  try {
-    // This function is now handled by Firebase
-    // Return null to maintain compatibility
-    return null;
-  } catch (error) {
-    console.error('Error in getAuthSession:', error);
-    return null;
-  }
-}
-
-export function isTokenExpired(expiresAt){
-  try {
-    // Firebase handles token expiration automatically
-    return false;
-  } catch (error) {
-    console.error('Error in isTokenExpired:', error);
-    return true; // Assume expired if error
-  }
-}
-
-export async function getAuthHeaders(){
-  try {
-    // Get auth headers from Firebase session
-    const user = await auth.getCurrentUser();
-    if (user) {
-      // Firebase doesn't use Bearer tokens in the same way
-      // You might need to get ID token instead
-      return {
-        'Content-Type': 'application/json'
-      };
-    }
-    return {
-      'Content-Type': 'application/json'
-    };
-  } catch (error) {
-    console.error('Error getting auth headers:', error);
-    return {
-      'Content-Type': 'application/json'
-    };
-  }
-}
 
 // API helper with authentication
 export async function apiRequest(url, options = {}){
@@ -114,16 +46,6 @@ export async function apiRequest(url, options = {}){
   }
 }
 
-// Refresh authentication token - handled by Firebase automatically
-export async function refreshAuthToken(){
-  try {
-    // Firebase handles token refresh automatically
-    return true;
-  } catch (error) {
-    console.error('Error refreshing auth token:', error);
-    return false;
-  }
-}
 
 export async function fetchJSON(path){ 
   try {
@@ -155,11 +77,3 @@ export function el(tag, attrs={}, children=[]){
   }
 }
 
-export function formatAttrs(attrs){
-  try {
-    return Object.entries(attrs).map(([k,v]) => `<div><strong>${k}</strong>: ${v}</div>`).join('');
-  } catch (error) {
-    console.error('Error formatting attributes:', error);
-    return '';
-  }
-}
