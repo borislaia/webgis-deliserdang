@@ -30,12 +30,15 @@ export const firebaseAuth = {
   // Sign in with email and password
   async signIn(email, password) {
     try {
-      console.log('Attempting login for email:', email);
+      console.log('Firebase Auth signIn called with email:', email);
+      console.log('Auth object available:', !!auth);
       
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
       
-      console.log('Login successful, user data:', user);
+      console.log('Firebase signInWithEmailAndPassword successful');
+      console.log('User credential:', userCredential);
+      console.log('User object:', user);
       
       // Get user role
       let userRole = 'user';
@@ -46,7 +49,7 @@ export const firebaseAuth = {
         console.warn('Could not get user role, using default:', roleError);
       }
       
-      return { 
+      const result = { 
         data: {
           user: {
             id: user.uid,
@@ -56,8 +59,13 @@ export const firebaseAuth = {
         }, 
         error: null 
       };
+      
+      console.log('Returning signIn result:', result);
+      return result;
     } catch (error) {
-      console.error('Sign in error:', error);
+      console.error('Firebase signInWithEmailAndPassword error:', error);
+      console.error('Error code:', error.code);
+      console.error('Error message:', error.message);
       return { data: null, error };
     }
   },
