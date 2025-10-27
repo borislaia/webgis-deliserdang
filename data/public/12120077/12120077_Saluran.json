@@ -1,0 +1,37 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.5,
+            3.6
+          ],
+          [
+            98.51,
+            3.61
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "0000",
+        "k_di": "12120077",
+        "n_di": "Template 12120077",
+        "nama": "Template Saluran",
+        "nomenklatu": "TS.1",
+        "k_aset": "S01",
+        "n_aset": "Template Saluran",
+        "panjang_sa": "100.0",
+        "luas_layan": "0",
+        "norec": "1",
+        "profil": "",
+        "panjang": "",
+        "norec_salu": "",
+        "saluran": ""
+      }
+    }
+  ]
+}

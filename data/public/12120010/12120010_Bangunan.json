@@ -1,0 +1,32 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          98.5,
+          3.6,
+          0
+        ]
+      },
+      "properties": {
+        "id_di": "0000",
+        "k_di": "12120010",
+        "n_di": "Template 12120010",
+        "nama": "Template Bangunan",
+        "nomenklatu": "TEMP.1",
+        "k_aset": "T01",
+        "n_aset": "Template",
+        "panjang_sa": "",
+        "luas_layan": "",
+        "norec": "1",
+        "profil": "",
+        "panjang": "",
+        "norec_salu": "1",
+        "saluran": "Template Saluran"
+      }
+    }
+  ]
+}

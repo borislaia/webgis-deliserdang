@@ -1,0 +1,49 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              98.5,
+              3.6
+            ],
+            [
+              98.51,
+              3.6
+            ],
+            [
+              98.51,
+              3.61
+            ],
+            [
+              98.5,
+              3.61
+            ],
+            [
+              98.5,
+              3.6
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "NAMA_DI": "TEMPLATE 12120051",
+        "LUAS_HA": 0.01,
+        "Thn_Dat": "2024",
+        "Kondisi": "TEMPLATE",
+        "Kecamatan": "TEMPLATE",
+        "Desa_Kel": "TEMPLATE",
+        "Smb_Air": "TEMPLATE",
+        "Keterangan": "Template Data",
+        "DESA": "",
+        "SMBR_AIR": "TEMPLATE",
+        "PANJANG_SP": 0,
+        "PANJANG_SS": 0
+      }
+    }
+  ]
+}
