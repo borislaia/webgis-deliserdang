@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>WebGIS Deli Serdang — Map</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./css/base.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v7.4.0/ol/ol.css">
+    <style>
+      .ol-popup { position: absolute; background: var(--card); padding: 8px; border-radius: 12px; border: 1px solid var(--stroke); min-width: 220px; }
+      .ol-popup .title{ font-weight:600; margin-bottom:4px; }
+      .ol-popup img{ width:100%; border-radius:10px; margin-top:6px; cursor:pointer; }
+      
+    </style>
+  </head>
+  <body>
+    <div class="map-container" id="map"></div>
+
+    <!-- Floating controls -->
+    <div class="float-controls">
+      <button id="homeBtn" class="btn" title="Home">🏠</button>
+      <button id="dashboardBtn" class="btn" title="Dashboard">📊</button>
+      <button id="resetView" class="btn" title="Reset View">⤾</button>
+      <button id="zoomIn" class="btn" title="Zoom In">＋</button>
+      <button id="zoomOut" class="btn" title="Zoom Out">－</button>
+    </div>
+
+    <!-- Floating layer panel -->
+    <div class="float-panel card float-card" style="z-index:2;">
+      <div style="display:flex; align-items:center; justify-content:space-between;">
+        <strong>Layers</strong>
+        <span class="badge">OpenLayers</span>
+      </div>
+      <div style="margin-top:8px;">
+        <div>
+          <div style="font-weight:600; margin:8px 0 6px;">Basemap</div>
+          <label><input type="radio" name="basemap" value="googleHybrid" checked /> Google Satellite Hybrid</label><br/>
+          <label><input type="radio" name="basemap" value="googleSat" /> Google Satellite</label><br/>
+          <label><input type="radio" name="basemap" value="osm" /> OpenStreetMap</label><br/>
+          <label><input type="radio" name="basemap" value="carto" /> CartoDB Light</label><br/>
+          <label><input type="radio" name="basemap" value="sat" /> ESRI Satellite</label>
+        </div>
+        <div style="font-weight:600; margin:12px 0 6px;">Operational Layers</div>
+        <label><input id="chkKecamatan" type="checkbox" checked /> Kecamatan Boundaries</label><br/>
+      </div>
+      <div style="margin-top:12px;" class="legend"></div>
+    </div>
+
+    <!-- Image modal -->
+    <div id="imgModal" class="modal" aria-hidden="true"><img id="modalImg" alt="photo" /></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/ol@v7.4.0/dist/ol.js"></script>
+    <script type="module" src="./js/utils.js"></script>
+    <script type="module" src="./js/auth-guard.js"></script>
+    <script type="module" src="./js/map.js"></script>
+  </body>
+</html>
