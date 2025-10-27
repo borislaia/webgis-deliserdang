@@ -18,7 +18,7 @@ export default defineConfig({
       name: 'copy-html-files',
       writeBundle() {
         // Copy additional HTML files to dist
-        const htmlFiles = ['login.html', 'dashboard.html', 'map.html'];
+        const htmlFiles = ['login.html', 'dashboard.html', 'map.html', 'irrigation-management.html'];
         htmlFiles.forEach(file => {
           const src = resolve(__dirname, file);
           const dest = resolve(__dirname, 'dist', file);
