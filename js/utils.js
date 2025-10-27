@@ -1,7 +1,4 @@
-// Authentication utilities for Firebase
-import { firebaseAuth as auth } from './config/firebase-auth.js';
-
-
+// Authentication utilities
 export function clearAuth(){
   try {
     // Clear any legacy auth data
@@ -13,31 +10,18 @@ export function clearAuth(){
   }
 }
 
-
-// API helper with authentication
+// API helper (simplified without authentication)
 export async function apiRequest(url, options = {}){
   try {
-    const user = await auth.getCurrentUser();
     const headers = {
       'Content-Type': 'application/json',
       ...options.headers
     };
     
-    // Firebase doesn't use Bearer tokens in the same way
-    // You might need to get ID token instead
-    
     const response = await fetch(url, {
       ...options,
       headers
     });
-    
-    // If token expired, Firebase will handle refresh automatically
-    if(response.status === 401){
-      // Clear auth and redirect to login
-      await auth.signOut();
-      location.href = 'login.html';
-      return response;
-    }
     
     return response;
   } catch (error) {
