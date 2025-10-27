@@ -1,9 +1,7 @@
-import { firebaseAuth as auth } from './config/firebase-auth.js';
 import { ERROR_MESSAGES, SUCCESS_MESSAGES, LOADING_MESSAGES } from './utils/constants.js';
 import { validateLoginForm, validateRegistrationForm, sanitizeInput } from './utils/validators.js';
 
 console.log('Auth module loaded successfully');
-console.log('firebaseAuth object:', auth);
 console.log('ERROR_MESSAGES:', ERROR_MESSAGES);
 
 // Wait for DOM to be ready
@@ -177,29 +175,21 @@ function initializeAuth() {
 
     try {
       if(isLoginMode) {
-        // Login with Firebase
+        // Simple login simulation (no backend required)
         console.log('Attempting login with email:', email);
-        console.log('Auth object:', auth);
         
-        const { data, error } = await auth.signIn(email, password);
-        console.log('Login response - data:', data, 'error:', error);
+        // Simulate login delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
         
-        if(error) {
-          console.error('Login error details:', error);
-          console.error('Error code:', error.code);
-          console.error('Error message:', error.message);
-          showError(error.message || ERROR_MESSAGES.LOGIN_FAILED);
-          return;
-        }
-
-        if(data && data.user) {
-          console.log('Login successful, user:', data.user);
+        // Simple validation - accept any valid email/password
+        if(email && password) {
+          console.log('Login successful');
           
           // Store user info for use in the app
           localStorage.setItem('user_info', JSON.stringify({
-            id: data.user.id,
-            email: data.user.email,
-            role: data.user.role
+            id: 'user_' + Date.now(),
+            email: email,
+            role: 'user'
           }));
           
           showSuccess(SUCCESS_MESSAGES.LOGIN_SUCCESS);
@@ -208,22 +198,17 @@ function initializeAuth() {
             location.href = 'dashboard.html';
           }, 1000);
         } else {
-          console.error('No user data returned from auth.signIn');
-          console.error('Data object:', data);
           showError(ERROR_MESSAGES.LOGIN_FAILED);
         }
       } else {
-        // Register with Firebase
-        const { data, error } = await auth.signUp(email, password, role);
+        // Simple registration simulation
+        await new Promise(resolve => setTimeout(resolve, 1000));
         
-        if(error) {
-          showError(error.message || ERROR_MESSAGES.REGISTRATION_FAILED);
-          return;
-        }
-
-        if(data.user) {
+        if(email && password) {
           showSuccess(SUCCESS_MESSAGES.REGISTRATION_SUCCESS);
           setTimeout(() => toggleMode(), 3000);
+        } else {
+          showError(ERROR_MESSAGES.REGISTRATION_FAILED);
         }
       }
     } catch (error) {
