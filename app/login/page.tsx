@@ -15,12 +15,38 @@ export default function LoginPage() {
     const params = new URLSearchParams(window.location.search);
     const r = params.get('redirect');
     if (r) setRedirectTarget(r);
-    // If already logged in, redirect away from login page
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        window.location.href = r || '/map';
+    // Handle implicit OAuth hash fallback (access_token/refresh_token in URL fragment)
+    (async () => {
+      const hash = window.location.hash && window.location.hash.startsWith('#')
+        ? window.location.hash.slice(1)
+        : ''
+      if (hash) {
+        const hp = new URLSearchParams(hash)
+        const access_token = hp.get('access_token')
+        const refresh_token = hp.get('refresh_token')
+        if (access_token && refresh_token) {
+          try {
+            await fetch('/auth/callback', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ access_token, refresh_token })
+            })
+            // Clean URL (remove hash) before redirect
+            window.history.replaceState(null, '', window.location.pathname + window.location.search)
+            window.location.href = r || '/map'
+            return
+          } catch (_) {
+            // no-op; fallback to session check
+          }
+        }
       }
-    });
+
+      // If already logged in, redirect away from login page
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session) {
+        window.location.href = r || '/map'
+      }
+    })()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
