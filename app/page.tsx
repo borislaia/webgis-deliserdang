@@ -8,7 +8,7 @@ export default function HomePage() {
   return (
     <main>
       <VantaFog />
-      <header className="app-header">
+      <header className="app-header blur">
         <div className="brand">
           <Image src="/assets/icons/logo-deliserdang.jpg" alt="Logo" width={24} height={24} className="brand-icon" />
           <span className="brand-text">WebGIS Deli Serdang</span>
