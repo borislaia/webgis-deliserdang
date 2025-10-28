@@ -54,7 +54,8 @@ export default function LoginPage() {
     const r = params.get('redirect') || '/map';
     const { error } = await supabase.auth.signInWithOAuth({ 
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(r)}` }
+      options: { redirectTo: `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(r)}` },
+      flowType: 'pkce'
     });
     setLoading(false);
     if (error) setError(error.message);
