@@ -1,4 +1,17 @@
 {
+  "components/VantaFog.tsx -> three": {
+    "id": 1448,
+    "files": [
+      "static/chunks/b536a0f1.96e5e06bae35a724.js",
+      "static/chunks/bd904a5c.100f06b69cf6b261.js"
+    ]
+  },
+  "components/VantaFog.tsx -> vanta/dist/vanta.fog.min": {
+    "id": 6613,
+    "files": [
+      "static/chunks/613.fdfd117c4a90a29d.js"
+    ]
+  },
   "node_modules/@supabase/auth-js/dist/module/lib/helpers.js -> @supabase/node-fetch": {
     "id": 485,
     "files": []

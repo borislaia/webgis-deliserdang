@@ -1,9 +1,13 @@
 import Image from 'next/image'
+import dynamicImport from 'next/dynamic'
+
+const VantaFog = dynamicImport(() => import('@/components/VantaFog'), { ssr: false })
 
 export const dynamic = 'force-static'
 export default function HomePage() {
   return (
     <main className="home">
+      <VantaFog />
       <header className="app-header blur">
         <div className="brand">
           <Image src="/assets/icons/logo-deliserdang.jpg" alt="Logo" width={24} height={24} className="brand-icon" />

@@ -1,10 +1,10 @@
 {
   "/_not-found/page": "app/_not-found/page.js",
-  "/api/hello/route": "app/api/hello/route.js",
   "/api/import-irrigation-data/route": "app/api/import-irrigation-data/route.js",
   "/auth/callback/route": "app/auth/callback/route.js",
   "/login/page": "app/login/page.js",
   "/map/page": "app/map/page.js",
+  "/api/hello/route": "app/api/hello/route.js",
   "/register/page": "app/register/page.js",
   "/page": "app/page.js"
 }
