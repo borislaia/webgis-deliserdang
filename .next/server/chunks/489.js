@@ -1,0 +1,1 @@
+"use strict";exports.id=489,exports.ids=[489],exports.modules={4489:(t,e,r)=>{r.r(e),r.d(e,{default:()=>s});let s=(0,r(8570).createProxy)(String.raw`/workspace/components/VantaFog.tsx#default`)}};
