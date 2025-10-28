@@ -1,5 +1,6 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 import * as XLSX from 'https://cdn.sheetjs.com/xlsx-0.20.1/package/xlsx.mjs';
+import { escapeHTML } from './utils.js';
 
 const SUPABASE_URL = import.meta.env?.VITE_SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = import.meta.env?.VITE_SUPABASE_ANON_KEY || '';
@@ -546,13 +547,13 @@ function showExcelPreview(sheets) {
 
   let html = '';
   for (const [sheetName, rows] of Object.entries(sheets)) {
-    html += `<h5>${sheetName} (${rows.length} baris)</h5>`;
+    html += `<h5>${escapeHTML(sheetName)} (${rows.length} baris)</h5>`;
 
     if (rows.length > 0) {
       html += '<table class="data-table" style="margin-bottom: 20px;"><thead><tr>';
       const columns = Object.keys(rows[0]);
       columns.forEach(col => {
-        html += `<th>${col}</th>`;
+        html += `<th>${escapeHTML(col)}</th>`;
       });
       html += '</tr></thead><tbody>';
 
@@ -561,7 +562,8 @@ function showExcelPreview(sheets) {
       previewRows.forEach(row => {
         html += '<tr>';
         columns.forEach(col => {
-          html += `<td>${row[col] || '-'}</td>`;
+          const cell = row[col] == null || row[col] === '' ? '-' : String(row[col]);
+          html += `<td>${escapeHTML(cell)}</td>`;
         });
         html += '</tr>';
       });

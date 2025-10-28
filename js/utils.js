@@ -44,20 +44,48 @@ export async function fetchJSON(path){
   }
 }
 
-export function el(tag, attrs={}, children=[]){
+// Escape HTML to prevent XSS when rendering untrusted content
+function escapeHTML(unsafe){
+  if (unsafe == null) return '';
+  return String(unsafe)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+export function el(tag, attrs = {}, children = []){
   try {
     const node = document.createElement(tag);
-    Object.entries(attrs).forEach(([k,v]) => {
-      if(k === 'class') node.className = v;
-      else if(k.startsWith('on') && typeof v === 'function') node.addEventListener(k.substring(2).toLowerCase(), v);
-      else if(k === 'html') node.innerHTML = v;
-      else node.setAttribute(k, v);
+    Object.entries(attrs).forEach(([k, v]) => {
+      if (k === 'class') {
+        node.className = v;
+      } else if (k.startsWith('on') && typeof v === 'function') {
+        node.addEventListener(k.substring(2).toLowerCase(), v);
+      } else if (k === 'html') {
+        // Only allow explicit html usage; escape by default via 'text'
+        node.innerHTML = String(v);
+      } else if (k === 'text') {
+        node.textContent = String(v);
+      } else {
+        node.setAttribute(k, v);
+      }
     });
-    (Array.isArray(children) ? children : [children]).forEach(c => { if(c) node.append(c); });
+    (Array.isArray(children) ? children : [children]).forEach((c) => {
+      if (c == null) return;
+      if (typeof c === 'string' || typeof c === 'number') {
+        node.append(document.createTextNode(String(c)));
+      } else {
+        node.append(c);
+      }
+    });
     return node;
   } catch (error) {
     console.error('Error creating element:', error);
     return document.createElement('div');
   }
 }
+
+export { escapeHTML };
 
