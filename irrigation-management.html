@@ -192,7 +192,8 @@
         <!-- Tabs -->
         <div class="tabs">
           <button class="tab active" onclick="switchTab('overview')">Overview</button>
-          <button class="tab" onclick="switchTab('import')">Import Data</button>
+          <button class="tab" onclick="switchTab('import')">Import GeoJSON</button>
+          <button class="tab" onclick="switchTab('import-excel')">Import Excel</button>
           <button class="tab" onclick="switchTab('saluran')">Saluran</button>
           <button class="tab" onclick="switchTab('ruas')">Ruas</button>
           <button class="tab" onclick="switchTab('bangunan')">Bangunan</button>
@@ -235,6 +236,32 @@
           </div>
 
           <div id="importStatus"></div>
+        </div>
+
+        <!-- Import Excel Tab -->
+        <div id="import-excel-tab" class="tab-content card" style="padding:24px;">
+          <h3>Import Data dari Excel</h3>
+          <div class="import-section">
+            <p style="margin-bottom: 16px;">Upload file Excel yang berisi data daerah irigasi, saluran, atau bangunan.</p>
+
+            <div class="form-group">
+              <label for="excelFile">File Excel (.xlsx)</label>
+              <input type="file" id="excelFile" accept=".xlsx,.xls" />
+            </div>
+
+            <div class="btn-group">
+              <button class="btn primary" onclick="importExcel()">Import Excel</button>
+              <button class="btn" onclick="loadExcelFromRepo()">Load dari Repository</button>
+              <button class="btn" onclick="clearExcelForm()">Clear</button>
+            </div>
+          </div>
+
+          <div id="excelImportStatus"></div>
+
+          <div id="excelPreview" style="margin-top: 24px; display: none;">
+            <h4>Preview Data</h4>
+            <div id="excelPreviewContent"></div>
+          </div>
         </div>
 
         <!-- Saluran Tab -->

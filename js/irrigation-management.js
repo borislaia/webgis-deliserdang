@@ -1,4 +1,5 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+import * as XLSX from 'https://cdn.sheetjs.com/xlsx-0.20.1/package/xlsx.mjs';
 
 const SUPABASE_URL = import.meta.env?.VITE_SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = import.meta.env?.VITE_SUPABASE_ANON_KEY || '';
@@ -419,6 +420,274 @@ window.viewRuas = function(id) {
 
 window.viewBangunan = function(id) {
   alert(`View Bangunan: ${id}\nFitur ini akan menampilkan detail bangunan di peta.`);
+};
+
+// ===== EXCEL IMPORT FUNCTIONS =====
+
+// Import Excel
+window.importExcel = async function() {
+  const excelFile = document.getElementById('excelFile').files[0];
+
+  if (!excelFile) {
+    showMessage('Pilih file Excel terlebih dahulu', 'error');
+    return;
+  }
+
+  const statusDiv = document.getElementById('excelImportStatus');
+  statusDiv.className = 'loading';
+  statusDiv.textContent = 'Reading Excel file...';
+
+  try {
+    const excelData = await parseExcelFile(excelFile);
+
+    // Show preview
+    showExcelPreview(excelData);
+
+    statusDiv.className = 'success';
+    statusDiv.textContent = 'File Excel berhasil dibaca. Klik tombol di bawah untuk import ke database.';
+
+    // Add import button
+    const importBtn = document.createElement('button');
+    importBtn.className = 'btn primary';
+    importBtn.textContent = 'Import ke Database';
+    importBtn.style.marginTop = '12px';
+    importBtn.onclick = async () => {
+      await importExcelToDatabase(excelData);
+    };
+    statusDiv.appendChild(document.createElement('br'));
+    statusDiv.appendChild(importBtn);
+
+  } catch (error) {
+    console.error('Error reading Excel:', error);
+    statusDiv.className = 'error';
+    statusDiv.textContent = `Error: ${error.message}`;
+  }
+};
+
+// Load Excel from repository
+window.loadExcelFromRepo = async function() {
+  const statusDiv = document.getElementById('excelImportStatus');
+  statusDiv.className = 'loading';
+  statusDiv.textContent = 'Loading Excel from repository...';
+
+  try {
+    const response = await fetch('./data/public/Data Irigasi.xlsx');
+    if (!response.ok) throw new Error('File not found');
+
+    const arrayBuffer = await response.arrayBuffer();
+    const data = new Uint8Array(arrayBuffer);
+    const workbook = XLSX.read(data, { type: 'array' });
+
+    const sheets = {};
+    workbook.SheetNames.forEach(sheetName => {
+      const worksheet = workbook.Sheets[sheetName];
+      sheets[sheetName] = XLSX.utils.sheet_to_json(worksheet, {
+        raw: false,
+        defval: ''
+      });
+    });
+
+    showExcelPreview(sheets);
+
+    statusDiv.className = 'success';
+    statusDiv.textContent = 'File Excel dari repository berhasil dibaca. Klik tombol di bawah untuk import ke database.';
+
+    const importBtn = document.createElement('button');
+    importBtn.className = 'btn primary';
+    importBtn.textContent = 'Import ke Database';
+    importBtn.style.marginTop = '12px';
+    importBtn.onclick = async () => {
+      await importExcelToDatabase(sheets);
+    };
+    statusDiv.appendChild(document.createElement('br'));
+    statusDiv.appendChild(importBtn);
+
+  } catch (error) {
+    console.error('Error loading Excel:', error);
+    statusDiv.className = 'error';
+    statusDiv.textContent = `Error: ${error.message}`;
+  }
+};
+
+// Parse Excel file
+async function parseExcelFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+
+        const sheets = {};
+        workbook.SheetNames.forEach(sheetName => {
+          const worksheet = workbook.Sheets[sheetName];
+          sheets[sheetName] = XLSX.utils.sheet_to_json(worksheet, {
+            raw: false,
+            defval: ''
+          });
+        });
+
+        resolve(sheets);
+      } catch (error) {
+        reject(error);
+      }
+    };
+
+    reader.onerror = (error) => reject(error);
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+// Show Excel preview
+function showExcelPreview(sheets) {
+  const previewDiv = document.getElementById('excelPreview');
+  const previewContent = document.getElementById('excelPreviewContent');
+
+  let html = '';
+  for (const [sheetName, rows] of Object.entries(sheets)) {
+    html += `<h5>${sheetName} (${rows.length} baris)</h5>`;
+
+    if (rows.length > 0) {
+      html += '<table class="data-table" style="margin-bottom: 20px;"><thead><tr>';
+      const columns = Object.keys(rows[0]);
+      columns.forEach(col => {
+        html += `<th>${col}</th>`;
+      });
+      html += '</tr></thead><tbody>';
+
+      // Show first 5 rows
+      const previewRows = rows.slice(0, 5);
+      previewRows.forEach(row => {
+        html += '<tr>';
+        columns.forEach(col => {
+          html += `<td>${row[col] || '-'}</td>`;
+        });
+        html += '</tr>';
+      });
+
+      html += '</tbody></table>';
+      if (rows.length > 5) {
+        html += `<p style="color: #666; font-size: 14px;">... dan ${rows.length - 5} baris lainnya</p>`;
+      }
+    }
+  }
+
+  previewContent.innerHTML = html;
+  previewDiv.style.display = 'block';
+}
+
+// Import Excel to database
+async function importExcelToDatabase(excelData) {
+  if (!supabase) {
+    showMessage('Supabase not configured', 'error');
+    return;
+  }
+
+  const statusDiv = document.getElementById('excelImportStatus');
+  statusDiv.className = 'loading';
+  statusDiv.textContent = 'Importing data to database...';
+
+  let totalImported = 0;
+  let totalErrors = 0;
+  const errorDetails = [];
+
+  try {
+    // Process each sheet
+    for (const [sheetName, rows] of Object.entries(excelData)) {
+      console.log(`Processing sheet: ${sheetName}`);
+
+      // Import based on sheet content
+      for (const row of rows) {
+        try {
+          // Detect sheet type and import accordingly
+          const columns = Object.keys(row);
+
+          // Check if it's daerah irigasi data
+          if (columns.some(col =>
+            col.toLowerCase().includes('kode') &&
+            col.toLowerCase().includes('di')
+          )) {
+            const diData = {
+              k_di: row['Kode DI'] || row['k_di'] || row['KODE_DI'] || row['Kode'] || '',
+              n_di: row['Nama DI'] || row['n_di'] || row['NAMA_DI'] || row['Nama'] || '',
+              luas_ha: parseFloat(row['Luas (Ha)'] || row['Luas'] || row['luas_ha'] || row['LUAS_HA'] || 0),
+              kecamatan: row['Kecamatan'] || row['kecamatan'] || row['KECAMATAN'] || '',
+              desa_kel: row['Desa/Kel'] || row['Desa'] || row['desa_kel'] || row['DESA_KEL'] || '',
+              sumber_air: row['Sumber Air'] || row['Sumber'] || row['sumber_air'] || row['SUMBER_AIR'] || '',
+              tahun_data: String(row['Tahun'] || row['tahun_data'] || row['TAHUN'] || ''),
+              kondisi: row['Kondisi'] || row['kondisi'] || row['KONDISI'] || 'AKTIF',
+            };
+
+            if (!diData.k_di) continue;
+
+            // Check if exists
+            const { data: existing } = await supabase
+              .from('daerah_irigasi')
+              .select('id')
+              .eq('k_di', diData.k_di)
+              .maybeSingle();
+
+            if (existing) {
+              const { error } = await supabase
+                .from('daerah_irigasi')
+                .update(diData)
+                .eq('k_di', diData.k_di);
+
+              if (error) throw error;
+            } else {
+              const { error } = await supabase
+                .from('daerah_irigasi')
+                .insert(diData);
+
+              if (error) throw error;
+            }
+
+            totalImported++;
+          }
+        } catch (error) {
+          totalErrors++;
+          errorDetails.push({ sheet: sheetName, error: error.message });
+        }
+      }
+    }
+
+    // Show results
+    if (totalErrors === 0) {
+      statusDiv.className = 'success';
+      statusDiv.textContent = `Import berhasil! ${totalImported} baris data telah diimport ke database.`;
+      showMessage('Import Excel berhasil!', 'success');
+    } else {
+      statusDiv.className = 'success';
+      statusDiv.innerHTML = `Import selesai dengan warning:<br>
+        - Berhasil: ${totalImported} baris<br>
+        - Error: ${totalErrors} baris<br>
+        <details style="margin-top: 8px;">
+          <summary>Lihat detail error</summary>
+          <pre style="font-size: 12px; background: #f5f5f5; padding: 8px; margin-top: 8px;">
+${JSON.stringify(errorDetails, null, 2)}
+          </pre>
+        </details>`;
+      showMessage(`Import selesai: ${totalImported} berhasil, ${totalErrors} error`, 'success');
+    }
+
+    // Reload data
+    loadStatistics();
+    loadDaerahIrigasi();
+
+  } catch (error) {
+    console.error('Error importing to database:', error);
+    statusDiv.className = 'error';
+    statusDiv.textContent = `Error: ${error.message}`;
+    showMessage(`Import gagal: ${error.message}`, 'error');
+  }
+}
+
+// Clear Excel form
+window.clearExcelForm = function() {
+  document.getElementById('excelFile').value = '';
+  document.getElementById('excelImportStatus').textContent = '';
+  document.getElementById('excelPreview').style.display = 'none';
 };
 
 // Initialize
