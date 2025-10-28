@@ -1,67 +1,64 @@
-# WebGIS Deli Serdang
+# WebGIS Deli Serdang (Next.js + Supabase)
 
-Aplikasi WebGIS (Web-based Geographic Information System) untuk Kabupaten Deli Serdang.
+Aplikasi WebGIS menggunakan Next.js (App Router, TypeScript), Supabase untuk autentikasi, database, dan Storage, serta OpenLayers untuk peta.
 
-## Struktur Proyek
+## Arsitektur
 
 ```
-webgis-deliserdang/
-├── backend/              # Node.js backend server
-│   ├── server.js         # File server utama
-│   ├── package.json      # Dependencies backend
-│   └── README.md         # Dokumentasi backend
-├── assets/               # Asset gambar dan ikon
-├── css/                  # Stylesheet
-├── js/                   # JavaScript frontend
-├── data/                 # Data GIS
-├── index.html            # Halaman utama
-├── login.html            # Halaman login
-├── map.html              # Halaman peta
-└── dashboard.html        # Halaman dashboard
+app/                       # Next.js App Router
+  api/                     # Route Handlers (server)
+    import-irrigation-data/route.ts  # Port dari Edge Function
+  login/                   # Halaman login (public)
+  register/                # Halaman register (public)
+  map/                     # Halaman peta (protected by middleware)
+components/                # Komponen UI
+lib/supabase/              # Client & server helpers
+public/                    # Static assets
+  assets/icons/logo-deliserdang.jpg
+  data/batas_kecamatan.json
 ```
 
-## Setup dan Instalasi
+## Prasyarat
 
-### Frontend
-Frontend dapat dibuka langsung di browser atau melalui server backend.
+Set environment variables di `.env.local`:
 
-### Backend (Node.js)
-
-1. Masuk ke folder backend:
-```bash
-cd backend
+```
+NEXT_PUBLIC_SUPABASE_URL=...  # URL Supabase Anda
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...  # Anon key (client)
+SUPABASE_SERVICE_ROLE_KEY=...  # Service role (server-side only)
 ```
 
-2. Install dependencies:
+## Menjalankan Lokal
+
 ```bash
 npm install
+npm run dev
+# buka http://localhost:3000
 ```
 
-3. Jalankan server:
-```bash
-npm run dev    # Development mode dengan auto-reload
-# atau
-npm start      # Production mode
-```
+## Deployment (Vercel)
 
-Server akan berjalan di `http://localhost:3000`
+- Tambahkan env vars di Project Settings Vercel: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`.
+- Deploy via Git.
 
-Untuk detail lebih lanjut, lihat [Backend README](backend/README.md).
+## Autentikasi
 
-## Fitur
+- Login dan Register dengan email/password; tombol OAuth Google tersedia (opsional di Supabase Auth providers).
+- Rute `/map` diproteksi via middleware; pengguna tidak login akan diarahkan ke `/login`.
 
-- 🗺️ Peta interaktif berbasis web
-- 📊 Dashboard data geografis
-- 🔐 Sistem autentikasi
-- 📍 Visualisasi data SDA (Sumber Daya Air)
-- 🌊 Informasi infrastruktur dan bencana
+## Peta (OpenLayers)
 
-## Teknologi
+- Data batas kecamatan dibaca dari `public/data/batas_kecamatan.json`.
+- Basemap Google/OSM, tooltip hover, dan popup click sederhana.
 
-- **Frontend**: HTML5, CSS3, JavaScript (Vanilla)
-- **Backend**: Node.js, Express.js
-- **Maps**: Leaflet/OpenStreetMap (dapat disesuaikan)
+## Import Data
+
+- Endpoint `POST /api/import-irrigation-data` memindahkan logika impor dari Edge Function ke Route Handler Next.js menggunakan Service Role Key. Pastikan RLS dan tabel sudah ada sesuai migrasi.
+
+## Pembersihan Framework Lama
+
+- Vite, file HTML statis, dan keluaran `dist/` digantikan oleh Next.js. Data dan aset yang diperlukan dipindahkan ke `public/`.
 
 ## Lisensi
 
-ISC
+MIT
