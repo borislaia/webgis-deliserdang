@@ -6,15 +6,15 @@ const VantaFog = dynamicImport(() => import('@/components/VantaFog'), { ssr: fal
 export const dynamic = 'force-static'
 export default function HomePage() {
   return (
-    <main className="home">
+    <main>
       <VantaFog />
-      <header className="app-header blur">
+      <header className="app-header">
         <div className="brand">
           <Image src="/assets/icons/logo-deliserdang.jpg" alt="Logo" width={24} height={24} className="brand-icon" />
           <span className="brand-text">WebGIS Deli Serdang</span>
         </div>
       </header>
-      <section className="menu-grid">
+      <section className="menu-grid" style={{ margin: '40px auto', padding: '0 16px' }}>
         <a className="menu-item" href="/login"><span className="label">Daerah Irigasi</span></a>
         <a className="menu-item" href="/login"><span className="label">Pemanfaatan SDA</span></a>
         <a className="menu-item" href="/login"><span className="label">Rawan Bencana</span></a>
