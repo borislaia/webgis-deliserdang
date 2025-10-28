@@ -1,5 +1,5 @@
 "use client";
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 
@@ -9,25 +9,52 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [redirectTarget, setRedirectTarget] = useState<string>('/map');
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const r = params.get('redirect');
+    if (r) setRedirectTarget(r);
+    // If already logged in, redirect away from login page
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        window.location.href = r || '/map';
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function onLogin(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) {
       setError(error.message);
-    } else {
-      window.location.href = '/map';
+      return;
     }
+    // Bridge client session to secure HTTP-only cookies on server
+    if (data?.session) {
+      await fetch('/auth/callback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token
+        })
+      });
+    }
+    window.location.href = redirectTarget;
   }
 
   async function onLoginWithGoogle() {
     setLoading(true);
+    const params = new URLSearchParams(window.location.search);
+    const r = params.get('redirect') || '/map';
     const { error } = await supabase.auth.signInWithOAuth({ 
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback?redirect=/map` }
+      options: { redirectTo: `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(r)}` }
     });
     setLoading(false);
     if (error) setError(error.message);
