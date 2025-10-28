@@ -1,37 +1,55 @@
 "use client";
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 export default function LoginPage() {
   const supabase = createClient();
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const redirectTo = decodeURIComponent(searchParams.get('redirect') || '/map');
 
   async function onLogin(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) {
       setError(error.message);
-    } else {
-      window.location.href = '/map';
+      return;
     }
+    // Persist session cookies on the server via route handler
+    await fetch('/auth/callback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event: 'SIGNED_IN', session: data.session }),
+    }).catch(() => {});
+    router.replace(redirectTo);
   }
 
   async function onLoginWithGoogle() {
     setLoading(true);
-    const { error } = await supabase.auth.signInWithOAuth({ 
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback?redirect=/map` }
+      options: { redirectTo: `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirectTo)}` }
     });
     setLoading(false);
     if (error) setError(error.message);
   }
+
+  useEffect(() => {
+    // If already logged in, go straight to redirect target
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) router.replace(redirectTo);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <main className="content" style={{ maxWidth: 400, margin: '60px auto' }}>
