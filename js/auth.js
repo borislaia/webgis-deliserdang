@@ -2,13 +2,16 @@ import { ERROR_MESSAGES, SUCCESS_MESSAGES, LOADING_MESSAGES } from './utils/cons
 import { validateLoginForm, validateRegistrationForm, sanitizeInput } from './utils/validators.js';
 
 console.log('Auth module loaded successfully');
-console.log('ERROR_MESSAGES:', ERROR_MESSAGES);
 
 // Wait for DOM to be ready
 document.addEventListener('DOMContentLoaded', () => {
   console.log('DOM loaded, initializing auth...');
   initializeAuth();
 });
+
+// Backend API configuration
+const API_BASE_URL = import.meta.env?.VITE_SUPABASE_URL || '';
+const API_KEY = import.meta.env?.VITE_SUPABASE_ANON_KEY || '';
 
 function initializeAuth() {
   const form = document.getElementById('loginForm');
@@ -22,7 +25,6 @@ function initializeAuth() {
   
   const submitBtn = form.querySelector('button[type="submit"]');
   const errorDiv = document.getElementById('error-message') || createErrorDiv(form);
-  console.log('errorDiv initialized:', errorDiv);
 
   let isLoginMode = true;
   let isLoading = false;
@@ -111,11 +113,15 @@ function initializeAuth() {
         toggleModeBtn.textContent = 'Register';
         submitBtn.textContent = 'Login';
         roleRow.style.display = 'none';
+        const fullNameRow = document.getElementById('fullNameRow');
+        if (fullNameRow) fullNameRow.style.display = 'none';
         document.querySelector('h2').textContent = 'Login';
       } else {
         toggleModeBtn.textContent = 'Login';
         submitBtn.textContent = 'Register';
         roleRow.style.display = 'block';
+        const fullNameRow = document.getElementById('fullNameRow');
+        if (fullNameRow) fullNameRow.style.display = 'block';
         document.querySelector('h2').textContent = 'Register';
       }
       
@@ -175,22 +181,30 @@ function initializeAuth() {
 
     try {
       if(isLoginMode) {
-        // Simple login simulation (no backend required)
+        // Backend login
         console.log('Attempting login with email:', email);
         
-        // Simulate login delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Simple validation - accept any valid email/password
-        if(email && password) {
+        const response = await fetch(`${API_BASE_URL}/functions/v1/auth`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${API_KEY}`
+          },
+          body: JSON.stringify({
+            action: 'login',
+            email: email,
+            password: password
+          })
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.success) {
           console.log('Login successful');
           
           // Store user info for use in the app
-          localStorage.setItem('user_info', JSON.stringify({
-            id: 'user_' + Date.now(),
-            email: email,
-            role: 'user'
-          }));
+          localStorage.setItem('user_info', JSON.stringify(result.user));
+          localStorage.setItem('auth_token', 'authenticated'); // Simple token for now
           
           showSuccess(SUCCESS_MESSAGES.LOGIN_SUCCESS);
           console.log('Redirecting to dashboard...');
@@ -198,22 +212,39 @@ function initializeAuth() {
             location.href = 'dashboard.html';
           }, 1000);
         } else {
-          showError(ERROR_MESSAGES.LOGIN_FAILED);
+          showError(result.error || ERROR_MESSAGES.LOGIN_FAILED);
         }
       } else {
-        // Simple registration simulation
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Backend registration
+        const fullName = document.getElementById('fullName')?.value || email.split('@')[0];
         
-        if(email && password) {
+        const response = await fetch(`${API_BASE_URL}/functions/v1/auth`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${API_KEY}`
+          },
+          body: JSON.stringify({
+            action: 'register',
+            email: email,
+            password: password,
+            full_name: fullName,
+            role: role
+          })
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.success) {
           showSuccess(SUCCESS_MESSAGES.REGISTRATION_SUCCESS);
           setTimeout(() => toggleMode(), 3000);
         } else {
-          showError(ERROR_MESSAGES.REGISTRATION_FAILED);
+          showError(result.error || ERROR_MESSAGES.REGISTRATION_FAILED);
         }
       }
     } catch (error) {
       console.error('Auth error:', error);
-      showError(ERROR_MESSAGES.UNKNOWN_ERROR);
+      showError(ERROR_MESSAGES.NETWORK_ERROR);
     } finally {
       setLoading(false);
     }

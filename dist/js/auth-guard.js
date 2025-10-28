@@ -1,14 +1,20 @@
 import { clearAuth } from './utils.js';
 
-// Check authentication status from localStorage
-function checkAuthStatus() {
+// Check authentication status from localStorage and validate with backend
+async function checkAuthStatus() {
   try {
     const userInfo = getCurrentUser();
+    const authToken = localStorage.getItem('auth_token');
     
-    if (!userInfo) {
+    if (!userInfo || !authToken) {
+      clearAuth();
       location.href = 'login.html';
       return;
     }
+
+    // Optional: Validate token with backend
+    // For now, we'll just check if user exists in localStorage
+    console.log('User authenticated:', userInfo.email);
   } catch (error) {
     console.error('Auth check failed:', error);
     clearAuth();
@@ -31,6 +37,7 @@ if(logoutBtn){
       console.log('Logout successful');
       clearAuth();
       localStorage.removeItem('user_info');
+      localStorage.removeItem('auth_token');
       location.href = 'index.html';
     } catch (error) {
       console.error('Logout error:', error);

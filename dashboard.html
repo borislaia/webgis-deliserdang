@@ -130,22 +130,95 @@
           usersList.innerHTML = '<p>Loading users...</p>';
           
           try {
-            // Note: This would need a backend endpoint to list users
-            // For now, we'll show a placeholder
-            usersList.innerHTML = `
-              <div style="padding: 16px; background: #f5f5f5; border-radius: 4px; margin: 8px 0;">
-                <strong>Admin Feature</strong><br>
-                User management requires additional backend endpoints to be implemented.
-                <br><br>
-                Current user: ${user ? user.email : 'Unknown'} (${user ? user.role : 'Unknown'})
-              </div>
-            `;
+            const API_BASE_URL = import.meta.env?.VITE_SUPABASE_URL || '';
+            const API_KEY = import.meta.env?.VITE_SUPABASE_ANON_KEY || '';
+            
+            const response = await fetch(`${API_BASE_URL}/functions/v1/auth`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${API_KEY}`
+              },
+              body: JSON.stringify({
+                action: 'get_users'
+              })
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+              let html = '<table class="data-table"><thead><tr>';
+              html += '<th>Email</th><th>Nama</th><th>Role</th><th>Status</th><th>Last Login</th><th>Aksi</th>';
+              html += '</tr></thead><tbody>';
+
+              result.users.forEach(user => {
+                const lastLogin = user.last_login ? new Date(user.last_login).toLocaleDateString() : 'Never';
+                const status = user.is_active ? 'Active' : 'Inactive';
+                html += '<tr>';
+                html += `<td>${user.email}</td>`;
+                html += `<td>${user.full_name}</td>`;
+                html += `<td><span class="badge">${user.role}</span></td>`;
+                html += `<td>${status}</td>`;
+                html += `<td>${lastLogin}</td>`;
+                html += `<td>
+                  <button class="action-btn edit" onclick="editUser('${user.id}')">Edit</button>
+                  <button class="action-btn delete" onclick="deleteUser('${user.id}')">Delete</button>
+                </td>`;
+                html += '</tr>';
+              });
+
+              html += '</tbody></table>';
+              usersList.innerHTML = html;
+            } else {
+              usersList.innerHTML = `<p style="color: red;">Error: ${result.error || 'Failed to load users'}</p>`;
+            }
           } catch (error) {
             console.error('Error loading users:', error);
             usersList.innerHTML = '<p style="color: red;">Error loading users</p>';
           }
         } catch (error) {
           console.error('Error in refreshUsers:', error);
+        }
+      };
+
+      // Edit user function
+      window.editUser = function(userId) {
+        alert(`Edit user: ${userId}\nFitur edit user akan diimplementasikan.`);
+      };
+
+      // Delete user function
+      window.deleteUser = async function(userId) {
+        if (!confirm('Apakah Anda yakin ingin menghapus user ini?')) {
+          return;
+        }
+
+        try {
+          const API_BASE_URL = import.meta.env?.VITE_SUPABASE_URL || '';
+          const API_KEY = import.meta.env?.VITE_SUPABASE_ANON_KEY || '';
+          
+          const response = await fetch(`${API_BASE_URL}/functions/v1/auth`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${API_KEY}`
+            },
+            body: JSON.stringify({
+              action: 'delete_user',
+              user_id: userId
+            })
+          });
+
+          const result = await response.json();
+
+          if (response.ok && result.success) {
+            alert('User berhasil dihapus');
+            refreshUsers();
+          } else {
+            alert(`Error: ${result.error || 'Failed to delete user'}`);
+          }
+        } catch (error) {
+          console.error('Error deleting user:', error);
+          alert('Error deleting user');
         }
       };
     </script>
