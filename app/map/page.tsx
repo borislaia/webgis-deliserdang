@@ -35,6 +35,7 @@ export default function MapPage() {
   // Modal state for image preview from popup
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalImgSrc, setModalImgSrc] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const searchParams = useSearchParams();
   const kdi = searchParams.get('k_di') || '';
@@ -139,8 +140,14 @@ export default function MapPage() {
           kecamatanLayer.getSource()?.addFeatures(features);
         }
 
+        const supabase = createClient();
+        // detect admin role
+        try {
+          const { data } = await supabase.auth.getUser();
+          setIsAdmin(((data.user?.app_metadata as any)?.role) === 'admin');
+        } catch {}
+
         if (kdi) {
-          const supabase = createClient();
           const { data: di } = await supabase.from('daerah_irigasi').select('id,k_di,n_di').eq('k_di', kdi).maybeSingle();
           if (di?.id) {
             // Load saluran, ruas, bangunan, fungsional
@@ -181,13 +188,13 @@ export default function MapPage() {
             let ruasFeatures: any[] = [];
             if (saluran && saluran.length) {
               const salIds = saluran.map((s: any) => s.id);
-              const { data: ruas } = await supabase.from('ruas').select('id,no_ruas,urutan,geojson,foto_urls,saluran_id').in('saluran_id', salIds);
+              const { data: ruas } = await supabase.from('ruas').select('id,no_ruas,urutan,geojson,foto_urls,metadata,saluran_id').in('saluran_id', salIds);
               const fmt = new GeoJSON();
               if (ruas) {
                 for (const r of ruas) {
                   if (!r.geojson) continue;
                   // Attach foto_urls into properties for popup use
-                  const featureGeo = { ...r.geojson, properties: { ...(r.geojson.properties || {}), foto_urls: r.foto_urls || [] } };
+                  const featureGeo = { ...r.geojson, properties: { ...(r.geojson.properties || {}), foto_urls: r.foto_urls || [], ruas_id: r.id, metadata: r.metadata || {} } };
                   const f = fmt.readFeature(featureGeo, { dataProjection: 'EPSG:4326', featureProjection: map.getView().getProjection() });
                   ruasFeatures.push(f);
                 }
@@ -241,6 +248,8 @@ export default function MapPage() {
           const noRuas = feature.get('no_ruas');
           const noSal = feature.get('no_saluran');
           const photos: string[] = feature.get('foto_urls') || [];
+          const ruasId: string | undefined = feature.get('ruas_id');
+          const metadata: any = feature.get('metadata') || {};
           popupRef.current.textContent = '';
           const titleDiv = document.createElement('div');
           titleDiv.className = 'title';
@@ -268,6 +277,29 @@ export default function MapPage() {
               gallery.appendChild(img);
             });
             popupRef.current.appendChild(gallery);
+          }
+          if (isAdmin && ruasId && noRuas) {
+            const editWrap = document.createElement('div');
+            editWrap.style.marginTop = '8px';
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.placeholder = 'Catatan';
+            input.value = metadata?.catatan || '';
+            input.className = 'input';
+            input.style.width = '180px';
+            const save = document.createElement('button');
+            save.className = 'btn';
+            save.textContent = 'Simpan';
+            save.onclick = async () => {
+              const supabase = createClient();
+              const newMeta = { ...(metadata || {}), catatan: input.value };
+              const { error } = await supabase.from('ruas').update({ metadata: newMeta }).eq('id', ruasId);
+              if (error) alert('Gagal menyimpan: ' + error.message);
+              else alert('Tersimpan');
+            };
+            editWrap.appendChild(input);
+            editWrap.appendChild(save);
+            popupRef.current.appendChild(editWrap);
           }
           popupOverlayRef.current.setPosition(evt.coordinate);
         }

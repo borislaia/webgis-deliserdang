@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from 'react';
+import { createClient } from '@/lib/supabase/client';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,6 +43,8 @@ export default function HomePage() {
   const [headers, setHeaders] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [processing, setProcessing] = useState<string | null>(null);
 
   useEffect(() => {
     const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/csv/daerah_irigasi.csv`;
@@ -55,6 +58,12 @@ export default function HomePage() {
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
+    // detect admin role
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => {
+      const role = (data.user?.app_metadata as any)?.role;
+      setIsAdmin(role === 'admin');
+    }).catch(() => {});
   }, []);
 
   const kdiKey = useMemo(() => {
@@ -79,6 +88,20 @@ export default function HomePage() {
             <tbody>
               {data.map((row, idx) => {
                 const kdi = kdiKey ? row[kdiKey] : '';
+                const onProcess = async () => {
+                  if (!kdi) return;
+                  try {
+                    setProcessing(kdi);
+                    const supabase = createClient();
+                    const { error } = await supabase.functions.invoke('import-irrigation-data', { body: { action: 'process_di', k_di: kdi } });
+                    if (error) alert(`Gagal memproses ${kdi}: ${error.message}`);
+                    else alert(`Berhasil memproses ${kdi}`);
+                  } catch (e: any) {
+                    alert(`Error: ${e?.message || e}`);
+                  } finally {
+                    setProcessing(null);
+                  }
+                };
                 return (
                   <tr key={idx}>
                     {headers.map((h) => (<td key={h}>{row[h]}</td>))}
@@ -86,6 +109,11 @@ export default function HomePage() {
                       <div style={{ display: 'flex', gap: 8 }}>
                         <a className="btn" href={`/map?k_di=${encodeURIComponent(kdi)}`}>Map</a>
                         <a className="btn" href={`/di/${encodeURIComponent(kdi)}`}>Profil</a>
+                        {isAdmin && (
+                          <button className="btn" onClick={onProcess} disabled={processing === kdi}>
+                            {processing === kdi ? 'Processing…' : 'Process'}
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

@@ -59,6 +59,38 @@ function subLineBetween(coords: number[][], startDist: number, endDist: number):
   return result;
 }
 
+function includesAny(text: string | undefined, keywords: string[]): boolean {
+  if (!text) return false;
+  const t = text.toLowerCase();
+  return keywords.some((k) => t.includes(k));
+}
+
+function findUpstreamAnchorsForSaluran(bangunanFeatures: BangunanFeature[] | undefined, saluranNama: string | undefined): number[][] {
+  if (!bangunanFeatures || !saluranNama) return [];
+  const anchors: number[][] = [];
+  const keys = ['bendung', 'pengambilan', 'intake'];
+  for (const f of bangunanFeatures) {
+    const p = f.properties as any;
+    const same = (p?.saluran || p?.nama || '').toString().trim() === saluranNama.toString().trim();
+    const isAnchor = includesAny(p?.n_aset, keys) || includesAny(p?.nomenklatu, keys) || includesAny(p?.nama, keys);
+    if (same && isAnchor) anchors.push(f.geometry.coordinates);
+  }
+  return anchors;
+}
+
+function ensureUpstreamFirst(lineCoords: number[][], anchorPoints: number[][]): number[][] {
+  if (!anchorPoints.length || !lineCoords.length) return lineCoords;
+  // choose the nearest anchor to either start or end; reverse if end is nearer
+  let minStart = Infinity;
+  let minEnd = Infinity;
+  for (const a of anchorPoints) {
+    minStart = Math.min(minStart, haversine(a, lineCoords[0]));
+    minEnd = Math.min(minEnd, haversine(a, lineCoords[lineCoords.length - 1]));
+  }
+  if (minEnd < minStart) return [...lineCoords].reverse();
+  return lineCoords;
+}
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
@@ -137,7 +169,21 @@ Deno.serve(async (req: Request) => {
 
     const { action, k_di, bangunanData, saluranData, fungsionalData } = await req.json();
 
+    // Admin check
+    const authHeader = req.headers.get('Authorization') || '';
+    const token = (authHeader.match(/^Bearer\s+(.+)$/i) || [])[1];
+    let isAdmin = false;
+    if (token) {
+      try {
+        const { data: userRes } = await supabase.auth.getUser(token);
+        isAdmin = (userRes?.user?.app_metadata as any)?.role === 'admin';
+      } catch { /* ignore */ }
+    }
+
     if (action === 'import') {
+      if (!isAdmin) {
+        return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
       // 1. Create or update daerah_irigasi
       const diData = fungsionalData?.features?.[0]?.properties;
       
@@ -243,7 +289,7 @@ Deno.serve(async (req: Request) => {
 
       if (saluranData?.features) {
         for (const feature of saluranData.features as SaluranFeature[]) {
-          const lineCoords = feature.geometry.coordinates;
+          let lineCoords = feature.geometry.coordinates;
           if (!lineCoords || lineCoords.length < 2) continue;
 
           // Determine jenis from props
@@ -251,6 +297,10 @@ Deno.serve(async (req: Request) => {
           let jenis = 'primer' as 'primer' | 'sekunder' | 'tersier';
           if (props.k_aset === 'S02' || props.nomenklatu?.includes?.('RS')) jenis = 'sekunder';
           else if (props.k_aset === 'S03' || props.nomenklatu?.includes?.('RT')) jenis = 'tersier';
+
+          // Orient line from upstream (anchor) to downstream
+          const anchors = findUpstreamAnchorsForSaluran(bangunanData?.features as any, props.nama || props.saluran || '');
+          if (anchors.length) lineCoords = ensureUpstreamFirst(lineCoords, anchors);
 
           const totalLen = lineLengthMeters(lineCoords);
           const no_saluran = `SAL${String(saluranCounter).padStart(3, '0')}`;
@@ -372,6 +422,9 @@ Deno.serve(async (req: Request) => {
     }
 
     if (action === 'process_di') {
+      if (!isAdmin) {
+        return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
       if (!k_di) {
         return new Response(JSON.stringify({ error: 'k_di is required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
@@ -477,12 +530,15 @@ Deno.serve(async (req: Request) => {
       const segmentedFeatures: any[] = [];
       let saluranCounter = 1;
       for (const feature of (saluranJson?.features || []) as SaluranFeature[]) {
-        const coords = feature.geometry?.coordinates || [];
+        let coords = feature.geometry?.coordinates || [];
         if (!coords || coords.length < 2) continue;
         const props = feature.properties || ({} as any);
         let jenis = 'primer' as 'primer' | 'sekunder' | 'tersier';
         if (props.k_aset === 'S02' || props.nomenklatu?.includes?.('RS')) jenis = 'sekunder';
         else if (props.k_aset === 'S03' || props.nomenklatu?.includes?.('RT')) jenis = 'tersier';
+
+        const anchors = findUpstreamAnchorsForSaluran((bangunanJson?.features || []) as any, props.nama || props.saluran || '');
+        if (anchors.length) coords = ensureUpstreamFirst(coords, anchors);
         const totalLen = lineLengthMeters(coords);
         const no_saluran = `SAL${String(saluranCounter).padStart(3, '0')}`;
 
