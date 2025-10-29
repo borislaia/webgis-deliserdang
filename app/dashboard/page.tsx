@@ -38,14 +38,26 @@ export default function DashboardPage() {
       setCsvHeaders([]);
       try {
         const supabase = createClient();
-        const { data: files, error: listError } = await supabase.storage.from('csv').list('', { limit: 100 });
-        if (listError) throw listError;
-        const fileName = (files || []).find((f: any) => (f.name || '').toLowerCase().endsWith('.csv'))?.name || (files || [])[0]?.name;
-        if (!fileName) throw new Error('File CSV tidak ditemukan di bucket csv');
-        const { data: fileData, error: dlError } = await supabase.storage.from('csv').download(fileName);
-        if (dlError || !fileData) throw dlError || new Error('Gagal mengunduh CSV');
-        const text = await fileData.text();
-        const wb = XLSX.read(text, { type: 'string' });
+        const objectPath = 'daerah_irigasi.csv';
+        let text: string | null = null;
+
+        // Coba unduh langsung via API
+        const { data: fileData, error: dlError } = await supabase.storage.from('csv').download(objectPath);
+        if (!dlError && fileData) {
+          text = await fileData.text();
+        }
+
+        // Fallback ke URL publik (bucket public tidak butuh izin list)
+        if (!text) {
+          const { data: pub } = supabase.storage.from('csv').getPublicUrl(objectPath);
+          const url = pub?.publicUrl;
+          if (!url) throw new Error('URL publik CSV tidak tersedia');
+          const res = await fetch(url);
+          if (!res.ok) throw new Error(`Gagal mengunduh CSV (HTTP ${res.status})`);
+          text = await res.text();
+        }
+
+        const wb = XLSX.read(text!, { type: 'string' });
         const sheet = wb.SheetNames[0];
         const aoa: any[][] = XLSX.utils.sheet_to_json(wb.Sheets[sheet], { header: 1, blankrows: false }) as any[];
         if (!Array.isArray(aoa) || aoa.length === 0) {
