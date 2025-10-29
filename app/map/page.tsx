@@ -463,7 +463,10 @@ export default function MapPage() {
         </div>
         <div style={{ fontWeight: 600, margin: '12px 0 6px' }}>Operational Layers</div>
         <label><input type="checkbox" defaultChecked onChange={(e) => toggleKecamatan((e.target as HTMLInputElement).checked)} /> Kecamatan Boundaries</label><br />
-        <div style={{ fontWeight: 600, margin: '12px 0 6px' }}>GeoJSON (Storage)</div>
+        <div style={{ fontWeight: 600, margin: '12px 0 6px', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span>GeoJSON (Storage)</span>
+          <span className="badge" title="Jumlah file yang dimuat">{storageEntries.length}</span>
+        </div>
         <div style={{ maxHeight: 220, overflowY: 'auto', paddingRight: 6 }}>
           {loadingStorage ? <div>Memuat GeoJSON…</div> : null}
           {storageError ? <div style={{ color: 'crimson' }}>{storageError}</div> : null}
