@@ -38,8 +38,13 @@ export default function MapPage() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loadingStorage, setLoadingStorage] = useState(false);
   const [storageError, setStorageError] = useState<string | null>(null);
-  const [storageEntries, setStorageEntries] = useState<{ path: string; name: string; visible: boolean }[]>([]);
-  const storageLayersRef = useRef<Map<string, VectorLayer<any>>>(new Map());
+  const [storageCounts, setStorageCounts] = useState<{ points: number; lines: number; polygons: number; files: number }>({ points: 0, lines: 0, polygons: 0, files: 0 });
+  const storagePointsLayerRef = useRef<VectorLayer<any> | null>(null);
+  const storageLinesLayerRef = useRef<VectorLayer<any> | null>(null);
+  const storagePolygonsLayerRef = useRef<VectorLayer<any> | null>(null);
+  const [pointsVisible, setPointsVisible] = useState(true);
+  const [linesVisible, setLinesVisible] = useState(true);
+  const [polygonsVisible, setPolygonsVisible] = useState(true);
 
   const searchParams = useSearchParams();
   const kdi = searchParams.get('k_di') || '';
@@ -116,6 +121,35 @@ export default function MapPage() {
     kecamatanLayerRef.current = kecamatanLayer;
     map.addLayer(kecamatanLayer);
 
+    // Storage aggregated layers: polygons, lines, points (bottom -> top)
+    const polygonsSrc = new VectorSource();
+    const linesSrc = new VectorSource();
+    const pointsSrc = new VectorSource();
+    const polygonsLayer = new VectorLayer({
+      source: polygonsSrc,
+      zIndex: 7,
+      style: new Style({ stroke: new Stroke({ color: '#3388ff', width: 2 }), fill: new Fill({ color: 'rgba(51,136,255,0.2)' }) }),
+      visible: true,
+    });
+    const linesLayer = new VectorLayer({
+      source: linesSrc,
+      zIndex: 22,
+      style: new Style({ stroke: new Stroke({ color: '#3388ff', width: 2 }) }),
+      visible: true,
+    });
+    const pointsLayer = new VectorLayer({
+      source: pointsSrc,
+      zIndex: 31,
+      style: new Style({ image: new CircleStyle({ radius: 5, fill: new Fill({ color: '#3388ff' }), stroke: new Stroke({ color: '#ffffff', width: 1 }) }) }),
+      visible: true,
+    });
+    map.addLayer(polygonsLayer);
+    map.addLayer(linesLayer);
+    map.addLayer(pointsLayer);
+    storagePolygonsLayerRef.current = polygonsLayer;
+    storageLinesLayerRef.current = linesLayer;
+    storagePointsLayerRef.current = pointsLayer;
+
     // Tooltip
     if (tooltipRef.current) {
       const tooltipOverlay = new Overlay({ element: tooltipRef.current, offset: [10, 0], positioning: 'center-left' });
@@ -177,8 +211,7 @@ export default function MapPage() {
 
           const allFiles = await listAll('');
           const targetFiles = allFiles;
-
-          const addFileLayer = async (path: string) => {
+          const processFile = async (path: string) => {
             const { data: blob, error } = await supabase.storage.from('geojson').download(path);
             if (error || !blob) return;
             const text = await blob.text();
@@ -192,26 +225,15 @@ export default function MapPage() {
                 ? [fmt.readFeature(json, { dataProjection: 'EPSG:4326', featureProjection: projection })]
                 : [];
             if (!features.length) return;
-            const src = new VectorSource();
-            src.addFeatures(features);
-            const layer = new VectorLayer({
-              source: src,
-              zIndex: 25,
-              style: new Style({
-                stroke: new Stroke({ color: '#3388ff', width: 2 }),
-                fill: new Fill({ color: 'rgba(51,136,255,0.2)' }),
-                image: new CircleStyle({ radius: 5, fill: new Fill({ color: '#3388ff' }), stroke: new Stroke({ color: '#ffffff', width: 1 }) }),
-              }),
-              visible: true,
-            });
-            layer.set('title', path);
-            map.addLayer(layer);
-            storageLayersRef.current.set(path, layer);
-            setStorageEntries((prev) => {
-              if (prev.some((p) => p.path === path)) return prev;
-              const name = path.split('/').slice(-1)[0] || path;
-              return [...prev, { path, name, visible: true }];
-            });
+            let cPoints = 0, cLines = 0, cPolys = 0;
+            for (const f of features) {
+              const geom: any = f.getGeometry?.();
+              const t = geom?.getType?.();
+              if (t === 'Point' || t === 'MultiPoint') { pointsSrc.addFeature(f); cPoints++; }
+              else if (t === 'LineString' || t === 'MultiLineString') { linesSrc.addFeature(f); cLines++; }
+              else if (t === 'Polygon' || t === 'MultiPolygon') { polygonsSrc.addFeature(f); cPolys++; }
+            }
+            setStorageCounts((prev) => ({ points: prev.points + cPoints, lines: prev.lines + cLines, polygons: prev.polygons + cPolys, files: prev.files + 1 }));
           };
 
           // Limit concurrency to avoid blocking UI
@@ -220,7 +242,7 @@ export default function MapPage() {
           const workers = Array.from({ length: concurrency }, async () => {
             while (index < targetFiles.length) {
               const current = targetFiles[index++];
-              try { await addFileLayer(current); } catch {}
+              try { await processFile(current); } catch {}
             }
           });
           await Promise.all(workers);
@@ -407,10 +429,17 @@ export default function MapPage() {
     esriSatRef.current?.setVisible(name === 'sat');
   };
 
-  const toggleStorageLayer = (path: string, visible: boolean) => {
-    const layer = storageLayersRef.current.get(path);
-    if (layer) layer.setVisible(visible);
-    setStorageEntries((prev) => prev.map((e) => (e.path === path ? { ...e, visible } : e)));
+  const togglePoints = (checked: boolean) => {
+    storagePointsLayerRef.current?.setVisible(checked);
+    setPointsVisible(checked);
+  };
+  const toggleLines = (checked: boolean) => {
+    storageLinesLayerRef.current?.setVisible(checked);
+    setLinesVisible(checked);
+  };
+  const togglePolygons = (checked: boolean) => {
+    storagePolygonsLayerRef.current?.setVisible(checked);
+    setPolygonsVisible(checked);
   };
 
   const zoomIn = () => {
@@ -465,24 +494,23 @@ export default function MapPage() {
         <label><input type="checkbox" defaultChecked onChange={(e) => toggleKecamatan((e.target as HTMLInputElement).checked)} /> Kecamatan Boundaries</label><br />
         <div style={{ fontWeight: 600, margin: '12px 0 6px', display: 'flex', alignItems: 'center', gap: 8 }}>
           <span>GeoJSON (Storage)</span>
-          <span className="badge" title="Jumlah file yang dimuat">{storageEntries.length}</span>
+          <span className="badge" title="Jumlah file yang dimuat">{storageCounts.files}</span>
         </div>
         <div style={{ maxHeight: 220, overflowY: 'auto', paddingRight: 6 }}>
           {loadingStorage ? <div>Memuat GeoJSON…</div> : null}
           {storageError ? <div style={{ color: 'crimson' }}>{storageError}</div> : null}
-          {!loadingStorage && !storageError && storageEntries.length === 0 ? (
+          {!loadingStorage && !storageError && storageCounts.files === 0 ? (
             <div style={{ color: '#666' }}>Tidak ada file</div>
           ) : null}
-          {storageEntries.map((entry) => (
-            <label key={entry.path} style={{ display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={entry.path}>
-              <input
-                type="checkbox"
-                checked={entry.visible}
-                onChange={(e) => toggleStorageLayer(entry.path, (e.target as HTMLInputElement).checked)}
-              />{' '}
-              {entry.name}
-            </label>
-          ))}
+          <label style={{ display: 'block' }}>
+            <input type="checkbox" checked={polygonsVisible} onChange={(e) => togglePolygons((e.target as HTMLInputElement).checked)} /> Polygons ({storageCounts.polygons})
+          </label>
+          <label style={{ display: 'block' }}>
+            <input type="checkbox" checked={linesVisible} onChange={(e) => toggleLines((e.target as HTMLInputElement).checked)} /> Lines ({storageCounts.lines})
+          </label>
+          <label style={{ display: 'block' }}>
+            <input type="checkbox" checked={pointsVisible} onChange={(e) => togglePoints((e.target as HTMLInputElement).checked)} /> Points ({storageCounts.points})
+          </label>
         </div>
         <div style={{ marginTop: 12 }} className="legend" />
       </div>
