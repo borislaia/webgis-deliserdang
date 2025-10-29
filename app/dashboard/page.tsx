@@ -2,13 +2,21 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
+import * as XLSX from 'xlsx';
+import IrrigationManagementView from '@/components/IrrigationManagementView';
+
+type Panel = 'di' | 'management' | 'reports' | 'users' | 'settings';
 
 export default function DashboardPage() {
-  const [showUsers, setShowUsers] = useState(false);
+  const [activePanel, setActivePanel] = useState<Panel>('di');
   const [year] = useState<number>(new Date().getFullYear());
   const [userEmail, setUserEmail] = useState<string>('');
-  const [diList, setDiList] = useState<any[] | null>(null);
-  const [diError, setDiError] = useState<string | null>(null);
+
+  // CSV state for Daerah Irigasi panel
+  const [csvRows, setCsvRows] = useState<any[] | null>(null);
+  const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
+  const [csvLoading, setCsvLoading] = useState<boolean>(false);
+  const [csvError, setCsvError] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -20,22 +28,49 @@ export default function DashboardPage() {
     })();
   }, []);
 
+  // Load CSV from Supabase Storage bucket 'csv' when DI panel is active
   useEffect(() => {
+    if (activePanel !== 'di') return;
     (async () => {
+      setCsvLoading(true);
+      setCsvError(null);
+      setCsvRows(null);
+      setCsvHeaders([]);
       try {
         const supabase = createClient();
-        const { data, error } = await supabase
-          .from('daerah_irigasi')
-          .select('id,k_di,n_di,luas_ha,kecamatan,desa_kel,sumber_air,tahun_data')
-          .limit(50);
-        if (error) throw error;
-        setDiList(data || []);
+        const { data: files, error: listError } = await supabase.storage.from('csv').list('', { limit: 100 });
+        if (listError) throw listError;
+        const fileName = (files || []).find((f: any) => (f.name || '').toLowerCase().endsWith('.csv'))?.name || (files || [])[0]?.name;
+        if (!fileName) throw new Error('File CSV tidak ditemukan di bucket csv');
+        const { data: fileData, error: dlError } = await supabase.storage.from('csv').download(fileName);
+        if (dlError || !fileData) throw dlError || new Error('Gagal mengunduh CSV');
+        const text = await fileData.text();
+        const wb = XLSX.read(text, { type: 'string' });
+        const sheet = wb.SheetNames[0];
+        const aoa: any[][] = XLSX.utils.sheet_to_json(wb.Sheets[sheet], { header: 1, blankrows: false }) as any[];
+        if (!Array.isArray(aoa) || aoa.length === 0) {
+          setCsvRows([]);
+          setCsvHeaders([]);
+        } else {
+          const [headerRow, ...dataRows] = aoa;
+          const headers = (headerRow || []).map((h: any) => (h != null ? String(h) : '')) as string[];
+          const rows = dataRows.map((row: any[]) => {
+            const obj: Record<string, any> = {};
+            headers.forEach((h, i) => { obj[h || `col_${i + 1}`] = row[i] ?? ''; });
+            return obj;
+          });
+          setCsvHeaders(headers);
+          setCsvRows(rows);
+        }
       } catch (e: any) {
-        setDiError(e?.message || 'Gagal memuat data');
-        setDiList([]);
+        setCsvError(e?.message || 'Gagal memuat CSV');
+        setCsvRows([]);
+        setCsvHeaders([]);
+      } finally {
+        setCsvLoading(false);
       }
     })();
-  }, []);
+  }, [activePanel]);
 
   const logout = async () => {
     const supabase = createClient();
@@ -63,60 +98,61 @@ export default function DashboardPage() {
               <span className="badge">Dashboard</span>
             </div>
             <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <button className="btn" onClick={() => setActivePanel('di')}>Daerah Irigasi</button>
               <button className="btn" onClick={() => (window.location.href = '/map')}>Open Map</button>
-              <button className="btn" onClick={() => (window.location.href = '/irrigation-management')}>Manajemen Irigasi</button>
-              <button className="btn" onClick={() => alert('Reports coming soon')}>Reports</button>
-              <button className="btn" onClick={() => setShowUsers((v) => !v)} id="usersBtn">Users</button>
-              <button className="btn" onClick={() => alert('Settings coming soon')}>Settings</button>
+              <button className="btn" onClick={() => setActivePanel('management')}>Manajemen Irigasi</button>
+              <button className="btn" onClick={() => setActivePanel('reports')}>Reports</button>
+              <button className="btn" onClick={() => setActivePanel('users')} id="usersBtn">Users</button>
+              <button className="btn" onClick={() => setActivePanel('settings')}>Settings</button>
             </div>
           </div>
         </aside>
         <main className="content">
-          <h2 style={{ marginTop: 0 }}>Welcome back</h2>
-          <div className="card" style={{ padding: 18 }}>
-            <p>
-              Use the side panel to navigate. Click <strong>Open Map</strong> to view the GIS.
-            </p>
-          </div>
-
-          <div className="card" style={{ padding: 18, marginTop: 20 }}>
-            <h3 style={{ marginTop: 0 }}>Daerah Irigasi</h3>
-            {!diList && !diError && <div className="loading">Loading...</div>}
-            {diError && <div className="error-message">{diError}</div>}
-            {diList && (
-              <div style={{ overflowX: 'auto' }}>
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>Kode DI</th>
-                      <th>Nama</th>
-                      <th>Luas (Ha)</th>
-                      <th>Kecamatan</th>
-                      <th>Desa/Kel</th>
-                      <th>Sumber Air</th>
-                      <th>Tahun Data</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {diList.map((row) => (
-                      <tr key={row.id}>
-                        <td>{row.k_di}</td>
-                        <td>{row.n_di}</td>
-                        <td>{row.luas_ha}</td>
-                        <td>{row.kecamatan}</td>
-                        <td>{row.desa_kel}</td>
-                        <td>{row.sumber_air}</td>
-                        <td>{row.tahun_data}</td>
+          {activePanel === 'di' && (
+            <div className="card" style={{ padding: 18 }}>
+              <h3 style={{ marginTop: 0 }}>Daerah Irigasi (CSV)</h3>
+              {csvLoading && <div className="loading">Loading...</div>}
+              {csvError && <div className="error-message">{csvError}</div>}
+              {!csvLoading && !csvError && csvRows && (
+                <div style={{ overflowX: 'auto' }}>
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        {csvHeaders.map((h) => (
+                          <th key={h || 'col'}>{h || '—'}</th>
+                        ))}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
+                    </thead>
+                    <tbody>
+                      {csvRows.map((row, idx) => (
+                        <tr key={idx}>
+                          {csvHeaders.map((h, i) => (
+                            <td key={h + i}>{row[h || `col_${i + 1}`]}</td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
 
-          {showUsers && (
-            <div className="card" style={{ padding: 18, marginTop: 20 }} id="usersPanel">
+          {activePanel === 'management' && (
+            <div style={{ maxWidth: 1400, margin: '0 auto' }}>
+              <IrrigationManagementView />
+            </div>
+          )}
+
+          {activePanel === 'reports' && (
+            <div className="card" style={{ padding: 18 }}>
+              <h3 style={{ marginTop: 0 }}>Reports</h3>
+              <p>Fitur laporan akan ditambahkan.</p>
+            </div>
+          )}
+
+          {activePanel === 'users' && (
+            <div className="card" style={{ padding: 18 }} id="usersPanel">
               <h3>User Management</h3>
               <div>
                 <div style={{ padding: 16, background: '#f5f5f5', borderRadius: 4, margin: '8px 0' }}>
@@ -129,10 +165,15 @@ export default function DashboardPage() {
                 </div>
               </div>
               <div style={{ marginTop: 16 }}>
-                <button className="btn primary" onClick={() => {}}>
-                  Refresh Users
-                </button>
+                <button className="btn primary" onClick={() => {}}>Refresh Users</button>
               </div>
+            </div>
+          )}
+
+          {activePanel === 'settings' && (
+            <div className="card" style={{ padding: 18 }}>
+              <h3 style={{ marginTop: 0 }}>Settings</h3>
+              <p>Pengaturan akan ditambahkan.</p>
             </div>
           )}
         </main>
