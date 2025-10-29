@@ -10,7 +10,7 @@ import { OSM, XYZ, Vector as VectorSource } from 'ol/source';
 import { fromLonLat } from 'ol/proj';
 import { GeoJSON } from 'ol/format';
 import Overlay from 'ol/Overlay';
-import { Style, Fill, Stroke } from 'ol/style';
+import { Style, Fill, Stroke, Circle as CircleStyle } from 'ol/style';
 import { defaults as defaultControls } from 'ol/control';
 import { defaults as defaultInteractions } from 'ol/interaction';
 
@@ -36,6 +36,10 @@ export default function MapPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalImgSrc, setModalImgSrc] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [loadingStorage, setLoadingStorage] = useState(false);
+  const [storageError, setStorageError] = useState<string | null>(null);
+  const [storageEntries, setStorageEntries] = useState<{ path: string; name: string; visible: boolean }[]>([]);
+  const storageLayersRef = useRef<Map<string, VectorLayer<any>>>(new Map());
 
   const searchParams = useSearchParams();
   const kdi = searchParams.get('k_di') || '';
@@ -147,6 +151,86 @@ export default function MapPage() {
           setIsAdmin(((data.user?.app_metadata as any)?.role) === 'admin');
         } catch {}
 
+        // 1) Load ALL GeoJSON files from Storage bucket 'geojson'
+        try {
+          setLoadingStorage(true);
+          setStorageError(null);
+
+          const listAll = async (prefix: string): Promise<string[]> => {
+            const { data, error } = await supabase.storage.from('geojson').list(prefix, { limit: 1000, sortBy: { column: 'name', order: 'asc' } });
+            if (error) return [];
+            const files: string[] = [];
+            for (const item of data || []) {
+              const name = item.name || '';
+              const fullPath = prefix ? `${prefix}${name}` : name;
+              const looksLikeFile = /\.[a-z0-9]+$/i.test(name);
+              if (looksLikeFile) {
+                const lower = name.toLowerCase();
+                if (lower.endsWith('.json') || lower.endsWith('.geojson')) files.push(fullPath);
+              } else {
+                const nested = await listAll(`${fullPath}/`);
+                files.push(...nested);
+              }
+            }
+            return files;
+          };
+
+          const allFiles = await listAll('');
+          const targetFiles = allFiles;
+
+          const addFileLayer = async (path: string) => {
+            const { data: blob, error } = await supabase.storage.from('geojson').download(path);
+            if (error || !blob) return;
+            const text = await blob.text();
+            let json: any;
+            try { json = JSON.parse(text); } catch { return; }
+            const fmt = new GeoJSON();
+            const projection = map.getView().getProjection();
+            const features = json?.type === 'FeatureCollection'
+              ? fmt.readFeatures(json, { dataProjection: 'EPSG:4326', featureProjection: projection })
+              : json?.type === 'Feature'
+                ? [fmt.readFeature(json, { dataProjection: 'EPSG:4326', featureProjection: projection })]
+                : [];
+            if (!features.length) return;
+            const src = new VectorSource();
+            src.addFeatures(features);
+            const layer = new VectorLayer({
+              source: src,
+              zIndex: 25,
+              style: new Style({
+                stroke: new Stroke({ color: '#3388ff', width: 2 }),
+                fill: new Fill({ color: 'rgba(51,136,255,0.2)' }),
+                image: new CircleStyle({ radius: 5, fill: new Fill({ color: '#3388ff' }), stroke: new Stroke({ color: '#ffffff', width: 1 }) }),
+              }),
+              visible: true,
+            });
+            layer.set('title', path);
+            map.addLayer(layer);
+            storageLayersRef.current.set(path, layer);
+            setStorageEntries((prev) => {
+              if (prev.some((p) => p.path === path)) return prev;
+              const name = path.split('/').slice(-1)[0] || path;
+              return [...prev, { path, name, visible: true }];
+            });
+          };
+
+          // Limit concurrency to avoid blocking UI
+          let index = 0;
+          const concurrency = 5;
+          const workers = Array.from({ length: concurrency }, async () => {
+            while (index < targetFiles.length) {
+              const current = targetFiles[index++];
+              try { await addFileLayer(current); } catch {}
+            }
+          });
+          await Promise.all(workers);
+        } catch (err: any) {
+          setStorageError(err?.message || 'Gagal memuat GeoJSON dari Storage');
+        } finally {
+          setLoadingStorage(false);
+        }
+
+        // 2) If k_di provided, load related operational layers from DB
         if (kdi) {
           const { data: di } = await supabase.from('daerah_irigasi').select('id,k_di,n_di').eq('k_di', kdi).maybeSingle();
           if (di?.id) {
@@ -323,6 +407,12 @@ export default function MapPage() {
     esriSatRef.current?.setVisible(name === 'sat');
   };
 
+  const toggleStorageLayer = (path: string, visible: boolean) => {
+    const layer = storageLayersRef.current.get(path);
+    if (layer) layer.setVisible(visible);
+    setStorageEntries((prev) => prev.map((e) => (e.path === path ? { ...e, visible } : e)));
+  };
+
   const zoomIn = () => {
     const map = mapRef.current; if (!map) return;
     const view = map.getView();
@@ -373,6 +463,24 @@ export default function MapPage() {
         </div>
         <div style={{ fontWeight: 600, margin: '12px 0 6px' }}>Operational Layers</div>
         <label><input type="checkbox" defaultChecked onChange={(e) => toggleKecamatan((e.target as HTMLInputElement).checked)} /> Kecamatan Boundaries</label><br />
+        <div style={{ fontWeight: 600, margin: '12px 0 6px' }}>GeoJSON (Storage)</div>
+        <div style={{ maxHeight: 220, overflowY: 'auto', paddingRight: 6 }}>
+          {loadingStorage ? <div>Memuat GeoJSON…</div> : null}
+          {storageError ? <div style={{ color: 'crimson' }}>{storageError}</div> : null}
+          {!loadingStorage && !storageError && storageEntries.length === 0 ? (
+            <div style={{ color: '#666' }}>Tidak ada file</div>
+          ) : null}
+          {storageEntries.map((entry) => (
+            <label key={entry.path} style={{ display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={entry.path}>
+              <input
+                type="checkbox"
+                checked={entry.visible}
+                onChange={(e) => toggleStorageLayer(entry.path, (e.target as HTMLInputElement).checked)}
+              />{' '}
+              {entry.name}
+            </label>
+          ))}
+        </div>
         <div style={{ marginTop: 12 }} className="legend" />
       </div>
 
