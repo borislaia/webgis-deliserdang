@@ -47,7 +47,8 @@ export default function MapPage() {
   const [polygonsVisible, setPolygonsVisible] = useState(true);
 
   const searchParams = useSearchParams();
-  const kdi = searchParams.get('k_di') || '';
+  // Terima baik ?di= maupun ?k_di= untuk fleksibilitas dari dashboard
+  const kdi = (searchParams.get('di') || searchParams.get('k_di') || '').trim();
 
   useEffect(() => {
     if (!mapDivRef.current) return;
@@ -235,11 +236,18 @@ export default function MapPage() {
             };
             return await listAll('');
           };
-
           const allFiles = await fetchManifestPaths();
-          const filtered = kdi ? allFiles.filter((p) => p.startsWith(`${kdi}/`)) : allFiles;
-          const targetFiles = filtered;
-
+          let targetFiles: string[] = allFiles;
+          if (kdi) {
+            const codeLower = kdi.toLowerCase();
+            // Filter file berdasarkan nama folder root yang mengandung kode DI
+            const byFolderInclude = allFiles.filter((p) => {
+              const root = p.split('/')[0] || '';
+              return root.toLowerCase().includes(codeLower);
+            });
+            // Jika tidak ada kecocokan via include, coba fallback prefix ketat
+            targetFiles = byFolderInclude.length ? byFolderInclude : allFiles.filter((p) => p.startsWith(`${kdi}/`));
+          }
           const processFile = async (path: string) => {
             // Prefer CDN public URL fetch for speed; fallback to storage.download
             try {
@@ -313,7 +321,7 @@ export default function MapPage() {
           setLoadingStorage(false);
         }
 
-        // 2) If k_di provided, load related operational layers from DB
+        // 2) Jika k_di/di disediakan, muat layer operasional terkait dari DB
         if (kdi) {
           const { data: di } = await supabase.from('daerah_irigasi').select('id,k_di,n_di').eq('k_di', kdi).maybeSingle();
           if (di?.id) {

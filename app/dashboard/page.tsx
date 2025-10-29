@@ -90,6 +90,19 @@ export default function DashboardPage() {
     window.location.href = '/login';
   };
 
+  // Ambil kode DI dari baris CSV bila tersedia, untuk query di halaman peta
+  const getDiCodeFromRow = (row: Record<string, any>): string => {
+    if (!row) return '';
+    for (const key of Object.keys(row)) {
+      const normalized = key.toLowerCase().replace(/[\s\-]+/g, '_');
+      if (normalized === 'k_di' || normalized === 'kode_di' || normalized === 'kode' || normalized === 'kdi') {
+        const value = row[key];
+        if (value != null && value !== '') return String(value);
+      }
+    }
+    return '';
+  };
+
   return (
     <main>
       <header className="app-header blur">
@@ -133,6 +146,7 @@ export default function DashboardPage() {
                         {csvHeaders.map((h) => (
                           <th key={h || 'col'}>{h || '—'}</th>
                         ))}
+                        <th key="__map">Map</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -141,6 +155,18 @@ export default function DashboardPage() {
                           {csvHeaders.map((h, i) => (
                             <td key={h + i}>{row[h || `col_${i + 1}`]}</td>
                           ))}
+                          <td key="__map_btn">
+                            <button
+                              className="btn"
+                              onClick={() => {
+                                const di = getDiCodeFromRow(row as Record<string, any>);
+                                const target = di ? `/map?di=${encodeURIComponent(di)}` : '/map';
+                                window.location.href = target;
+                              }}
+                            >
+                              Map
+                            </button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
