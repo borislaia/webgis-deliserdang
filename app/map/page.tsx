@@ -1,5 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
 import 'ol/ol.css';
 import Map from 'ol/Map';
 import View from 'ol/View';
@@ -33,6 +35,10 @@ export default function MapPage() {
   // Modal state for image preview from popup
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalImgSrc, setModalImgSrc] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  const searchParams = useSearchParams();
+  const kdi = searchParams.get('k_di') || '';
 
   useEffect(() => {
     if (!mapDivRef.current) return;
@@ -122,17 +128,91 @@ export default function MapPage() {
 
     // Load data
     (async () => {
-      const res = await fetch('/data/batas_kecamatan.json');
-      if (!res.ok) return;
-      const batas = await res.json();
-      const fmt = new GeoJSON();
-      const collection = Array.isArray(batas) ? { type: 'FeatureCollection', features: batas } : batas;
-      const features = fmt.readFeatures(collection, { dataProjection: 'EPSG:4326', featureProjection: map.getView().getProjection() });
-      kecamatanLayer.getSource()?.clear();
-      kecamatanLayer.getSource()?.addFeatures(features);
-      if (features.length > 0) {
-        const extent = kecamatanLayer.getSource()!.getExtent();
-        map.getView().fit(extent, { padding: [50, 50, 50, 50], duration: 500 });
+      try {
+        // Always load boundary as context
+        const res = await fetch('/data/batas_kecamatan.json');
+        if (res.ok) {
+          const batas = await res.json();
+          const fmt = new GeoJSON();
+          const collection = Array.isArray(batas) ? { type: 'FeatureCollection', features: batas } : batas;
+          const features = fmt.readFeatures(collection, { dataProjection: 'EPSG:4326', featureProjection: map.getView().getProjection() });
+          kecamatanLayer.getSource()?.clear();
+          kecamatanLayer.getSource()?.addFeatures(features);
+        }
+
+        const supabase = createClient();
+        // detect admin role
+        try {
+          const { data } = await supabase.auth.getUser();
+          setIsAdmin(((data.user?.app_metadata as any)?.role) === 'admin');
+        } catch {}
+
+        if (kdi) {
+          const { data: di } = await supabase.from('daerah_irigasi').select('id,k_di,n_di').eq('k_di', kdi).maybeSingle();
+          if (di?.id) {
+            // Load saluran, ruas, bangunan, fungsional
+            const [{ data: saluran }, { data: bangunan }, { data: fungsional }] = await Promise.all([
+              supabase.from('saluran').select('id,no_saluran,geojson').eq('daerah_irigasi_id', di.id),
+              supabase.from('bangunan').select('id,geojson'),
+              supabase.from('fungsional').select('id,geojson').eq('daerah_irigasi_id', di.id),
+            ]);
+
+            // Add bangunan layer
+            if (bangunan && bangunan.length) {
+              const src = new VectorSource();
+              const fmt = new GeoJSON();
+              for (const b of bangunan) {
+                if (!b.geojson) continue;
+                const feat = fmt.readFeature(b.geojson, { dataProjection: 'EPSG:4326', featureProjection: map.getView().getProjection() });
+                src.addFeature(feat);
+              }
+              const layer = new VectorLayer({ source: src, zIndex: 30 });
+              map.addLayer(layer);
+            }
+
+            // Add fungsional layer
+            if (fungsional && fungsional.length) {
+              const src = new VectorSource();
+              const fmt = new GeoJSON();
+              for (const f of fungsional) {
+                if (!f.geojson) continue;
+                const fc = f.geojson.type === 'FeatureCollection' ? f.geojson : { type: 'FeatureCollection', features: [f.geojson] };
+                const fs = fmt.readFeatures(fc, { dataProjection: 'EPSG:4326', featureProjection: map.getView().getProjection() });
+                src.addFeatures(fs);
+              }
+              const layer = new VectorLayer({ source: src, zIndex: 5, style: new Style({ stroke: new Stroke({ color: '#2ca02c', width: 2 }), fill: new Fill({ color: 'rgba(44,160,44,0.2)' }) }) });
+              map.addLayer(layer);
+            }
+
+            // Build ruas layer from DB rows
+            let ruasFeatures: any[] = [];
+            if (saluran && saluran.length) {
+              const salIds = saluran.map((s: any) => s.id);
+              const { data: ruas } = await supabase.from('ruas').select('id,no_ruas,urutan,geojson,foto_urls,metadata,saluran_id').in('saluran_id', salIds);
+              const fmt = new GeoJSON();
+              if (ruas) {
+                for (const r of ruas) {
+                  if (!r.geojson) continue;
+                  // Attach foto_urls into properties for popup use
+                  const featureGeo = { ...r.geojson, properties: { ...(r.geojson.properties || {}), foto_urls: r.foto_urls || [], ruas_id: r.id, metadata: r.metadata || {} } };
+                  const f = fmt.readFeature(featureGeo, { dataProjection: 'EPSG:4326', featureProjection: map.getView().getProjection() });
+                  ruasFeatures.push(f);
+                }
+              }
+            }
+
+            if (ruasFeatures.length) {
+              const src = new VectorSource();
+              src.addFeatures(ruasFeatures);
+              const layer = new VectorLayer({ source: src, zIndex: 20, style: new Style({ stroke: new Stroke({ color: '#ff7f0e', width: 3 }) }) });
+              map.addLayer(layer);
+              const extent = src.getExtent();
+              if (extent) map.getView().fit(extent, { padding: [50, 50, 50, 50], duration: 500 });
+            }
+          }
+        }
+      } catch (e) {
+        // ignore
       }
     })();
 
@@ -164,13 +244,63 @@ export default function MapPage() {
       map.forEachFeatureAtPixel(evt.pixel, (feature) => {
         hit = true;
         if (popupOverlayRef.current && popupRef.current) {
-          const title = feature.get('NAMOBJ') || 'Feature';
-          // avoid injecting unsanitized HTML
+          const namobj = feature.get('NAMOBJ');
+          const noRuas = feature.get('no_ruas');
+          const noSal = feature.get('no_saluran');
+          const photos: string[] = feature.get('foto_urls') || [];
+          const ruasId: string | undefined = feature.get('ruas_id');
+          const metadata: any = feature.get('metadata') || {};
           popupRef.current.textContent = '';
           const titleDiv = document.createElement('div');
           titleDiv.className = 'title';
-          titleDiv.textContent = title;
+          titleDiv.textContent = namobj || noRuas || 'Feature';
           popupRef.current.appendChild(titleDiv);
+          if (noSal && noRuas) {
+            const meta = document.createElement('div');
+            meta.textContent = `${noSal} • ${noRuas}`;
+            meta.style.marginBottom = '6px';
+            popupRef.current.appendChild(meta);
+          }
+          if (photos.length) {
+            const gallery = document.createElement('div');
+            gallery.style.display = 'flex';
+            gallery.style.gap = '6px';
+            photos.slice(0, 4).forEach((url) => {
+              const img = document.createElement('img');
+              img.src = url;
+              img.alt = 'foto';
+              img.style.width = '72px';
+              img.style.height = '72px';
+              img.style.objectFit = 'cover';
+              img.style.borderRadius = '6px';
+              img.onclick = () => { setModalImgSrc(url); setIsModalOpen(true); };
+              gallery.appendChild(img);
+            });
+            popupRef.current.appendChild(gallery);
+          }
+          if (isAdmin && ruasId && noRuas) {
+            const editWrap = document.createElement('div');
+            editWrap.style.marginTop = '8px';
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.placeholder = 'Catatan';
+            input.value = metadata?.catatan || '';
+            input.className = 'input';
+            input.style.width = '180px';
+            const save = document.createElement('button');
+            save.className = 'btn';
+            save.textContent = 'Simpan';
+            save.onclick = async () => {
+              const supabase = createClient();
+              const newMeta = { ...(metadata || {}), catatan: input.value };
+              const { error } = await supabase.from('ruas').update({ metadata: newMeta }).eq('id', ruasId);
+              if (error) alert('Gagal menyimpan: ' + error.message);
+              else alert('Tersimpan');
+            };
+            editWrap.appendChild(input);
+            editWrap.appendChild(save);
+            popupRef.current.appendChild(editWrap);
+          }
           popupOverlayRef.current.setPosition(evt.coordinate);
         }
         return true;
