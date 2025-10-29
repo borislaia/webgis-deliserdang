@@ -1,11 +1,15 @@
 "use client";
 import { useEffect, useRef } from 'react';
+import { usePathname } from 'next/navigation';
 
 export default function VantaFog() {
   const elRef = useRef<HTMLDivElement | null>(null);
   const vantaRef = useRef<any>(null);
+  const pathname = usePathname();
 
   useEffect(() => {
+    // Do not mount Vanta on map page
+    if (pathname?.startsWith('/map')) return;
     let cancelled = false;
     (async () => {
       try {
