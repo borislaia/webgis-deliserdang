@@ -186,56 +186,103 @@ export default function MapPage() {
           setIsAdmin(((data.user?.app_metadata as any)?.role) === 'admin');
         } catch {}
 
-        // 1) Load GeoJSON files from Storage bucket 'geojson'
+        // 1) Load GeoJSON paths via manifest (CDN) with graceful fallbacks
         try {
           setLoadingStorage(true);
           setStorageError(null);
-
-          const listAll = async (prefix: string): Promise<string[]> => {
-            const { data, error } = await supabase.storage.from('geojson').list(prefix, { limit: 1000, sortBy: { column: 'name', order: 'asc' } });
-            if (error) return [];
-            const files: string[] = [];
-            for (const item of data || []) {
-              const name = item.name || '';
-              const fullPath = prefix ? `${prefix}${name}` : name;
-              const looksLikeFile = /\.[a-z0-9]+$/i.test(name);
-              if (looksLikeFile) {
-                const lower = name.toLowerCase();
-                if (lower.endsWith('.json') || lower.endsWith('.geojson')) files.push(fullPath);
-              } else {
-                const nested = await listAll(`${fullPath}/`);
-                files.push(...nested);
+          const fetchManifestPaths = async (): Promise<string[]> => {
+            // Try public CDN manifest first
+            try {
+              const pub = supabase.storage.from('geojson').getPublicUrl('manifest.json');
+              const manifestUrl = pub?.data?.publicUrl;
+              if (manifestUrl) {
+                const r = await fetch(manifestUrl, { cache: 'no-cache' });
+                if (r.ok) {
+                  const m = await r.json();
+                  if (Array.isArray(m)) return m;
+                  if (Array.isArray(m?.files)) return m.files as string[];
+                }
               }
-            }
-            return files;
+            } catch {}
+
+            // Fallback to server endpoint (will also create/upload manifest)
+            try {
+              const r = await fetch('/api/geojson/manifest', { cache: 'no-cache' });
+              if (r.ok) {
+                const m = await r.json();
+                if (Array.isArray(m)) return m;
+                if (Array.isArray(m?.files)) return m.files as string[];
+              }
+            } catch {}
+
+            // Final fallback: list recursively (client-side)
+            const listAll = async (prefix: string): Promise<string[]> => {
+              const { data, error } = await supabase.storage.from('geojson').list(prefix, { limit: 1000, sortBy: { column: 'name', order: 'asc' } });
+              if (error) return [];
+              const files: string[] = [];
+              for (const item of data || []) {
+                const name = item.name || '';
+                const fullPath = prefix ? `${prefix}${name}` : name;
+                const looksLikeFile = /\.[a-z0-9]+$/i.test(name);
+                if (looksLikeFile) {
+                  const lower = name.toLowerCase();
+                  if (lower.endsWith('.json') || lower.endsWith('.geojson')) files.push(fullPath);
+                } else {
+                  const nested = await listAll(`${fullPath}/`);
+                  files.push(...nested);
+                }
+              }
+              return files;
+            };
+            return await listAll('');
           };
-
-          // Jika kdi tersedia, cari folder di root yang mengandung kode tersebut,
-          // lalu hanya telusuri folder-folder itu. Jika tidak ada yang cocok, coba prefix langsung `${kdi}/`.
-          let basePrefixes: string[] = [''];
+          const allFiles = await fetchManifestPaths();
+          let targetFiles: string[] = allFiles;
           if (kdi) {
-            const { data: rootItems } = await supabase.storage.from('geojson').list('', { limit: 1000, sortBy: { column: 'name', order: 'asc' } });
             const codeLower = kdi.toLowerCase();
-            const matchedDirs: string[] = [];
-            for (const it of rootItems || []) {
-              const nm = it.name || '';
-              const isFile = /\.[a-z0-9]+$/i.test(nm);
-              if (isFile) continue;
-              const nmLower = nm.toLowerCase();
-              if (nmLower === codeLower || nmLower.includes(codeLower)) matchedDirs.push(`${nm}/`);
-            }
-            basePrefixes = matchedDirs.length ? matchedDirs : [`${kdi}/`];
+            // Filter file berdasarkan nama folder root yang mengandung kode DI
+            const byFolderInclude = allFiles.filter((p) => {
+              const root = p.split('/')[0] || '';
+              return root.toLowerCase().includes(codeLower);
+            });
+            // Jika tidak ada kecocokan via include, coba fallback prefix ketat
+            targetFiles = byFolderInclude.length ? byFolderInclude : allFiles.filter((p) => p.startsWith(`${kdi}/`));
           }
-
-          const collectedFiles: string[] = [];
-          for (const p of basePrefixes) {
-            const files = await listAll(p);
-            collectedFiles.push(...files);
-          }
-          const targetFiles = collectedFiles;
           const processFile = async (path: string) => {
-            const { data: blob, error } = await supabase.storage.from('geojson').download(path);
-            if (error || !blob) return;
+            // Prefer CDN public URL fetch for speed; fallback to storage.download
+            try {
+              const pub = supabase.storage.from('geojson').getPublicUrl(path);
+              const url = pub?.data?.publicUrl;
+              if (url) {
+                const res = await fetch(url, { cache: 'force-cache' });
+                if (res.ok) {
+                  const json = await res.json();
+                  const fmt = new GeoJSON();
+                  const projection = map.getView().getProjection();
+                  const features = json?.type === 'FeatureCollection'
+                    ? fmt.readFeatures(json, { dataProjection: 'EPSG:4326', featureProjection: projection })
+                    : json?.type === 'Feature'
+                      ? [fmt.readFeature(json, { dataProjection: 'EPSG:4326', featureProjection: projection })]
+                      : [];
+                  if (features.length) {
+                    let cPoints = 0, cLines = 0, cPolys = 0;
+                    for (const f of features) {
+                      const geom: any = f.getGeometry?.();
+                      const t = geom?.getType?.();
+                      if (t === 'Point' || t === 'MultiPoint') { pointsSrc.addFeature(f); cPoints++; }
+                      else if (t === 'LineString' || t === 'MultiLineString') { linesSrc.addFeature(f); cLines++; }
+                      else if (t === 'Polygon' || t === 'MultiPolygon') { polygonsSrc.addFeature(f); cPolys++; }
+                    }
+                    setStorageCounts((prev) => ({ points: prev.points + cPoints, lines: prev.lines + cLines, polygons: prev.polygons + cPolys, files: prev.files + 1 }));
+                    return;
+                  }
+                }
+              }
+            } catch {}
+
+            // Fallback to SDK download
+            const { data: blob } = await supabase.storage.from('geojson').download(path);
+            if (!blob) return;
             const text = await blob.text();
             let json: any;
             try { json = JSON.parse(text); } catch { return; }
@@ -260,7 +307,7 @@ export default function MapPage() {
 
           // Limit concurrency to avoid blocking UI
           let index = 0;
-          const concurrency = 5;
+          const concurrency = 8; // slightly higher; CDN helps
           const workers = Array.from({ length: concurrency }, async () => {
             while (index < targetFiles.length) {
               const current = targetFiles[index++];
