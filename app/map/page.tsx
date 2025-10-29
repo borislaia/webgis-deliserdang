@@ -10,7 +10,7 @@ import { OSM, XYZ, Vector as VectorSource } from 'ol/source';
 import { fromLonLat } from 'ol/proj';
 import { GeoJSON } from 'ol/format';
 import Overlay from 'ol/Overlay';
-import { Style, Fill, Stroke } from 'ol/style';
+import { Style, Fill, Stroke, Circle as CircleStyle } from 'ol/style';
 import { defaults as defaultControls } from 'ol/control';
 import { defaults as defaultInteractions } from 'ol/interaction';
 
@@ -36,6 +36,15 @@ export default function MapPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalImgSrc, setModalImgSrc] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [loadingStorage, setLoadingStorage] = useState(false);
+  const [storageError, setStorageError] = useState<string | null>(null);
+  const [storageCounts, setStorageCounts] = useState<{ points: number; lines: number; polygons: number; files: number }>({ points: 0, lines: 0, polygons: 0, files: 0 });
+  const storagePointsLayerRef = useRef<VectorLayer<any> | null>(null);
+  const storageLinesLayerRef = useRef<VectorLayer<any> | null>(null);
+  const storagePolygonsLayerRef = useRef<VectorLayer<any> | null>(null);
+  const [pointsVisible, setPointsVisible] = useState(true);
+  const [linesVisible, setLinesVisible] = useState(true);
+  const [polygonsVisible, setPolygonsVisible] = useState(true);
 
   const searchParams = useSearchParams();
   const kdi = searchParams.get('k_di') || '';
@@ -112,6 +121,35 @@ export default function MapPage() {
     kecamatanLayerRef.current = kecamatanLayer;
     map.addLayer(kecamatanLayer);
 
+    // Storage aggregated layers: polygons, lines, points (bottom -> top)
+    const polygonsSrc = new VectorSource();
+    const linesSrc = new VectorSource();
+    const pointsSrc = new VectorSource();
+    const polygonsLayer = new VectorLayer({
+      source: polygonsSrc,
+      zIndex: 7,
+      style: new Style({ stroke: new Stroke({ color: '#2ca02c', width: 2 }), fill: new Fill({ color: 'rgba(44,160,44,0.2)' }) }),
+      visible: true,
+    });
+    const linesLayer = new VectorLayer({
+      source: linesSrc,
+      zIndex: 22,
+      style: new Style({ stroke: new Stroke({ color: '#3388ff', width: 2 }) }),
+      visible: true,
+    });
+    const pointsLayer = new VectorLayer({
+      source: pointsSrc,
+      zIndex: 31,
+      style: new Style({ image: new CircleStyle({ radius: 5, fill: new Fill({ color: '#9467bd' }), stroke: new Stroke({ color: '#ffffff', width: 1 }) }) }),
+      visible: true,
+    });
+    map.addLayer(polygonsLayer);
+    map.addLayer(linesLayer);
+    map.addLayer(pointsLayer);
+    storagePolygonsLayerRef.current = polygonsLayer;
+    storageLinesLayerRef.current = linesLayer;
+    storagePointsLayerRef.current = pointsLayer;
+
     // Tooltip
     if (tooltipRef.current) {
       const tooltipOverlay = new Overlay({ element: tooltipRef.current, offset: [10, 0], positioning: 'center-left' });
@@ -147,6 +185,74 @@ export default function MapPage() {
           setIsAdmin(((data.user?.app_metadata as any)?.role) === 'admin');
         } catch {}
 
+        // 1) Load ALL GeoJSON files from Storage bucket 'geojson'
+        try {
+          setLoadingStorage(true);
+          setStorageError(null);
+
+          const listAll = async (prefix: string): Promise<string[]> => {
+            const { data, error } = await supabase.storage.from('geojson').list(prefix, { limit: 1000, sortBy: { column: 'name', order: 'asc' } });
+            if (error) return [];
+            const files: string[] = [];
+            for (const item of data || []) {
+              const name = item.name || '';
+              const fullPath = prefix ? `${prefix}${name}` : name;
+              const looksLikeFile = /\.[a-z0-9]+$/i.test(name);
+              if (looksLikeFile) {
+                const lower = name.toLowerCase();
+                if (lower.endsWith('.json') || lower.endsWith('.geojson')) files.push(fullPath);
+              } else {
+                const nested = await listAll(`${fullPath}/`);
+                files.push(...nested);
+              }
+            }
+            return files;
+          };
+
+          const allFiles = await listAll('');
+          const targetFiles = allFiles;
+          const processFile = async (path: string) => {
+            const { data: blob, error } = await supabase.storage.from('geojson').download(path);
+            if (error || !blob) return;
+            const text = await blob.text();
+            let json: any;
+            try { json = JSON.parse(text); } catch { return; }
+            const fmt = new GeoJSON();
+            const projection = map.getView().getProjection();
+            const features = json?.type === 'FeatureCollection'
+              ? fmt.readFeatures(json, { dataProjection: 'EPSG:4326', featureProjection: projection })
+              : json?.type === 'Feature'
+                ? [fmt.readFeature(json, { dataProjection: 'EPSG:4326', featureProjection: projection })]
+                : [];
+            if (!features.length) return;
+            let cPoints = 0, cLines = 0, cPolys = 0;
+            for (const f of features) {
+              const geom: any = f.getGeometry?.();
+              const t = geom?.getType?.();
+              if (t === 'Point' || t === 'MultiPoint') { pointsSrc.addFeature(f); cPoints++; }
+              else if (t === 'LineString' || t === 'MultiLineString') { linesSrc.addFeature(f); cLines++; }
+              else if (t === 'Polygon' || t === 'MultiPolygon') { polygonsSrc.addFeature(f); cPolys++; }
+            }
+            setStorageCounts((prev) => ({ points: prev.points + cPoints, lines: prev.lines + cLines, polygons: prev.polygons + cPolys, files: prev.files + 1 }));
+          };
+
+          // Limit concurrency to avoid blocking UI
+          let index = 0;
+          const concurrency = 5;
+          const workers = Array.from({ length: concurrency }, async () => {
+            while (index < targetFiles.length) {
+              const current = targetFiles[index++];
+              try { await processFile(current); } catch {}
+            }
+          });
+          await Promise.all(workers);
+        } catch (err: any) {
+          setStorageError(err?.message || 'Gagal memuat GeoJSON dari Storage');
+        } finally {
+          setLoadingStorage(false);
+        }
+
+        // 2) If k_di provided, load related operational layers from DB
         if (kdi) {
           const { data: di } = await supabase.from('daerah_irigasi').select('id,k_di,n_di').eq('k_di', kdi).maybeSingle();
           if (di?.id) {
@@ -323,6 +429,19 @@ export default function MapPage() {
     esriSatRef.current?.setVisible(name === 'sat');
   };
 
+  const togglePoints = (checked: boolean) => {
+    storagePointsLayerRef.current?.setVisible(checked);
+    setPointsVisible(checked);
+  };
+  const toggleLines = (checked: boolean) => {
+    storageLinesLayerRef.current?.setVisible(checked);
+    setLinesVisible(checked);
+  };
+  const togglePolygons = (checked: boolean) => {
+    storagePolygonsLayerRef.current?.setVisible(checked);
+    setPolygonsVisible(checked);
+  };
+
   const zoomIn = () => {
     const map = mapRef.current; if (!map) return;
     const view = map.getView();
@@ -373,6 +492,26 @@ export default function MapPage() {
         </div>
         <div style={{ fontWeight: 600, margin: '12px 0 6px' }}>Operational Layers</div>
         <label><input type="checkbox" defaultChecked onChange={(e) => toggleKecamatan((e.target as HTMLInputElement).checked)} /> Kecamatan Boundaries</label><br />
+        <div style={{ fontWeight: 600, margin: '12px 0 6px', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span>Daerah Irigasi</span>
+          <span className="badge" title="Jumlah file yang dimuat">{storageCounts.files}</span>
+        </div>
+        <div style={{ maxHeight: 220, overflowY: 'auto', paddingRight: 6 }}>
+          {loadingStorage ? <div>Memuat GeoJSON…</div> : null}
+          {storageError ? <div style={{ color: 'crimson' }}>{storageError}</div> : null}
+          {!loadingStorage && !storageError && storageCounts.files === 0 ? (
+            <div style={{ color: '#666' }}>Tidak ada file</div>
+          ) : null}
+          <label style={{ display: 'block' }}>
+            <input type="checkbox" checked={polygonsVisible} onChange={(e) => togglePolygons((e.target as HTMLInputElement).checked)} /> Fungsional ({storageCounts.polygons})
+          </label>
+          <label style={{ display: 'block' }}>
+            <input type="checkbox" checked={linesVisible} onChange={(e) => toggleLines((e.target as HTMLInputElement).checked)} /> Saluran ({storageCounts.lines})
+          </label>
+          <label style={{ display: 'block' }}>
+            <input type="checkbox" checked={pointsVisible} onChange={(e) => togglePoints((e.target as HTMLInputElement).checked)} /> Bangunan ({storageCounts.points})
+          </label>
+        </div>
         <div style={{ marginTop: 12 }} className="legend" />
       </div>
 
