@@ -7,6 +7,8 @@ export default function DashboardPage() {
   const [showUsers, setShowUsers] = useState(false);
   const [year] = useState<number>(new Date().getFullYear());
   const [userEmail, setUserEmail] = useState<string>('');
+  const [diList, setDiList] = useState<any[] | null>(null);
+  const [diError, setDiError] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -15,6 +17,23 @@ export default function DashboardPage() {
         const { data } = await supabase.auth.getUser();
         setUserEmail(data.user?.email || '');
       } catch {}
+    })();
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const supabase = createClient();
+        const { data, error } = await supabase
+          .from('daerah_irigasi')
+          .select('id,k_di,n_di,luas_ha,kecamatan,desa_kel,sumber_air,tahun_data')
+          .limit(50);
+        if (error) throw error;
+        setDiList(data || []);
+      } catch (e: any) {
+        setDiError(e?.message || 'Gagal memuat data');
+        setDiList([]);
+      }
     })();
   }, []);
 
@@ -58,6 +77,42 @@ export default function DashboardPage() {
             <p>
               Use the side panel to navigate. Click <strong>Open Map</strong> to view the GIS.
             </p>
+          </div>
+
+          <div className="card" style={{ padding: 18, marginTop: 20 }}>
+            <h3 style={{ marginTop: 0 }}>Daerah Irigasi</h3>
+            {!diList && !diError && <div className="loading">Loading...</div>}
+            {diError && <div className="error-message">{diError}</div>}
+            {diList && (
+              <div style={{ overflowX: 'auto' }}>
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Kode DI</th>
+                      <th>Nama</th>
+                      <th>Luas (Ha)</th>
+                      <th>Kecamatan</th>
+                      <th>Desa/Kel</th>
+                      <th>Sumber Air</th>
+                      <th>Tahun Data</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {diList.map((row) => (
+                      <tr key={row.id}>
+                        <td>{row.k_di}</td>
+                        <td>{row.n_di}</td>
+                        <td>{row.luas_ha}</td>
+                        <td>{row.kecamatan}</td>
+                        <td>{row.desa_kel}</td>
+                        <td>{row.sumber_air}</td>
+                        <td>{row.tahun_data}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
 
           {showUsers && (

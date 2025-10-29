@@ -12,11 +12,13 @@ export async function middleware(req: NextRequest) {
     data: { session },
   } = await supabase.auth.getSession()
 
-  if (pathname.startsWith('/map')) {
+  if (pathname.startsWith('/map') || pathname.startsWith('/dashboard')) {
     if (!session) {
       const url = req.nextUrl.clone()
       url.pathname = '/login'
-      url.searchParams.set('redirect', pathname)
+      // Preserve full path + query so we can return to the exact map view after login
+      const fullPathWithQuery = `${req.nextUrl.pathname}${req.nextUrl.search}`
+      url.searchParams.set('redirect', encodeURIComponent(fullPathWithQuery))
       return NextResponse.redirect(url)
     }
   }
@@ -25,5 +27,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/map/:path*']
+  matcher: ['/map/:path*', '/dashboard/:path*']
 }
