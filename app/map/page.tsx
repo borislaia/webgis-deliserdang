@@ -39,6 +39,7 @@ export default function MapPage() {
   const [loadingStorage, setLoadingStorage] = useState(false);
   const [storageError, setStorageError] = useState<string | null>(null);
   const [storageCounts, setStorageCounts] = useState<{ points: number; lines: number; polygons: number; files: number }>({ points: 0, lines: 0, polygons: 0, files: 0 });
+  const [storageDiag, setStorageDiag] = useState<{ filesTried: string[]; filesLoaded: number; failures: Array<{ path: string; error: string }> }>({ filesTried: [], filesLoaded: 0, failures: [] });
   const storagePointsLayerRef = useRef<VectorLayer<any> | null>(null);
   const storageLinesLayerRef = useRef<VectorLayer<any> | null>(null);
   const storagePolygonsLayerRef = useRef<VectorLayer<any> | null>(null);
@@ -192,7 +193,10 @@ export default function MapPage() {
 
           const listAll = async (prefix: string): Promise<string[]> => {
             const { data, error } = await supabase.storage.from('geojson').list(prefix, { limit: 1000, sortBy: { column: 'name', order: 'asc' } });
-            if (error) return [];
+            if (error) {
+              console.error('Storage list error:', error);
+              return [];
+            }
             const files: string[] = [];
             for (const item of data || []) {
               const name = item.name || '';
@@ -211,12 +215,28 @@ export default function MapPage() {
 
           const allFiles = await listAll('');
           const targetFiles = allFiles;
+          if (!targetFiles.length) {
+            setStorageError('Tidak menemukan file di bucket geojson (hasil list kosong). Cek policy SELECT dan struktur folder.');
+          }
+          const tried: string[] = [];
+          const failures: Array<{ path: string; error: string }> = [];
+          let filesLoaded = 0;
           const processFile = async (path: string) => {
+            tried.push(path);
             const { data: blob, error } = await supabase.storage.from('geojson').download(path);
-            if (error || !blob) return;
+            if (error || !blob) {
+              const msg = (error as any)?.message || 'download failed';
+              failures.push({ path, error: msg });
+              console.error('Storage download error:', path, error);
+              return;
+            }
             const text = await blob.text();
             let json: any;
-            try { json = JSON.parse(text); } catch { return; }
+            try { json = JSON.parse(text); } catch (e: any) {
+              failures.push({ path, error: 'invalid JSON' });
+              console.error('JSON parse error for', path, e);
+              return; 
+            }
             const fmt = new GeoJSON();
             const projection = map.getView().getProjection();
             const features = json?.type === 'FeatureCollection'
@@ -224,7 +244,10 @@ export default function MapPage() {
               : json?.type === 'Feature'
                 ? [fmt.readFeature(json, { dataProjection: 'EPSG:4326', featureProjection: projection })]
                 : [];
-            if (!features.length) return;
+            if (!features.length) {
+              failures.push({ path, error: 'no features found' });
+              return;
+            }
             let cPoints = 0, cLines = 0, cPolys = 0;
             for (const f of features) {
               const geom: any = f.getGeometry?.();
@@ -234,6 +257,7 @@ export default function MapPage() {
               else if (t === 'Polygon' || t === 'MultiPolygon') { polygonsSrc.addFeature(f); cPolys++; }
             }
             setStorageCounts((prev) => ({ points: prev.points + cPoints, lines: prev.lines + cLines, polygons: prev.polygons + cPolys, files: prev.files + 1 }));
+            filesLoaded++;
           };
 
           // Limit concurrency to avoid blocking UI
@@ -246,6 +270,7 @@ export default function MapPage() {
             }
           });
           await Promise.all(workers);
+          setStorageDiag({ filesTried: tried, filesLoaded, failures });
         } catch (err: any) {
           setStorageError(err?.message || 'Gagal memuat GeoJSON dari Storage');
         } finally {
@@ -496,9 +521,14 @@ export default function MapPage() {
           <span>Daerah Irigasi</span>
           <span className="badge" title="Jumlah file yang dimuat">{storageCounts.files}</span>
         </div>
-        <div style={{ maxHeight: 220, overflowY: 'auto', paddingRight: 6 }}>
+        <div style={{ maxHeight: 260, overflowY: 'auto', paddingRight: 6 }}>
           {loadingStorage ? <div>Memuat GeoJSON…</div> : null}
-          {storageError ? <div style={{ color: 'crimson' }}>{storageError}</div> : null}
+          {storageError ? (
+            <div style={{ color: 'crimson', whiteSpace: 'pre-wrap' }}>
+              {storageError}
+              {storageDiag.failures.length ? `\nGagal: ${storageDiag.failures.length} file` : ''}
+            </div>
+          ) : null}
           {!loadingStorage && !storageError && storageCounts.files === 0 ? (
             <div style={{ color: '#666' }}>Tidak ada file</div>
           ) : null}
@@ -511,6 +541,19 @@ export default function MapPage() {
           <label style={{ display: 'block' }}>
             <input type="checkbox" checked={pointsVisible} onChange={(e) => togglePoints((e.target as HTMLInputElement).checked)} /> Bangunan ({storageCounts.points})
           </label>
+          {!loadingStorage && (storageDiag.filesTried.length > 0 || storageDiag.failures.length > 0) ? (
+            <details style={{ marginTop: 8 }}>
+              <summary>Debug Storage</summary>
+              <div style={{ fontSize: 12, color: '#444', marginTop: 6 }}>
+                <div>Total dicoba: {storageDiag.filesTried.length}</div>
+                <div>Berhasil dimuat: {storageDiag.filesLoaded}</div>
+                <div>Gagal: {storageDiag.failures.length}</div>
+                {storageDiag.failures.slice(0, 10).map((f, i) => (
+                  <div key={i} style={{ color: 'crimson' }}>• {f.path}: {f.error}</div>
+                ))}
+              </div>
+            </details>
+          ) : null}
         </div>
         <div style={{ marginTop: 12 }} className="legend" />
       </div>
