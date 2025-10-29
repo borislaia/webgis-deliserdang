@@ -47,7 +47,8 @@ export default function MapPage() {
   const [polygonsVisible, setPolygonsVisible] = useState(true);
 
   const searchParams = useSearchParams();
-  const kdi = searchParams.get('k_di') || '';
+  // Terima baik ?di= maupun ?k_di= untuk fleksibilitas dari dashboard
+  const kdi = (searchParams.get('di') || searchParams.get('k_di') || '').trim();
 
   useEffect(() => {
     if (!mapDivRef.current) return;
@@ -185,7 +186,7 @@ export default function MapPage() {
           setIsAdmin(((data.user?.app_metadata as any)?.role) === 'admin');
         } catch {}
 
-        // 1) Load ALL GeoJSON files from Storage bucket 'geojson'
+        // 1) Load GeoJSON files from Storage bucket 'geojson'
         try {
           setLoadingStorage(true);
           setStorageError(null);
@@ -209,8 +210,29 @@ export default function MapPage() {
             return files;
           };
 
-          const allFiles = await listAll('');
-          const targetFiles = allFiles;
+          // Jika kdi tersedia, cari folder di root yang mengandung kode tersebut,
+          // lalu hanya telusuri folder-folder itu. Jika tidak ada yang cocok, coba prefix langsung `${kdi}/`.
+          let basePrefixes: string[] = [''];
+          if (kdi) {
+            const { data: rootItems } = await supabase.storage.from('geojson').list('', { limit: 1000, sortBy: { column: 'name', order: 'asc' } });
+            const codeLower = kdi.toLowerCase();
+            const matchedDirs: string[] = [];
+            for (const it of rootItems || []) {
+              const nm = it.name || '';
+              const isFile = /\.[a-z0-9]+$/i.test(nm);
+              if (isFile) continue;
+              const nmLower = nm.toLowerCase();
+              if (nmLower === codeLower || nmLower.includes(codeLower)) matchedDirs.push(`${nm}/`);
+            }
+            basePrefixes = matchedDirs.length ? matchedDirs : [`${kdi}/`];
+          }
+
+          const collectedFiles: string[] = [];
+          for (const p of basePrefixes) {
+            const files = await listAll(p);
+            collectedFiles.push(...files);
+          }
+          const targetFiles = collectedFiles;
           const processFile = async (path: string) => {
             const { data: blob, error } = await supabase.storage.from('geojson').download(path);
             if (error || !blob) return;
@@ -252,7 +274,7 @@ export default function MapPage() {
           setLoadingStorage(false);
         }
 
-        // 2) If k_di provided, load related operational layers from DB
+        // 2) Jika k_di/di disediakan, muat layer operasional terkait dari DB
         if (kdi) {
           const { data: di } = await supabase.from('daerah_irigasi').select('id,k_di,n_di').eq('k_di', kdi).maybeSingle();
           if (di?.id) {
