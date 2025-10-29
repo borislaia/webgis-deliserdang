@@ -56,6 +56,47 @@ body{
 .badge{ font-size:12px; padding:4px 8px; border-radius:999px; background:rgba(10,132,255,0.15); color:#0a84ff; border:1px solid rgba(10,132,255,0.25); }
 .legend{ display:flex; flex-direction:column; gap:8px; }
 
+/* Improve touch targets for form controls in floating panel */
+.float-panel label{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:6px 8px;
+  min-height:32px; /* >=24px for Lighthouse */
+  cursor:pointer;
+  border-radius:8px;
+}
+.float-panel label:not(:last-child){
+  margin-bottom:4px;
+}
+.float-panel input[type="radio"],
+.float-panel input[type="checkbox"]{
+  width:24px;
+  height:24px;
+}
+
+/* Tabs and data UI used on dashboard/management pages */
+.tabs{ display:flex; gap:8px; margin-bottom:20px; border-bottom:1px solid #e0e0e0; }
+.tab{ padding:12px 24px; background:none; border:none; border-bottom:2px solid transparent; cursor:pointer; font-weight:500; color:#666; transition:all .3s; }
+.tab:hover{ color:#333; }
+.tab.active{ color:#667eea; border-bottom-color:#667eea; }
+.tab-content{ display:block; }
+.data-table{ width:100%; border-collapse:collapse; margin-top:16px; }
+.data-table th, .data-table td{ padding:12px; text-align:left; border-bottom:1px solid #e0e0e0; }
+.data-table th{ background:#f5f5f5; font-weight:600; }
+.data-table tr:hover{ background:#f9f9f9; }
+.stats-grid{ display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:16px; margin-bottom:24px; }
+.stat-card{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color:#fff; padding:20px; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.1); }
+.stat-card .value{ font-size:32px; font-weight:700; margin:0; }
+.import-section{ background:#f5f5f5; padding:24px; border-radius:8px; margin-bottom:24px; }
+.form-group{ margin-bottom:16px; }
+.form-group label{ display:block; margin-bottom:8px; font-weight:500; }
+.form-group input, .form-group select{ width:100%; padding:10px; border:1px solid #ddd; border-radius:4px; font-size:14px; }
+.btn-group{ display:flex; gap:12px; margin-top:16px; }
+.loading{ text-align:center; padding:40px; color:#666; }
+.error{ background:#ffebee; color:#c62828; padding:12px; border-radius:4px; margin-bottom:16px; }
+.success{ background:#e8f5e9; color:#2e7d32; padding:12px; border-radius:4px; margin-bottom:16px; }
+
 .modal{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,0.6); z-index:9999; }
 .modal.open{ display:flex; }
 .modal img{ max-width:90vw; max-height:90vh; border-radius:12px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
