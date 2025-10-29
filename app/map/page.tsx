@@ -128,7 +128,7 @@ export default function MapPage() {
     const polygonsLayer = new VectorLayer({
       source: polygonsSrc,
       zIndex: 7,
-      style: new Style({ stroke: new Stroke({ color: '#3388ff', width: 2 }), fill: new Fill({ color: 'rgba(51,136,255,0.2)' }) }),
+      style: new Style({ stroke: new Stroke({ color: '#2ca02c', width: 2 }), fill: new Fill({ color: 'rgba(44,160,44,0.2)' }) }),
       visible: true,
     });
     const linesLayer = new VectorLayer({
@@ -140,7 +140,7 @@ export default function MapPage() {
     const pointsLayer = new VectorLayer({
       source: pointsSrc,
       zIndex: 31,
-      style: new Style({ image: new CircleStyle({ radius: 5, fill: new Fill({ color: '#3388ff' }), stroke: new Stroke({ color: '#ffffff', width: 1 }) }) }),
+      style: new Style({ image: new CircleStyle({ radius: 5, fill: new Fill({ color: '#9467bd' }), stroke: new Stroke({ color: '#ffffff', width: 1 }) }) }),
       visible: true,
     });
     map.addLayer(polygonsLayer);
@@ -493,7 +493,7 @@ export default function MapPage() {
         <div style={{ fontWeight: 600, margin: '12px 0 6px' }}>Operational Layers</div>
         <label><input type="checkbox" defaultChecked onChange={(e) => toggleKecamatan((e.target as HTMLInputElement).checked)} /> Kecamatan Boundaries</label><br />
         <div style={{ fontWeight: 600, margin: '12px 0 6px', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span>GeoJSON (Storage)</span>
+          <span>Daerah Irigasi</span>
           <span className="badge" title="Jumlah file yang dimuat">{storageCounts.files}</span>
         </div>
         <div style={{ maxHeight: 220, overflowY: 'auto', paddingRight: 6 }}>
@@ -503,13 +503,13 @@ export default function MapPage() {
             <div style={{ color: '#666' }}>Tidak ada file</div>
           ) : null}
           <label style={{ display: 'block' }}>
-            <input type="checkbox" checked={polygonsVisible} onChange={(e) => togglePolygons((e.target as HTMLInputElement).checked)} /> Polygons ({storageCounts.polygons})
+            <input type="checkbox" checked={polygonsVisible} onChange={(e) => togglePolygons((e.target as HTMLInputElement).checked)} /> Fungsional ({storageCounts.polygons})
           </label>
           <label style={{ display: 'block' }}>
-            <input type="checkbox" checked={linesVisible} onChange={(e) => toggleLines((e.target as HTMLInputElement).checked)} /> Lines ({storageCounts.lines})
+            <input type="checkbox" checked={linesVisible} onChange={(e) => toggleLines((e.target as HTMLInputElement).checked)} /> Saluran ({storageCounts.lines})
           </label>
           <label style={{ display: 'block' }}>
-            <input type="checkbox" checked={pointsVisible} onChange={(e) => togglePoints((e.target as HTMLInputElement).checked)} /> Points ({storageCounts.points})
+            <input type="checkbox" checked={pointsVisible} onChange={(e) => togglePoints((e.target as HTMLInputElement).checked)} /> Bangunan ({storageCounts.points})
           </label>
         </div>
         <div style={{ marginTop: 12 }} className="legend" />
