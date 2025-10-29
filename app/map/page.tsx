@@ -211,7 +211,7 @@ export default function MapPage() {
     kecamatanLayerRef.current?.setVisible(checked);
   };
   const goHome = () => { window.location.href = '/'; };
-  const goDashboard = () => { window.location.href = '/'; };
+  const goDashboard = () => { window.location.href = '/dashboard'; };
   const closeModal = () => { setIsModalOpen(false); setModalImgSrc(null); };
 
   return (
