@@ -12,7 +12,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const redirectTo = decodeURIComponent(searchParams.get('redirect') || '/map');
+  const redirectTo = decodeURIComponent(searchParams.get('redirect') || '/dashboard');
 
   async function onLogin(e: React.FormEvent) {
     e.preventDefault();
