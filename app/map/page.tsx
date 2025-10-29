@@ -192,7 +192,11 @@ export default function MapPage() {
 
           const listAll = async (prefix: string): Promise<string[]> => {
             const { data, error } = await supabase.storage.from('geojson').list(prefix, { limit: 1000, sortBy: { column: 'name', order: 'asc' } });
-            if (error) return [];
+            if (error) {
+              console.error('Error listing storage:', error);
+              setStorageError(`Error mengakses bucket "geojson": ${error.message}`);
+              return [];
+            }
             const files: string[] = [];
             for (const item of data || []) {
               const name = item.name || '';
@@ -210,42 +214,82 @@ export default function MapPage() {
           };
 
           const allFiles = await listAll('');
-          const targetFiles = allFiles;
-          const processFile = async (path: string) => {
-            const { data: blob, error } = await supabase.storage.from('geojson').download(path);
-            if (error || !blob) return;
-            const text = await blob.text();
-            let json: any;
-            try { json = JSON.parse(text); } catch { return; }
-            const fmt = new GeoJSON();
-            const projection = map.getView().getProjection();
-            const features = json?.type === 'FeatureCollection'
-              ? fmt.readFeatures(json, { dataProjection: 'EPSG:4326', featureProjection: projection })
-              : json?.type === 'Feature'
-                ? [fmt.readFeature(json, { dataProjection: 'EPSG:4326', featureProjection: projection })]
-                : [];
-            if (!features.length) return;
-            let cPoints = 0, cLines = 0, cPolys = 0;
-            for (const f of features) {
-              const geom: any = f.getGeometry?.();
-              const t = geom?.getType?.();
-              if (t === 'Point' || t === 'MultiPoint') { pointsSrc.addFeature(f); cPoints++; }
-              else if (t === 'LineString' || t === 'MultiLineString') { linesSrc.addFeature(f); cLines++; }
-              else if (t === 'Polygon' || t === 'MultiPolygon') { polygonsSrc.addFeature(f); cPolys++; }
-            }
-            setStorageCounts((prev) => ({ points: prev.points + cPoints, lines: prev.lines + cLines, polygons: prev.polygons + cPolys, files: prev.files + 1 }));
-          };
+          console.log('Found GeoJSON files:', allFiles.length, allFiles);
+          
+          if (allFiles.length === 0) {
+            setStorageError('Tidak ada file GeoJSON ditemukan di bucket "geojson". Pastikan bucket ada dan memiliki file.');
+            setLoadingStorage(false);
+          } else {
+            const targetFiles = allFiles;
+            let processedCount = 0;
+            let errorCount = 0;
+            
+            const processFile = async (path: string) => {
+              try {
+                const { data: blob, error } = await supabase.storage.from('geojson').download(path);
+                if (error) {
+                  console.error(`Error downloading ${path}:`, error);
+                  errorCount++;
+                  return;
+                }
+                if (!blob) {
+                  console.warn(`No blob data for ${path}`);
+                  errorCount++;
+                  return;
+                }
+                const text = await blob.text();
+                let json: any;
+                try { 
+                  json = JSON.parse(text); 
+                } catch (parseErr) {
+                  console.error(`Error parsing JSON for ${path}:`, parseErr);
+                  errorCount++;
+                  return;
+                }
+                const fmt = new GeoJSON();
+                const projection = map.getView().getProjection();
+                const features = json?.type === 'FeatureCollection'
+                  ? fmt.readFeatures(json, { dataProjection: 'EPSG:4326', featureProjection: projection })
+                  : json?.type === 'Feature'
+                    ? [fmt.readFeature(json, { dataProjection: 'EPSG:4326', featureProjection: projection })]
+                    : [];
+                if (!features.length) {
+                  console.warn(`No features found in ${path}`);
+                  return;
+                }
+                let cPoints = 0, cLines = 0, cPolys = 0;
+                for (const f of features) {
+                  const geom: any = f.getGeometry?.();
+                  const t = geom?.getType?.();
+                  if (t === 'Point' || t === 'MultiPoint') { pointsSrc.addFeature(f); cPoints++; }
+                  else if (t === 'LineString' || t === 'MultiLineString') { linesSrc.addFeature(f); cLines++; }
+                  else if (t === 'Polygon' || t === 'MultiPolygon') { polygonsSrc.addFeature(f); cPolys++; }
+                }
+                processedCount++;
+                setStorageCounts((prev) => ({ points: prev.points + cPoints, lines: prev.lines + cLines, polygons: prev.polygons + cPolys, files: prev.files + 1 }));
+                console.log(`Processed ${path}: ${cPoints} points, ${cLines} lines, ${cPolys} polygons`);
+              } catch (err: any) {
+                console.error(`Error processing file ${path}:`, err);
+                errorCount++;
+              }
+            };
 
-          // Limit concurrency to avoid blocking UI
-          let index = 0;
-          const concurrency = 5;
-          const workers = Array.from({ length: concurrency }, async () => {
-            while (index < targetFiles.length) {
-              const current = targetFiles[index++];
-              try { await processFile(current); } catch {}
+            // Limit concurrency to avoid blocking UI
+            let index = 0;
+            const concurrency = 5;
+            const workers = Array.from({ length: concurrency }, async () => {
+              while (index < targetFiles.length) {
+                const current = targetFiles[index++];
+                await processFile(current);
+              }
+            });
+            await Promise.all(workers);
+            
+            console.log(`Processing complete: ${processedCount} files processed, ${errorCount} errors`);
+            if (errorCount > 0 && processedCount === 0) {
+              setStorageError(`${errorCount} file gagal diproses. Cek console untuk detail.`);
             }
-          });
-          await Promise.all(workers);
+          }
         } catch (err: any) {
           setStorageError(err?.message || 'Gagal memuat GeoJSON dari Storage');
         } finally {
