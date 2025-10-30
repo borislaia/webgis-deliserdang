@@ -93,13 +93,50 @@ export default function DashboardPage() {
   // Ambil kode DI dari baris CSV bila tersedia, untuk query di halaman peta
   const getDiCodeFromRow = (row: Record<string, any>): string => {
     if (!row) return '';
-    for (const key of Object.keys(row)) {
-      const normalized = key.toLowerCase().replace(/[\s\-]+/g, '_');
-      if (normalized === 'k_di' || normalized === 'kode_di' || normalized === 'kode' || normalized === 'kdi') {
+
+    const normalize = (s: string) => s.toLowerCase().replace(/[\s\-\/()]+/g, '_');
+    const keys = Object.keys(row);
+
+    // 1) Pencocokan langsung berdasarkan nama kolom umum
+    const directCandidates = new Set<string>([
+      'k_di',
+      'kode_di',
+      'kode',
+      'kdi',
+      // variasi umum lain
+      'kode_irigasi',
+      'kode_irgasi',
+      'k_irigasi',
+      'kode_di_irigasi',
+      'kode_daerah_irigasi',
+    ]);
+    for (const key of keys) {
+      const normalized = normalize(key);
+      if (directCandidates.has(normalized)) {
         const value = row[key];
-        if (value != null && value !== '') return String(value);
+        if (value != null && value !== '') return String(value).trim();
       }
     }
+
+    // 2) Heuristik: kolom mengandung token 'kode' dan ('di' atau 'irig')
+    const heuristicKeys = keys.filter((k) => {
+      const n = normalize(k);
+      return n.includes('kode') && (n.includes('di') || n.includes('irig'));
+    });
+    for (const key of heuristicKeys) {
+      const val = row[key];
+      const str = (val == null ? '' : String(val)).trim();
+      if (/^\d{8}$/.test(str)) return str; // prefer 8 digit
+      if (/^\d{6,12}$/.test(str)) return str;
+    }
+
+    // 3) Fallback terakhir: cari nilai angka 8–12 digit di baris
+    for (const key of keys) {
+      const str = (row[key] == null ? '' : String(row[key])).trim();
+      if (/^\d{8}$/.test(str)) return str;
+      if (/^\d{6,12}$/.test(str)) return str;
+    }
+
     return '';
   };
 
