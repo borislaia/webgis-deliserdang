@@ -86,10 +86,6 @@ export default function LoginPage() {
           {/* <p className="auth-subtitle">Silakan login untuk melanjutkan</p> */}
         </header>
 
-        {error && (
-          <div className="error-message" role="alert" aria-live="polite">{error}</div>
-        )}
-
         <form onSubmit={onLogin} className="auth-form">
           <div className="form-row">
             <input
@@ -129,6 +125,10 @@ export default function LoginPage() {
         <button className="btn btn-block" type="button" onClick={onLoginWithGoogle} disabled={loading}>
           Lanjut dengan Google
         </button>
+
+        {error && (
+          <div className="error-message" role="alert" aria-live="polite">{error}</div>
+        )}
 
         <footer className="auth-footer">
           Belum punya akun? <Link href="/register">Daftar</Link>
