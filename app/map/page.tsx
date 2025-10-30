@@ -240,13 +240,14 @@ export default function MapPage() {
           let targetFiles: string[] = allFiles;
           if (kdi) {
             const codeLower = kdi.toLowerCase();
-            // Filter file berdasarkan nama folder root yang mengandung kode DI
-            const byFolderInclude = allFiles.filter((p) => {
-              const root = p.split('/')[0] || '';
-              return root.toLowerCase().includes(codeLower);
-            });
-            // Jika tidak ada kecocokan via include, coba fallback prefix ketat
-            targetFiles = byFolderInclude.length ? byFolderInclude : allFiles.filter((p) => p.startsWith(`${kdi}/`));
+            // Muat hanya berkas di folder root yang PERSIS sama dengan kode DI
+            const byExactRoot = allFiles.filter((p) => ((p.split('/')[0] || '').toLowerCase()) === codeLower);
+            if (byExactRoot.length) {
+              targetFiles = byExactRoot;
+            } else {
+              // Fallback aman: prefix ketat
+              targetFiles = allFiles.filter((p) => p.startsWith(`${kdi}/`));
+            }
           }
           const processFile = async (path: string) => {
             // Prefer CDN public URL fetch for speed; fallback to storage.download
