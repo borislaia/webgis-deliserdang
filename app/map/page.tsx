@@ -7,12 +7,14 @@ import Map from 'ol/Map';
 import View from 'ol/View';
 import { Tile as TileLayer, Vector as VectorLayer } from 'ol/layer';
 import { OSM, XYZ, Vector as VectorSource } from 'ol/source';
+import ClusterSource from 'ol/source/Cluster';
 import { fromLonLat } from 'ol/proj';
 import { GeoJSON } from 'ol/format';
 import Overlay from 'ol/Overlay';
-import { Style, Fill, Stroke, Circle as CircleStyle } from 'ol/style';
+import { Style, Fill, Stroke, Circle as CircleStyle, Text } from 'ol/style';
 import { defaults as defaultControls } from 'ol/control';
 import { defaults as defaultInteractions } from 'ol/interaction';
+import { createEmpty as createEmptyExtent, extend as extendExtent, isEmpty as isExtentEmpty } from 'ol/extent';
 
 const centerLonLat: [number, number] = [98.69870163855006, 3.5460256535269954];
 
@@ -23,6 +25,7 @@ export default function MapPage() {
   const popupRef = useRef<HTMLDivElement | null>(null);
   const popupOverlayRef = useRef<Overlay | null>(null);
   const mapRef = useRef<Map | null>(null);
+  const dataExtentRef = useRef<[number, number, number, number] | null>(null);
 
   // Layer refs for UI controls
   const googleHybridRef = useRef<TileLayer<any> | null>(null);
@@ -141,6 +144,7 @@ export default function MapPage() {
     const polygonsSrc = new VectorSource();
     const linesSrc = new VectorSource();
     const pointsSrc = new VectorSource();
+    const clusterSrc = new ClusterSource({ distance: 40, minDistance: 20, source: pointsSrc });
     const polygonsLayer = new VectorLayer({
       source: polygonsSrc,
       zIndex: 7,
@@ -150,13 +154,24 @@ export default function MapPage() {
     const linesLayer = new VectorLayer({
       source: linesSrc,
       zIndex: 22,
-      style: new Style({ stroke: new Stroke({ color: '#3388ff', width: 2 }) }),
+      style: new Style({ stroke: new Stroke({ color: '#3388ff', width: 4 }) }),
       visible: true,
     });
     const pointsLayer = new VectorLayer({
-      source: pointsSrc,
+      source: clusterSrc,
       zIndex: 31,
-      style: new Style({ image: new CircleStyle({ radius: 5, fill: new Fill({ color: '#9467bd' }), stroke: new Stroke({ color: '#ffffff', width: 1 }) }) }),
+      style: (feature: any) => {
+        const members: any[] = feature?.get?.('features') || [];
+        const count = members.length || 1;
+        if (count > 1) {
+          const radius = Math.max(10, Math.min(20, 10 + Math.log2(count)));
+          return new Style({
+            image: new CircleStyle({ radius, fill: new Fill({ color: 'rgba(148,103,189,0.65)' }), stroke: new Stroke({ color: '#613b7a', width: 1.5 }) }),
+            text: new Text({ text: String(count), fill: new Fill({ color: '#ffffff' }), stroke: new Stroke({ color: 'rgba(0,0,0,0.3)', width: 3 }) }),
+          });
+        }
+        return new Style({ image: new CircleStyle({ radius: 5, fill: new Fill({ color: '#9467bd' }), stroke: new Stroke({ color: '#ffffff', width: 1 }) }) });
+      },
       visible: true,
     });
     map.addLayer(polygonsLayer);
@@ -192,6 +207,14 @@ export default function MapPage() {
           const features = fmt.readFeatures(collection, { dataProjection: 'EPSG:4326', featureProjection: map.getView().getProjection() });
           kecamatanLayer.getSource()?.clear();
           kecamatanLayer.getSource()?.addFeatures(features);
+          // Fit boundary only jika tidak ada kdi (mode konteks umum)
+          if (!kdi && features.length > 0) {
+            const ext = kecamatanLayer.getSource()?.getExtent();
+            if (ext) {
+              dataExtentRef.current = ext.slice() as any;
+              map.getView().fit(ext, { padding: [50, 50, 50, 50], duration: 500 });
+            }
+          }
         }
 
         const supabase = createClient();
@@ -331,6 +354,19 @@ export default function MapPage() {
             }
           });
           await Promise.all(workers);
+          // Update extent dari storage layers
+          const combined = createEmptyExtent();
+          const pExt = polygonsSrc.getExtent();
+          const lExt = linesSrc.getExtent();
+          const ptExt = pointsSrc.getExtent();
+          if (pExt) extendExtent(combined, pExt);
+          if (lExt) extendExtent(combined, lExt);
+          if (ptExt) extendExtent(combined, ptExt);
+          if (!isExtentEmpty(combined)) {
+            dataExtentRef.current = combined.slice() as any;
+            // Fit jika kdi ada (prioritaskan data DI yang termuat dari storage)
+            if (kdi) map.getView().fit(combined, { padding: [50, 50, 50, 50], duration: 500 });
+          }
         } catch (err: any) {
           setStorageError(err?.message || 'Gagal memuat GeoJSON dari Storage');
         } finally {
@@ -359,6 +395,12 @@ export default function MapPage() {
               }
               const layer = new VectorLayer({ source: src, zIndex: 30 });
               map.addLayer(layer);
+              const ext = src.getExtent();
+              if (ext) {
+                const combined = dataExtentRef.current ? dataExtentRef.current.slice() as any : createEmptyExtent();
+                extendExtent(combined, ext);
+                dataExtentRef.current = combined;
+              }
             }
 
             // Add fungsional layer
@@ -373,6 +415,12 @@ export default function MapPage() {
               }
               const layer = new VectorLayer({ source: src, zIndex: 5, style: new Style({ stroke: new Stroke({ color: '#2ca02c', width: 2 }), fill: new Fill({ color: 'rgba(44,160,44,0.2)' }) }) });
               map.addLayer(layer);
+              const ext = src.getExtent();
+              if (ext) {
+                const combined = dataExtentRef.current ? dataExtentRef.current.slice() as any : createEmptyExtent();
+                extendExtent(combined, ext);
+                dataExtentRef.current = combined;
+              }
             }
 
             // Build ruas layer from DB rows
@@ -395,10 +443,15 @@ export default function MapPage() {
             if (ruasFeatures.length) {
               const src = new VectorSource();
               src.addFeatures(ruasFeatures);
-              const layer = new VectorLayer({ source: src, zIndex: 20, style: new Style({ stroke: new Stroke({ color: '#ff7f0e', width: 3 }) }) });
+              const layer = new VectorLayer({ source: src, zIndex: 20, style: new Style({ stroke: new Stroke({ color: '#ff7f0e', width: 5 }) }) });
               map.addLayer(layer);
               const extent = src.getExtent();
-              if (extent) map.getView().fit(extent, { padding: [50, 50, 50, 50], duration: 500 });
+              if (extent) {
+                const combined = dataExtentRef.current ? dataExtentRef.current.slice() as any : createEmptyExtent();
+                extendExtent(combined, extent);
+                dataExtentRef.current = combined;
+                map.getView().fit(extent, { padding: [50, 50, 50, 50], duration: 500 });
+              }
             }
           }
         }
@@ -456,74 +509,96 @@ export default function MapPage() {
       }
     });
 
-    // Click popup
+    // Click popup (tampilkan kolom sesuai tipe geometri)
     map.on('singleclick', (evt) => {
-      let hit = false;
-      map.forEachFeatureAtPixel(evt.pixel, (feature) => {
-        hit = true;
-        if (popupOverlayRef.current && popupRef.current) {
-          const namobj = feature.get('NAMOBJ');
-          const noRuas = feature.get('no_ruas');
-          const noSal = feature.get('no_saluran');
-          const photos: string[] = feature.get('foto_urls') || [];
-          const ruasId: string | undefined = feature.get('ruas_id');
-          const metadata: any = feature.get('metadata') || {};
-          popupRef.current.textContent = '';
-          const titleDiv = document.createElement('div');
-          titleDiv.className = 'title';
-          titleDiv.textContent = namobj || noRuas || 'Feature';
-          popupRef.current.appendChild(titleDiv);
-          if (noSal && noRuas) {
-            const meta = document.createElement('div');
-            meta.textContent = `${noSal} • ${noRuas}`;
-            meta.style.marginBottom = '6px';
-            popupRef.current.appendChild(meta);
-          }
-          if (photos.length) {
-            const gallery = document.createElement('div');
-            gallery.style.display = 'flex';
-            gallery.style.gap = '6px';
-            photos.slice(0, 4).forEach((url) => {
-              const img = document.createElement('img');
-              img.src = url;
-              img.alt = 'foto';
-              img.style.width = '72px';
-              img.style.height = '72px';
-              img.style.objectFit = 'cover';
-              img.style.borderRadius = '6px';
-              img.onclick = () => { setModalImgSrc(url); setIsModalOpen(true); };
-              gallery.appendChild(img);
-            });
-            popupRef.current.appendChild(gallery);
-          }
-          if (isAdmin && ruasId && noRuas) {
-            const editWrap = document.createElement('div');
-            editWrap.style.marginTop = '8px';
-            const input = document.createElement('input');
-            input.type = 'text';
-            input.placeholder = 'Catatan';
-            input.value = metadata?.catatan || '';
-            input.className = 'input';
-            input.style.width = '180px';
-            const save = document.createElement('button');
-            save.className = 'btn';
-            save.textContent = 'Simpan';
-            save.onclick = async () => {
-              const supabase = createClient();
-              const newMeta = { ...(metadata || {}), catatan: input.value };
-              const { error } = await supabase.from('ruas').update({ metadata: newMeta }).eq('id', ruasId);
-              if (error) alert('Gagal menyimpan: ' + error.message);
-              else alert('Tersimpan');
-            };
-            editWrap.appendChild(input);
-            editWrap.appendChild(save);
-            popupRef.current.appendChild(editWrap);
-          }
-          popupOverlayRef.current.setPosition(evt.coordinate);
+      let selected: any = null;
+      map.forEachFeatureAtPixel(evt.pixel, (f) => { selected = f; return true; });
+      if (!selected) { popupOverlayRef.current?.setPosition(undefined); return; }
+
+      // Support cluster feature
+      const members: any[] = selected.get && selected.get('features');
+      if (Array.isArray(members)) {
+        if (members.length > 1) {
+          // Zoom in to help disaggregate cluster
+          const view = map.getView();
+          const current = view.getZoom() || 0;
+          view.setZoom(current + 1);
+          return;
         }
-        return true;
-      });
-      if (!hit) popupOverlayRef.current?.setPosition(undefined);
+        selected = members[0];
+      }
+
+      const geom: any = selected.getGeometry?.();
+      const t = geom?.getType?.();
+
+      const getProp = (keys: string[]): string => {
+        const props = selected.getProperties ? selected.getProperties() : {};
+        for (const k of keys) {
+          if (k in props && props[k] != null && props[k] !== '') return String(props[k]);
+          const found = Object.keys(props).find((p) => p.toLowerCase() === k.toLowerCase());
+          if (found && props[found] != null && props[found] !== '') return String(props[found]);
+        }
+        return '';
+      };
+
+      if (!popupOverlayRef.current || !popupRef.current) return;
+      const el = popupRef.current;
+      el.textContent = '';
+      const titleDiv = document.createElement('div');
+      titleDiv.className = 'title';
+
+      const row = (label: string, value: string) => {
+        if (!value) return;
+        const div = document.createElement('div');
+        div.textContent = `${label}: ${value}`;
+        el.appendChild(div);
+      };
+
+      if (t === 'LineString' || t === 'MultiLineString') {
+        titleDiv.textContent = 'Saluran';
+        el.appendChild(titleDiv);
+        row('k_di', getProp(['k_di']));
+        row('nama', getProp(['nama', 'NAMA']));
+        row('panjang_sa', getProp(['panjang_sa', 'PANJANG_SA', 'panjang']));
+      } else if (t === 'Point' || t === 'MultiPoint') {
+        titleDiv.textContent = 'Bangunan';
+        el.appendChild(titleDiv);
+        row('n_di', getProp(['n_di', 'NAMA_DI']));
+        row('k_di', getProp(['k_di', 'K_DI']));
+        row('nama', getProp(['nama', 'NAMA']));
+      } else if (t === 'Polygon' || t === 'MultiPolygon') {
+        titleDiv.textContent = 'Fungsional';
+        el.appendChild(titleDiv);
+        row('NAMA_DI', getProp(['NAMA_DI', 'n_di']));
+        row('LUAS_HA', getProp(['LUAS_HA', 'luas_ha']));
+        row('Thn_Dat', getProp(['Thn_Dat', 'tahun_data']));
+      } else {
+        titleDiv.textContent = 'Feature';
+        el.appendChild(titleDiv);
+      }
+
+      // Tampilkan foto jika tersedia (ruas)
+      const photos: string[] = selected.get('foto_urls') || [];
+      if (photos.length) {
+        const gallery = document.createElement('div');
+        gallery.style.display = 'flex';
+        gallery.style.gap = '6px';
+        gallery.style.marginTop = '6px';
+        photos.slice(0, 4).forEach((url) => {
+          const img = document.createElement('img');
+          img.src = url;
+          img.alt = 'foto';
+          img.style.width = '72px';
+          img.style.height = '72px';
+          img.style.objectFit = 'cover';
+          img.style.borderRadius = '6px';
+          img.onclick = () => { setModalImgSrc(url); setIsModalOpen(true); };
+          gallery.appendChild(img);
+        });
+        el.appendChild(gallery);
+      }
+
+      popupOverlayRef.current.setPosition(evt.coordinate);
     });
 
     return () => {
@@ -566,7 +641,17 @@ export default function MapPage() {
   };
   const resetView = () => {
     const map = mapRef.current; if (!map) return;
-    map.getView().animate({ center: fromLonLat(centerLonLat), zoom: 11, duration: 400 });
+    const ext = dataExtentRef.current;
+    if (ext && !isExtentEmpty(ext)) {
+      map.getView().fit(ext, { padding: [50, 50, 50, 50], duration: 400 });
+    } else {
+      map.getView().animate({ center: fromLonLat(centerLonLat), zoom: 11, duration: 400 });
+    }
+  };
+  const fitData = () => {
+    const map = mapRef.current; if (!map) return;
+    const ext = dataExtentRef.current;
+    if (ext && !isExtentEmpty(ext)) map.getView().fit(ext, { padding: [50, 50, 50, 50], duration: 400 });
   };
   const toggleKecamatan = (checked: boolean) => {
     kecamatanLayerRef.current?.setVisible(checked);
@@ -584,6 +669,7 @@ export default function MapPage() {
       <div className="float-controls">
         <button onClick={goHome} className="btn" title="Home">🏠</button>
         <button onClick={goDashboard} className="btn" title="Dashboard">📊</button>
+        <button onClick={fitData} className="btn" title="Fit Data">🗺️</button>
         <button onClick={resetView} className="btn" title="Reset View">⤾</button>
         <button onClick={zoomIn} className="btn" title="Zoom In">＋</button>
         <button onClick={zoomOut} className="btn" title="Zoom Out">－</button>
