@@ -50,6 +50,9 @@ export default function MapPage() {
   // Terima baik ?di= maupun ?k_di= untuk fleksibilitas dari dashboard
   const kdi = (searchParams.get('di') || searchParams.get('k_di') || '').trim();
 
+  // Jika masuk dari tombol Map (kdi ada), layer kecamatan default disembunyikan
+  const [kecamatanVisible, setKecamatanVisible] = useState<boolean>(!(kdi && kdi.length > 0));
+
   useEffect(() => {
     if (!mapDivRef.current) return;
 
@@ -118,7 +121,19 @@ export default function MapPage() {
       fill: new Fill({ color: 'rgba(255, 127, 14, 0.4)' }),
     });
 
-    const kecamatanLayer = new VectorLayer({ source: new VectorSource(), style: kecamatanStyle, visible: true, zIndex: 10 });
+    // Highlight styles untuk layer DI (storage & DB)
+    const highlightPointStyle = new Style({
+      image: new CircleStyle({ radius: 7, fill: new Fill({ color: '#ff1493' }), stroke: new Stroke({ color: '#ffffff', width: 2 }) }),
+    });
+    const highlightLineStyle = new Style({
+      stroke: new Stroke({ color: '#ff7f0e', width: 4 }),
+    });
+    const highlightPolygonStyle = new Style({
+      stroke: new Stroke({ color: '#d62728', width: 3 }),
+      fill: new Fill({ color: 'rgba(214, 39, 40, 0.25)' }),
+    });
+
+    const kecamatanLayer = new VectorLayer({ source: new VectorSource(), style: kecamatanStyle, visible: kecamatanVisible, zIndex: 10 });
     kecamatanLayerRef.current = kecamatanLayer;
     map.addLayer(kecamatanLayer);
 
@@ -392,20 +407,47 @@ export default function MapPage() {
       }
     })();
 
-    // Hover
+    // Hover (highlight + tooltip) untuk semua layer vektor (prioritas top-most)
     let currentFeature: any = null;
     map.on('pointermove', (evt) => {
       if (evt.dragging) return;
-      let feature: any = null;
-      map.forEachFeatureAtPixel(evt.pixel, (f, layer) => {
-        if (layer === kecamatanLayer) { feature = f; return true; }
-      });
-      if (currentFeature && currentFeature !== feature) currentFeature.setStyle(undefined);
-      if (feature) {
-        feature.setStyle(kecamatanHoverStyle);
-        currentFeature = feature;
+      let hovered: any = null;
+      let styleForHover: Style | undefined;
+      map.forEachFeatureAtPixel(
+        evt.pixel,
+        (f, layer) => {
+          hovered = f;
+          const geom: any = f.getGeometry?.();
+          const t = geom?.getType?.();
+          if (layer === kecamatanLayer) {
+            styleForHover = kecamatanHoverStyle;
+          } else if (t === 'Point' || t === 'MultiPoint') {
+            styleForHover = highlightPointStyle;
+          } else if (t === 'LineString' || t === 'MultiLineString') {
+            styleForHover = highlightLineStyle;
+          } else if (t === 'Polygon' || t === 'MultiPolygon') {
+            styleForHover = highlightPolygonStyle;
+          } else {
+            styleForHover = undefined;
+          }
+          return true; // stop at the first/top-most feature
+        },
+        { hitTolerance: 5 }
+      );
+
+      if (currentFeature && currentFeature !== hovered) currentFeature.setStyle(undefined);
+      if (hovered) {
+        if (styleForHover) hovered.setStyle(styleForHover);
+        currentFeature = hovered;
         if (overlayRef.current && tooltipRef.current) {
-          tooltipRef.current.innerText = feature.get('NAMOBJ') || 'Tidak diketahui';
+          const label =
+            hovered.get('NAMOBJ') ||
+            hovered.get('name') ||
+            hovered.get('no_ruas') ||
+            hovered.get('no_saluran') ||
+            hovered.get('k_di') ||
+            'Feature';
+          tooltipRef.current.innerText = String(label);
           overlayRef.current.setPosition(evt.coordinate);
         }
       } else {
@@ -528,6 +570,7 @@ export default function MapPage() {
   };
   const toggleKecamatan = (checked: boolean) => {
     kecamatanLayerRef.current?.setVisible(checked);
+    setKecamatanVisible(checked);
   };
   const goHome = () => { window.location.href = '/'; };
   const goDashboard = () => { window.location.href = '/dashboard'; };
@@ -561,7 +604,7 @@ export default function MapPage() {
           <label><input type="radio" name="basemap" onChange={() => setBasemap('sat')} /> ESRI Satellite</label>
         </div>
         <div style={{ fontWeight: 600, margin: '12px 0 6px' }}>Operational Layers</div>
-        <label><input type="checkbox" defaultChecked onChange={(e) => toggleKecamatan((e.target as HTMLInputElement).checked)} /> Kecamatan Boundaries</label><br />
+        <label><input type="checkbox" checked={kecamatanVisible} onChange={(e) => toggleKecamatan((e.target as HTMLInputElement).checked)} /> Kecamatan Boundaries</label><br />
         <div style={{ fontWeight: 600, margin: '12px 0 6px', display: 'flex', alignItems: 'center', gap: 8 }}>
           <span>Daerah Irigasi</span>
           <span className="badge" title="Jumlah file yang dimuat">{storageCounts.files}</span>
