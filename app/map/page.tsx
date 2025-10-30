@@ -69,7 +69,7 @@ export default function MapPage() {
         maxZoom: 20,
         crossOrigin: 'anonymous',
       }),
-      visible: true,
+      visible: false,
     });
     const googleSat = new TileLayer({
       source: new XYZ({
@@ -88,7 +88,7 @@ export default function MapPage() {
         maxZoom: 20,
         crossOrigin: 'anonymous',
       }),
-      visible: false,
+      visible: true,
     });
     const esriSat = new TileLayer({
       source: new XYZ({
@@ -683,10 +683,10 @@ export default function MapPage() {
         </div>
         <div style={{ marginTop: 8 }}>
           <div style={{ fontWeight: 600, margin: '8px 0 6px' }}>Basemap</div>
-          <label><input type="radio" name="basemap" defaultChecked onChange={() => setBasemap('googleHybrid')} /> Google Satellite Hybrid</label><br />
+          <label><input type="radio" name="basemap"  onChange={() => setBasemap('googleHybrid')} /> Google Satellite Hybrid</label><br />
           <label><input type="radio" name="basemap" onChange={() => setBasemap('googleSat')} /> Google Satellite</label><br />
           <label><input type="radio" name="basemap" onChange={() => setBasemap('osm')} /> OpenStreetMap</label><br />
-          <label><input type="radio" name="basemap" onChange={() => setBasemap('carto')} /> CartoDB Light</label><br />
+          <label><input type="radio" name="basemap" defaultChecked onChange={() => setBasemap('carto')} /> CartoDB Light</label><br />
           <label><input type="radio" name="basemap" onChange={() => setBasemap('sat')} /> ESRI Satellite</label>
         </div>
         <div style={{ fontWeight: 600, margin: '12px 0 6px' }}>Operational Layers</div>
