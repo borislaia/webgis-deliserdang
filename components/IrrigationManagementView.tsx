@@ -18,6 +18,7 @@ export default function IrrigationManagementView() {
   const [fungsionalFile, setFungsionalFile] = useState<File | null>(null);
 
   const [message, setMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
+  const [importing, setImporting] = useState(false);
 
   const [diList, setDiList] = useState<any[] | null>(null);
   const [saluranList, setSaluranList] = useState<any[] | null>(null);
@@ -93,12 +94,42 @@ export default function IrrigationManagementView() {
   };
 
   const importGeoJson = async () => {
+    if (importing) return;
     setMessage(null);
+    setImporting(true);
     try {
-      if (!kodeDI) {
+      const trimmedKode = kodeDI.trim();
+      if (!trimmedKode) {
         setMessage({ type: 'error', text: 'Kode DI wajib diisi' });
         return;
       }
+
+      const folderName = trimmedKode.replace(/[^0-9a-zA-Z_-]/g, '_');
+      if (!folderName) {
+        setMessage({ type: 'error', text: 'Kode DI tidak valid untuk nama folder' });
+        return;
+      }
+
+      const uploadIfProvided = async (label: string, file: File | null) => {
+        if (!file) return;
+        const fileName = (file.name || '').trim() || `${label.toLowerCase()}.json`;
+        const path = `${folderName}/${fileName}`;
+        const { error } = await supabase.storage
+          .from('geojson')
+          .upload(path, file, {
+            upsert: true,
+            cacheControl: '3600',
+            contentType: file.type || 'application/json',
+          });
+        if (error) throw new Error(`Gagal mengunggah ${label}: ${error.message}`);
+      };
+
+      await Promise.all([
+        uploadIfProvided('Bangunan', bangunanFile),
+        uploadIfProvided('Saluran', saluranFile),
+        uploadIfProvided('Fungsional', fungsionalFile),
+      ]);
+
       const [bangunanData, saluranData, fungsionalData] = await Promise.all([
         readJsonFile(bangunanFile),
         readJsonFile(saluranFile),
@@ -108,13 +139,15 @@ export default function IrrigationManagementView() {
       const res = await fetch('/api/import-irrigation-data', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'import', k_di: kodeDI, bangunanData, saluranData, fungsionalData }),
+        body: JSON.stringify({ action: 'import', k_di: trimmedKode, bangunanData, saluranData, fungsionalData }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Gagal import');
       setMessage({ type: 'success', text: 'Import berhasil' });
     } catch (e: any) {
       setMessage({ type: 'error', text: e?.message || 'Terjadi kesalahan' });
+    } finally {
+      setImporting(false);
     }
   };
 
@@ -206,8 +239,22 @@ export default function IrrigationManagementView() {
               <input type="file" accept=".json" onChange={(e) => setFungsionalFile(e.target.files?.[0] || null)} />
             </div>
             <div className="btn-group">
-              <button className="btn primary" onClick={importGeoJson}>Import Data</button>
-              <button className="btn" onClick={() => { setKodeDI(''); setBangunanFile(null); setSaluranFile(null); setFungsionalFile(null); setMessage(null); }}>Clear</button>
+              <button className="btn primary" onClick={importGeoJson} disabled={importing}>
+                {importing ? 'Memproses...' : 'Import Data'}
+              </button>
+              <button
+                className="btn"
+                onClick={() => {
+                  setKodeDI('');
+                  setBangunanFile(null);
+                  setSaluranFile(null);
+                  setFungsionalFile(null);
+                  setMessage(null);
+                }}
+                disabled={importing}
+              >
+                Clear
+              </button>
             </div>
           </div>
         </section>
