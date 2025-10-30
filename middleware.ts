@@ -6,6 +6,11 @@ export async function middleware(req: NextRequest) {
   const res = NextResponse.next()
   const { pathname } = req.nextUrl
 
+  // Bypass auth saat Preview (Vercel) atau ketika flag eksplisit diaktifkan
+  if (process.env.VERCEL_ENV === 'preview' || process.env.NEXT_PUBLIC_BYPASS_AUTH === 'true') {
+    return res
+  }
+
   // Refresh session if needed and get it
   const supabase = createMiddlewareClient({ req, res })
   const {
