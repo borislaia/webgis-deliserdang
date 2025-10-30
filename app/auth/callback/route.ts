@@ -32,11 +32,19 @@ export async function POST(request: Request) {
   const { event, session } = await request.json().catch(() => ({ event: null, session: null }))
 
   if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-    await supabase.auth.setSession(session)
+    if (!session) {
+      return NextResponse.json({ ok: false, error: 'Session tidak ditemukan' }, { status: 400 })
+    }
+    const { error } = await supabase.auth.setSession(session)
+    if (error) {
+      return NextResponse.json({ ok: false, error: error.message || 'Gagal menyimpan sesi' }, { status: 400 })
+    }
+    return NextResponse.json({ ok: true })
   }
   if (event === 'SIGNED_OUT') {
     await supabase.auth.signOut()
+    return NextResponse.json({ ok: true })
   }
 
-  return NextResponse.json({ ok: true })
+  return NextResponse.json({ ok: false, error: 'Event tidak didukung' }, { status: 400 })
 }

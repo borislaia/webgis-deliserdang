@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function RegisterPage() {
   const supabase = createClient();
@@ -23,24 +24,61 @@ export default function RegisterPage() {
   }
 
   return (
-    <main className="content" style={{ maxWidth: 400, margin: '60px auto' }}>
-      <h2>Register</h2>
-      {error && <div className="error-message">{error}</div>}
-      {info && <div className="card" style={{ padding: 12 }}>{info}</div>}
-      <form onSubmit={onRegister} className="card" style={{ padding: 16 }}>
-        <div className="form-row">
-          <label htmlFor="email">Email</label>
-          <input id="email" className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        </div>
-        <div className="form-row" style={{ marginTop: 12 }}>
-          <label htmlFor="password">Password</label>
-          <input id="password" className="input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-        </div>
-        <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-          <button className="btn primary" type="submit" disabled={loading}>{loading ? 'Registering...' : 'Register'}</button>
-        </div>
-        <p style={{ marginTop: 12 }}>Sudah punya akun? <Link href="/login">Login</Link></p>
-      </form>
+    <main className="auth">
+      <section className="auth-card card">
+        <header className="auth-header">
+          <div className="auth-logo">
+            <Image src="/assets/icons/logo-deliserdang.jpg" alt="Logo Deli Serdang" width={56} height={56} />
+          </div>
+          <h2>Daftar</h2>
+        </header>
+
+        {error && (
+          <div className="error-message" role="alert" aria-live="polite">{error}</div>
+        )}
+
+        <form onSubmit={onRegister} className="auth-form">
+          <div className="form-row">
+            <input
+              id="email"
+              className="input"
+              type="email"
+              placeholder="Email"
+              aria-label="Email"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="form-row">
+            <input
+              id="password"
+              className="input"
+              type="password"
+              placeholder="Kata sandi"
+              aria-label="Kata sandi"
+              autoComplete="new-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
+
+          <button className="btn primary btn-block" type="submit" disabled={loading}>
+            {loading ? 'Memproses…' : 'Daftar'}
+          </button>
+
+          {info && (
+            <div className="success" role="status" aria-live="polite">{info}</div>
+          )}
+        </form>
+
+        <footer className="auth-footer">
+          Sudah punya akun? <Link href="/login">Masuk</Link>
+        </footer>
+      </section>
     </main>
   );
 }

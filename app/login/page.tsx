@@ -11,7 +11,6 @@ export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -37,11 +36,18 @@ export default function LoginPage() {
     }
     try {
       // Persist session cookies on the server via route handler
-      await fetch('/auth/callback', {
+      const resp = await fetch('/auth/callback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ event: 'SIGNED_IN', session: data.session }),
       });
+      if (!resp.ok) {
+        let message = 'Gagal menyimpan sesi. Silakan coba lagi.';
+        try { const j = await resp.json(); if (j?.error) message = j.error; } catch {}
+        setLoading(false);
+        setError(message);
+        return;
+      }
     } catch (e) {
       setLoading(false);
       setError('Gagal menyimpan sesi. Silakan coba lagi.');
@@ -80,17 +86,14 @@ export default function LoginPage() {
           {/* <p className="auth-subtitle">Silakan login untuk melanjutkan</p> */}
         </header>
 
-        {error && (
-          <div className="error-message" role="alert" aria-live="polite">{error}</div>
-        )}
-
         <form onSubmit={onLogin} className="auth-form">
           <div className="form-row">
-            <label htmlFor="email">Email</label>
             <input
               id="email"
               className="input"
               type="email"
+              placeholder="Email"
+              aria-label="Email"
               autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -98,30 +101,27 @@ export default function LoginPage() {
             />
           </div>
 
-          <div className="form-row password-field">
-            <label htmlFor="password">Kata sandi</label>
+          <div className="form-row">
             <input
               id="password"
               className="input"
-              type={showPassword ? 'text' : 'password'}
+              type="password"
+              placeholder="Kata sandi"
+              aria-label="Kata sandi"
               autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
             />
-            <button
-              type="button"
-              className="toggle-visibility"
-              onClick={() => setShowPassword((v) => !v)}
-              aria-label={showPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'}
-            >
-              {showPassword ? 'Sembunyikan' : 'Tampilkan'}
-            </button>
           </div>
 
           <button className="btn primary btn-block" type="submit" disabled={loading}>
             {loading ? 'Memproses…' : 'Masuk'}
           </button>
+
+          <Link href="/" className="btn btn-block" aria-label="Kembali ke halaman utama">
+            Kembali
+          </Link>
         </form>
 
         <div className="auth-divider"><span>atau</span></div>
@@ -129,6 +129,10 @@ export default function LoginPage() {
         <button className="btn btn-block" type="button" onClick={onLoginWithGoogle} disabled={loading}>
           Lanjut dengan Google
         </button>
+
+        {error && (
+          <div className="error-message" role="alert" aria-live="polite">{error}</div>
+        )}
 
         <footer className="auth-footer">
           Belum punya akun? <Link href="/register">Daftar</Link>
