@@ -19,7 +19,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   // Apply Vanta on all pages except /map
   const h = headers()
   const pathname = h.get('x-invoke-path') || ''
-  const showVanta = !pathname.startsWith('/map')
+  const showVanta = !(pathname.startsWith('/map') || pathname.startsWith('/login'))
   return (
     <html lang="en">
       <body className={inter.className}>

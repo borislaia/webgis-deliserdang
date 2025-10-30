@@ -6,7 +6,17 @@ import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
-  const redirect = searchParams.get('redirect') || '/dashboard'
+  const rawRedirect = searchParams.get('redirect')
+
+  function resolveSafeRedirect(raw: string | null | undefined, fallback = '/dashboard') {
+    if (!raw) return fallback
+    let decoded = raw
+    try { decoded = decodeURIComponent(raw) } catch {}
+    if (!decoded.startsWith('/') || decoded.startsWith('//')) return fallback
+    return decoded
+  }
+
+  const redirect = resolveSafeRedirect(rawRedirect)
 
   if (code) {
     const supabase = createRouteHandlerClient({ cookies })

@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useSearchParams, useRouter } from 'next/navigation';
 
 export default function LoginPage() {
@@ -10,26 +11,43 @@ export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const redirectTo = decodeURIComponent(searchParams.get('redirect') || '/dashboard');
+
+  function resolveSafeRedirect(raw: string | null | undefined, fallback = '/dashboard') {
+    if (!raw) return fallback;
+    let decoded = raw;
+    try { decoded = decodeURIComponent(raw); } catch {}
+    if (!decoded.startsWith('/') || decoded.startsWith('//')) return fallback;
+    return decoded;
+  }
+
+  const redirectTo = resolveSafeRedirect(searchParams.get('redirect'));
 
   async function onLogin(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setLoading(true);
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
     if (error) {
-      setError(error.message);
+      setLoading(false);
+      setError('Email atau kata sandi salah.');
       return;
     }
-    // Persist session cookies on the server via route handler
-    await fetch('/auth/callback', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ event: 'SIGNED_IN', session: data.session }),
-    }).catch(() => {});
+    try {
+      // Persist session cookies on the server via route handler
+      await fetch('/auth/callback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ event: 'SIGNED_IN', session: data.session }),
+      });
+    } catch (e) {
+      setLoading(false);
+      setError('Gagal menyimpan sesi. Silakan coba lagi.');
+      return;
+    }
+    setLoading(false);
     router.replace(redirectTo);
   }
 
@@ -40,11 +58,11 @@ export default function LoginPage() {
       options: { redirectTo: `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirectTo)}` }
     });
     setLoading(false);
-    if (error) setError(error.message);
+    if (error) setError('Gagal masuk dengan Google. Silakan coba lagi.');
   }
 
   useEffect(() => {
-    // If already logged in, go straight to redirect target
+    // Jika sudah login, langsung redirect
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) router.replace(redirectTo);
     });
@@ -52,24 +70,70 @@ export default function LoginPage() {
   }, []);
 
   return (
-    <main className="content" style={{ maxWidth: 400, margin: '60px auto' }}>
-      <h2>Login</h2>
-      {error && <div className="error-message">{error}</div>}
-      <form onSubmit={onLogin} className="card" style={{ padding: 16 }}>
-        <div className="form-row">
-          <label htmlFor="email">Email</label>
-          <input id="email" className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        </div>
-        <div className="form-row" style={{ marginTop: 12 }}>
-          <label htmlFor="password">Password</label>
-          <input id="password" className="input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-        </div>
-        <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-          <button className="btn primary" type="submit" disabled={loading}>{loading ? 'Logging in...' : 'Login'}</button>
-          <button className="btn" type="button" onClick={onLoginWithGoogle} disabled={loading}>Login with Google</button>
-        </div>
-        <p style={{ marginTop: 12 }}>Belum punya akun? <Link href="/register">Register</Link></p>
-      </form>
+    <main className="auth">
+      <section className="auth-card card">
+        <header className="auth-header">
+          <div className="auth-logo">
+            <Image src="/assets/icons/logo-deliserdang.jpg" alt="Logo Deli Serdang" width={56} height={56} />
+          </div>
+          <h2>Masuk</h2>
+          {/* <p className="auth-subtitle">Silakan login untuk melanjutkan</p> */}
+        </header>
+
+        {error && (
+          <div className="error-message" role="alert" aria-live="polite">{error}</div>
+        )}
+
+        <form onSubmit={onLogin} className="auth-form">
+          <div className="form-row">
+            <label htmlFor="email">Email</label>
+            <input
+              id="email"
+              className="input"
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="form-row password-field">
+            <label htmlFor="password">Kata sandi</label>
+            <input
+              id="password"
+              className="input"
+              type={showPassword ? 'text' : 'password'}
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+            <button
+              type="button"
+              className="toggle-visibility"
+              onClick={() => setShowPassword((v) => !v)}
+              aria-label={showPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'}
+            >
+              {showPassword ? 'Sembunyikan' : 'Tampilkan'}
+            </button>
+          </div>
+
+          <button className="btn primary btn-block" type="submit" disabled={loading}>
+            {loading ? 'Memproses…' : 'Masuk'}
+          </button>
+        </form>
+
+        <div className="auth-divider"><span>atau</span></div>
+
+        <button className="btn btn-block" type="button" onClick={onLoginWithGoogle} disabled={loading}>
+          Lanjut dengan Google
+        </button>
+
+        <footer className="auth-footer">
+          Belum punya akun? <Link href="/register">Daftar</Link>
+        </footer>
+      </section>
     </main>
   );
 }
