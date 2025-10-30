@@ -45,5 +45,5 @@ export default function VantaFog() {
     };
   }, []);
 
-  return <div id="vanta-bg" ref={elRef} style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: -1 as any }} />;
+  return <div id="vanta-bg" ref={elRef} />;
 }

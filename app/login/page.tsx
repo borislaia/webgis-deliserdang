@@ -37,11 +37,18 @@ export default function LoginPage() {
     }
     try {
       // Persist session cookies on the server via route handler
-      await fetch('/auth/callback', {
+      const resp = await fetch('/auth/callback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ event: 'SIGNED_IN', session: data.session }),
       });
+      if (!resp.ok) {
+        let message = 'Gagal menyimpan sesi. Silakan coba lagi.';
+        try { const j = await resp.json(); if (j?.error) message = j.error; } catch {}
+        setLoading(false);
+        setError(message);
+        return;
+      }
     } catch (e) {
       setLoading(false);
       setError('Gagal menyimpan sesi. Silakan coba lagi.');
