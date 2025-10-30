@@ -118,6 +118,10 @@ export default function LoginPage() {
           <button className="btn primary btn-block" type="submit" disabled={loading}>
             {loading ? 'Memproses…' : 'Masuk'}
           </button>
+
+          <Link href="/" className="btn btn-block" aria-label="Kembali ke halaman utama">
+            Kembali
+          </Link>
         </form>
 
         <div className="auth-divider"><span>atau</span></div>
