@@ -11,7 +11,6 @@ export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -93,11 +92,12 @@ export default function LoginPage() {
 
         <form onSubmit={onLogin} className="auth-form">
           <div className="form-row">
-            <label htmlFor="email">Email</label>
             <input
               id="email"
               className="input"
               type="email"
+              placeholder="Email"
+              aria-label="Email"
               autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -105,25 +105,18 @@ export default function LoginPage() {
             />
           </div>
 
-          <div className="form-row password-field">
-            <label htmlFor="password">Kata sandi</label>
+          <div className="form-row">
             <input
               id="password"
               className="input"
-              type={showPassword ? 'text' : 'password'}
+              type="password"
+              placeholder="Kata sandi"
+              aria-label="Kata sandi"
               autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
             />
-            <button
-              type="button"
-              className="toggle-visibility"
-              onClick={() => setShowPassword((v) => !v)}
-              aria-label={showPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'}
-            >
-              {showPassword ? 'Sembunyikan' : 'Tampilkan'}
-            </button>
           </div>
 
           <button className="btn primary btn-block" type="submit" disabled={loading}>
