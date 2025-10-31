@@ -639,19 +639,39 @@ export default function MapPage() {
     const view = map.getView();
     view.setZoom((view.getZoom() || 0) - 1);
   };
-  const resetView = () => {
+  const fitData = () => {
     const map = mapRef.current; if (!map) return;
+
+    // Rehitung extent dari semua layer vektor yang ada agar selalu selaras
+    const computed = createEmptyExtent();
+    map.getLayers().forEach((layer: any) => {
+      const source = layer?.getSource?.();
+      if (!source) return;
+
+      let extent = source.getExtent ? source.getExtent() : undefined;
+      if ((!extent || isExtentEmpty(extent)) && source.getSource) {
+        const inner = source.getSource();
+        extent = inner?.getExtent ? inner.getExtent() : extent;
+      }
+
+      if (extent && !isExtentEmpty(extent)) {
+        extendExtent(computed, extent);
+      }
+    });
+
+    if (!isExtentEmpty(computed)) {
+      dataExtentRef.current = computed.slice() as any;
+      map.getView().fit(computed, { padding: [50, 50, 50, 50], duration: 400 });
+      return;
+    }
+
     const ext = dataExtentRef.current;
     if (ext && !isExtentEmpty(ext)) {
       map.getView().fit(ext, { padding: [50, 50, 50, 50], duration: 400 });
-    } else {
-      map.getView().animate({ center: fromLonLat(centerLonLat), zoom: 11, duration: 400 });
+      return;
     }
-  };
-  const fitData = () => {
-    const map = mapRef.current; if (!map) return;
-    const ext = dataExtentRef.current;
-    if (ext && !isExtentEmpty(ext)) map.getView().fit(ext, { padding: [50, 50, 50, 50], duration: 400 });
+
+    map.getView().animate({ center: fromLonLat(centerLonLat), zoom: 11, duration: 400 });
   };
   const toggleKecamatan = (checked: boolean) => {
     kecamatanLayerRef.current?.setVisible(checked);
@@ -670,7 +690,6 @@ export default function MapPage() {
         <button onClick={goHome} className="btn" title="Home">🏠</button>
         <button onClick={goDashboard} className="btn" title="Dashboard">📊</button>
         <button onClick={fitData} className="btn" title="Fit Data">🗺️</button>
-        <button onClick={resetView} className="btn" title="Reset View">⤾</button>
         <button onClick={zoomIn} className="btn" title="Zoom In">＋</button>
         <button onClick={zoomOut} className="btn" title="Zoom Out">－</button>
       </div>
