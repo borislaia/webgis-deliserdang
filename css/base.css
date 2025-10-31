@@ -47,7 +47,7 @@ body{
 .ol-popup .title{ font-weight: 600; margin-bottom: 4px; }
 .ol-popup img{ width: 100%; border-radius: 10px; margin-top: 6px; cursor: pointer; }
 .layout{ display:grid; grid-template-columns: minmax(240px, 280px) 1fr; gap:24px; align-items:start; min-height: calc(100vh - 100px); }
-.sidebar{ padding:20px; position:sticky; top:calc(var(--app-header-height, 64px) + 24px); align-self:start; height:max-content; max-height:calc(100vh - (var(--app-header-height, 64px) + 48px)); overflow-y:auto; }
+.sidebar{ padding:20px; position:sticky; top:calc(var(--app-header-height, 64px) + 4px); align-self:start; height:max-content; max-height:calc(100vh - (var(--app-header-height, 64px) + 28px)); overflow-y:auto; }
 @media (max-width: 960px){
   .layout{ grid-template-columns: 1fr; }
   .sidebar{ position:static; top:auto; max-height:none; overflow:visible; margin-bottom:16px; }
