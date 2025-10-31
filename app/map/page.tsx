@@ -16,6 +16,27 @@ import { defaults as defaultControls } from 'ol/control';
 import { defaults as defaultInteractions } from 'ol/interaction';
 import { createEmpty as createEmptyExtent, extend as extendExtent, isEmpty as isExtentEmpty } from 'ol/extent';
 
+type SummaryRow = {
+  profil: string;
+  keterangan: string;
+  jumlah: string;
+  satuan: string;
+};
+
+const formatNumeric = (value: number | null | undefined, fractionDigits = 0) => {
+  if (value == null || Number.isNaN(Number(value))) return '—';
+  return new Intl.NumberFormat('id-ID', {
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
+  }).format(Number(value));
+};
+
+const toDisplayString = (value: string | number | null | undefined) => {
+  if (value === null || value === undefined) return '—';
+  const text = String(value).trim();
+  return text.length ? text : '—';
+};
+
 const centerLonLat: [number, number] = [98.69870163855006, 3.5460256535269954];
 
 export default function MapPage() {
@@ -48,6 +69,10 @@ export default function MapPage() {
   const [pointsVisible, setPointsVisible] = useState(true);
   const [linesVisible, setLinesVisible] = useState(true);
   const [polygonsVisible, setPolygonsVisible] = useState(true);
+  const [summaryRows, setSummaryRows] = useState<SummaryRow[] | null>(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [activeDiName, setActiveDiName] = useState<string>('');
 
   const searchParams = useSearchParams();
   // Terima baik ?di= maupun ?k_di= untuk fleksibilitas dari dashboard
@@ -58,6 +83,17 @@ export default function MapPage() {
 
   useEffect(() => {
     if (!mapDivRef.current) return;
+
+    if (!kdi) {
+      setSummaryRows(null);
+      setSummaryError(null);
+      setSummaryLoading(false);
+      setActiveDiName('');
+    } else {
+      setSummaryLoading(true);
+      setSummaryError(null);
+      setSummaryRows(null);
+    }
 
     const center = fromLonLat(centerLonLat);
 
@@ -375,84 +411,210 @@ export default function MapPage() {
 
         // 2) Jika k_di/di disediakan, muat layer operasional terkait dari DB
         if (kdi) {
-          const { data: di } = await supabase.from('daerah_irigasi').select('id,k_di,n_di').eq('k_di', kdi).maybeSingle();
-          if (di?.id) {
-            // Load saluran, ruas, bangunan, fungsional
-            const [{ data: saluran }, { data: bangunan }, { data: fungsional }] = await Promise.all([
-              supabase.from('saluran').select('id,no_saluran,geojson').eq('daerah_irigasi_id', di.id),
-              supabase.from('bangunan').select('id,geojson'),
-              supabase.from('fungsional').select('id,geojson').eq('daerah_irigasi_id', di.id),
-            ]);
+          try {
+            const { data: di, error: diError } = await supabase
+              .from('daerah_irigasi')
+              .select('id,k_di,n_di,luas_ha,jumlah_saluran,jumlah_bangunan,panjang_sp,panjang_ss,kecamatan,desa_kel,sumber_air,tahun_data,kondisi,metadata')
+              .eq('k_di', kdi)
+              .maybeSingle();
+            if (diError) throw diError;
 
-            // Add bangunan layer
-            if (bangunan && bangunan.length) {
-              const src = new VectorSource();
-              const fmt = new GeoJSON();
-              for (const b of bangunan) {
-                if (!b.geojson) continue;
-                const feat = fmt.readFeature(b.geojson, { dataProjection: 'EPSG:4326', featureProjection: map.getView().getProjection() });
-                src.addFeature(feat);
-              }
-              const layer = new VectorLayer({ source: src, zIndex: 30 });
-              map.addLayer(layer);
-              const ext = src.getExtent();
-              if (ext) {
-                const combined = dataExtentRef.current ? dataExtentRef.current.slice() as any : createEmptyExtent();
-                extendExtent(combined, ext);
-                dataExtentRef.current = combined;
-              }
-            }
+            if (!di?.id) {
+              setActiveDiName('');
+              setSummaryRows([]);
+              setSummaryError('Data daerah irigasi tidak ditemukan');
+            } else {
+              setActiveDiName(di.n_di || '');
 
-            // Add fungsional layer
-            if (fungsional && fungsional.length) {
-              const src = new VectorSource();
-              const fmt = new GeoJSON();
-              for (const f of fungsional) {
-                if (!f.geojson) continue;
-                const fc = f.geojson.type === 'FeatureCollection' ? f.geojson : { type: 'FeatureCollection', features: [f.geojson] };
-                const fs = fmt.readFeatures(fc, { dataProjection: 'EPSG:4326', featureProjection: map.getView().getProjection() });
-                src.addFeatures(fs);
-              }
-              const layer = new VectorLayer({ source: src, zIndex: 5, style: new Style({ stroke: new Stroke({ color: '#2ca02c', width: 2 }), fill: new Fill({ color: 'rgba(44,160,44,0.2)' }) }) });
-              map.addLayer(layer);
-              const ext = src.getExtent();
-              if (ext) {
-                const combined = dataExtentRef.current ? dataExtentRef.current.slice() as any : createEmptyExtent();
-                extendExtent(combined, ext);
-                dataExtentRef.current = combined;
-              }
-            }
+              // Load saluran, bangunan, fungsional
+              const [{ data: saluran }, { data: bangunan }, { data: fungsional }] = await Promise.all([
+                supabase.from('saluran').select('id,no_saluran,geojson,jenis,panjang_total').eq('daerah_irigasi_id', di.id),
+                supabase.from('bangunan').select('id,geojson').eq('daerah_irigasi_id', di.id),
+                supabase.from('fungsional').select('id,geojson').eq('daerah_irigasi_id', di.id),
+              ]);
 
-            // Build ruas layer from DB rows
-            let ruasFeatures: any[] = [];
-            if (saluran && saluran.length) {
-              const salIds = saluran.map((s: any) => s.id);
-              const { data: ruas } = await supabase.from('ruas').select('id,no_ruas,urutan,geojson,foto_urls,metadata,saluran_id').in('saluran_id', salIds);
-              const fmt = new GeoJSON();
-              if (ruas) {
-                for (const r of ruas) {
-                  if (!r.geojson) continue;
-                  // Attach foto_urls into properties for popup use
-                  const featureGeo = { ...r.geojson, properties: { ...(r.geojson.properties || {}), foto_urls: r.foto_urls || [], ruas_id: r.id, metadata: r.metadata || {} } };
-                  const f = fmt.readFeature(featureGeo, { dataProjection: 'EPSG:4326', featureProjection: map.getView().getProjection() });
-                  ruasFeatures.push(f);
+              // Add bangunan layer
+              if (bangunan && bangunan.length) {
+                const src = new VectorSource();
+                const fmt = new GeoJSON();
+                for (const b of bangunan) {
+                  if (!b.geojson) continue;
+                  const feat = fmt.readFeature(b.geojson, { dataProjection: 'EPSG:4326', featureProjection: map.getView().getProjection() });
+                  src.addFeature(feat);
+                }
+                const layer = new VectorLayer({ source: src, zIndex: 30 });
+                map.addLayer(layer);
+                const ext = src.getExtent();
+                if (ext) {
+                  const combined = dataExtentRef.current ? dataExtentRef.current.slice() as any : createEmptyExtent();
+                  extendExtent(combined, ext);
+                  dataExtentRef.current = combined;
                 }
               }
-            }
 
-            if (ruasFeatures.length) {
-              const src = new VectorSource();
-              src.addFeatures(ruasFeatures);
-              const layer = new VectorLayer({ source: src, zIndex: 20, style: new Style({ stroke: new Stroke({ color: '#ff7f0e', width: 5 }) }) });
-              map.addLayer(layer);
-              const extent = src.getExtent();
-              if (extent) {
-                const combined = dataExtentRef.current ? dataExtentRef.current.slice() as any : createEmptyExtent();
-                extendExtent(combined, extent);
-                dataExtentRef.current = combined;
-                map.getView().fit(extent, { padding: [50, 50, 50, 50], duration: 500 });
+              // Add fungsional layer
+              if (fungsional && fungsional.length) {
+                const src = new VectorSource();
+                const fmt = new GeoJSON();
+                for (const f of fungsional) {
+                  if (!f.geojson) continue;
+                  const fc = f.geojson.type === 'FeatureCollection' ? f.geojson : { type: 'FeatureCollection', features: [f.geojson] };
+                  const fs = fmt.readFeatures(fc, { dataProjection: 'EPSG:4326', featureProjection: map.getView().getProjection() });
+                  src.addFeatures(fs);
+                }
+                const layer = new VectorLayer({ source: src, zIndex: 5, style: new Style({ stroke: new Stroke({ color: '#2ca02c', width: 2 }), fill: new Fill({ color: 'rgba(44,160,44,0.2)' }) }) });
+                map.addLayer(layer);
+                const ext = src.getExtent();
+                if (ext) {
+                  const combined = dataExtentRef.current ? dataExtentRef.current.slice() as any : createEmptyExtent();
+                  extendExtent(combined, ext);
+                  dataExtentRef.current = combined;
+                }
               }
+
+              // Build ruas layer from DB rows dan kumpulkan ringkasan
+              let ruasFeatures: any[] = [];
+              let ruasList: any[] = [];
+              if (saluran && saluran.length) {
+                const salIds = saluran.map((s: any) => s.id).filter(Boolean);
+                if (salIds.length) {
+                  const { data: ruas, error: ruasError } = await supabase
+                    .from('ruas')
+                    .select('id,no_ruas,urutan,panjang,geojson,foto_urls,metadata,saluran_id')
+                    .in('saluran_id', salIds);
+                  if (ruasError) throw ruasError;
+                  const fmt = new GeoJSON();
+                  ruasList = ruas || [];
+                  for (const r of ruasList) {
+                    if (!r?.geojson) continue;
+                    const featureGeo = { ...r.geojson, properties: { ...(r.geojson.properties || {}), foto_urls: r.foto_urls || [], ruas_id: r.id, metadata: r.metadata || {} } };
+                    const f = fmt.readFeature(featureGeo, { dataProjection: 'EPSG:4326', featureProjection: map.getView().getProjection() });
+                    ruasFeatures.push(f);
+                  }
+                }
+              }
+
+              if (ruasFeatures.length) {
+                const src = new VectorSource();
+                src.addFeatures(ruasFeatures);
+                const layer = new VectorLayer({ source: src, zIndex: 20, style: new Style({ stroke: new Stroke({ color: '#ff7f0e', width: 5 }) }) });
+                map.addLayer(layer);
+                const extent = src.getExtent();
+                if (extent) {
+                  const combined = dataExtentRef.current ? dataExtentRef.current.slice() as any : createEmptyExtent();
+                  extendExtent(combined, extent);
+                  dataExtentRef.current = combined;
+                  map.getView().fit(extent, { padding: [50, 50, 50, 50], duration: 500 });
+                }
+              }
+
+              // Hitung ringkasan untuk tabel profil
+              const saluranCount = saluran?.length ?? 0;
+              const bangunanCount = di.jumlah_bangunan ?? (bangunan?.length ?? 0);
+              const ruasCount = ruasList.length;
+              const totalPanjangRuas = ruasList.reduce((sum: number, r: any) => sum + (Number(r?.panjang) || 0), 0);
+              const panjangByJenis = { primer: 0, sekunder: 0, tersier: 0, lainnya: 0 };
+              (saluran || []).forEach((item: any) => {
+                const jenis = String(item?.jenis || '').toLowerCase();
+                const panjang = Number(item?.panjang_total) || 0;
+                if (jenis === 'primer') panjangByJenis.primer += panjang;
+                else if (jenis === 'sekunder') panjangByJenis.sekunder += panjang;
+                else if (jenis === 'tersier') panjangByJenis.tersier += panjang;
+                else panjangByJenis.lainnya += panjang;
+              });
+
+              const computedValues: Record<string, any> = {
+                k_di: di.k_di,
+                n_di: di.n_di,
+                luas_ha: Number(di.luas_ha ?? 0),
+                jumlah_saluran: di.jumlah_saluran ?? saluranCount,
+                jumlah_bangunan: bangunanCount,
+                jumlah_ruas: ruasCount,
+                total_panjang_ruas: totalPanjangRuas,
+                panjang_primer: panjangByJenis.primer,
+                panjang_sekunder: panjangByJenis.sekunder,
+                panjang_tersier: panjangByJenis.tersier,
+                panjang_lainnya: panjangByJenis.lainnya,
+                panjang_sp: Number(di.panjang_sp ?? 0),
+                panjang_ss: Number(di.panjang_ss ?? 0),
+                tahun_data: di.tahun_data,
+                kondisi: di.kondisi,
+                kecamatan: di.kecamatan,
+                desa_kel: di.desa_kel,
+                sumber_air: di.sumber_air,
+              };
+
+              const metadataRows = Array.isArray((di.metadata as any)?.profil_table) ? (di.metadata as any).profil_table : null;
+              const rows: SummaryRow[] = [];
+              const pushRow = (
+                profil: string,
+                keterangan: string,
+                value: number | string | null | undefined,
+                satuan = '',
+                fractionDigits?: number
+              ) => {
+                let jumlahText: string;
+                if (typeof value === 'number' && !Number.isNaN(value)) {
+                  const digits = fractionDigits ?? (Number.isInteger(value) ? 0 : 2);
+                  jumlahText = formatNumeric(value, digits);
+                } else {
+                  jumlahText = toDisplayString(value);
+                }
+                rows.push({
+                  profil: profil || '—',
+                  keterangan: keterangan ? String(keterangan) : '—',
+                  jumlah: jumlahText,
+                  satuan: satuan || '',
+                });
+              };
+
+              if (metadataRows?.length) {
+                metadataRows.forEach((row: any, idx: number) => {
+                  const profilLabel = toDisplayString(row?.profil);
+                  const keteranganLabel = toDisplayString(row?.keterangan);
+                  let value = row?.jumlah;
+                  if (row?.valueKey && computedValues[row.valueKey] !== undefined) {
+                    value = computedValues[row.valueKey];
+                  }
+                  if (typeof value === 'string' && value.startsWith('auto:')) {
+                    const key = value.replace('auto:', '');
+                    if (computedValues[key] !== undefined) value = computedValues[key];
+                  }
+                  const digits = typeof row?.fractionDigits === 'number' ? row.fractionDigits : undefined;
+                  pushRow(
+                    profilLabel !== '—' ? profilLabel : `Profil ${idx + 1}`,
+                    keteranganLabel !== '—' ? keteranganLabel : '—',
+                    value,
+                    row?.satuan,
+                    digits
+                  );
+                });
+              } else {
+                pushRow('Kode DI', di.n_di || '—', di.k_di);
+                pushRow('Luas Areal', 'Luas layanan', Number(di.luas_ha ?? 0), 'ha', 2);
+                pushRow('Panjang Saluran Primer', 'Akumulasi saluran primer', panjangByJenis.primer || Number(di.panjang_sp ?? 0), 'm');
+                pushRow('Panjang Saluran Sekunder', 'Akumulasi saluran sekunder', panjangByJenis.sekunder || Number(di.panjang_ss ?? 0), 'm');
+                if (panjangByJenis.tersier > 0 || panjangByJenis.lainnya > 0) {
+                  pushRow('Panjang Saluran Tersier', 'Akumulasi saluran tersier', panjangByJenis.tersier, 'm');
+                }
+                pushRow('Jumlah Saluran', 'Total saluran semua jenis', di.jumlah_saluran ?? saluranCount, 'unit');
+                if (ruasCount) {
+                  pushRow('Jumlah Ruas', 'Segmentasi saluran', ruasCount, 'unit');
+                  pushRow('Total Panjang Ruas', 'Akumulasi panjang ruas', totalPanjangRuas, 'm');
+                }
+                pushRow('Jumlah Bangunan', 'Bangunan air', bangunanCount, 'unit');
+                if (di.tahun_data) pushRow('Tahun Data', 'Sumber tahun data', di.tahun_data);
+                if (di.kondisi) pushRow('Kondisi', 'Status operasional', di.kondisi);
+              }
+
+              setSummaryRows(rows);
+              setSummaryError(null);
             }
+          } catch (err: any) {
+            setSummaryRows([]);
+            setSummaryError(err?.message || 'Gagal memuat profil DI');
+          } finally {
+            setSummaryLoading(false);
           }
         }
       } catch (e) {
@@ -736,6 +898,49 @@ export default function MapPage() {
         </div>
         <div style={{ marginTop: 12 }} className="legend" />
       </div>
+
+      {kdi ? (
+        <div className="map-summary-panel card">
+          <div className="map-summary-header">
+            <div>
+              <strong>{activeDiName || 'Profil DI'}</strong>
+              <span className="map-summary-subtitle">Kode: {kdi}</span>
+            </div>
+          </div>
+          <div className="map-summary-content">
+            {summaryLoading ? (
+              <div className="map-summary-loading">Memuat profil…</div>
+            ) : summaryError ? (
+              <div className="map-summary-error">{summaryError}</div>
+            ) : summaryRows && summaryRows.length ? (
+              <table className="map-summary-table">
+                <thead>
+                  <tr>
+                    <th>No</th>
+                    <th>Profil</th>
+                    <th>Keterangan</th>
+                    <th>Jumlah/Panjang</th>
+                    <th>Satuan</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {summaryRows.map((row, idx) => (
+                    <tr key={`${row.profil}-${idx}`}>
+                      <td>{idx + 1}</td>
+                      <td>{row.profil}</td>
+                      <td>{row.keterangan}</td>
+                      <td>{row.jumlah}</td>
+                      <td>{row.satuan || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <div className="map-summary-empty">Data profil tidak tersedia.</div>
+            )}
+          </div>
+        </div>
+      ) : null}
 
       {/* Tooltip and popup overlays */}
       <div ref={tooltipRef} className="ol-tooltip" />
