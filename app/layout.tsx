@@ -5,6 +5,7 @@ import { Inter } from 'next/font/google'
 import dynamic from 'next/dynamic'
 import { headers } from 'next/headers'
 import Script from 'next/script'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -25,6 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={inter.className}>
         {showVanta && <VantaFog />}
         {children}
+        <SpeedInsights />
         {/* Sync Supabase client events to server cookies */}
         <Script id="supabase-auth-sync" strategy="afterInteractive">
           {`
