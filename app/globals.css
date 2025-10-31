@@ -1,6 +1,6 @@
 /* Tailwind removed to avoid conflicts with legacy CSS */
 /* Keep existing base.css styles */
-:root{ --bg:#f6f7fb; --card:rgba(255,255,255,0.72); --stroke:rgba(60,60,67,0.12); --text:#0b0c0f; --muted:#6b7280; --brand:#0a84ff; --brand-2:#5e5ce6; --radius:16px; }
+:root{ --bg:#f6f7fb; --card:rgba(255,255,255,0.72); --stroke:rgba(60,60,67,0.12); --text:#0b0c0f; --muted:#6b7280; --brand:#0a84ff; --brand-2:#5e5ce6; --radius:16px; --app-header-height:72px; }
 .sr-only{ position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
 .blur{ backdrop-filter:saturate(180%) blur(16px); -webkit-backdrop-filter:saturate(180%) blur(16px); background:var(--card); border:1px solid var(--stroke); }
 .app-header.blur{ background:transparent; backdrop-filter:none; -webkit-backdrop-filter:none; position:sticky; top:0; z-index:50; }
