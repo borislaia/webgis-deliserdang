@@ -103,4 +103,7 @@ body{
 .auth-divider::before,.auth-divider::after{ content:""; height:1px; flex:1; background:var(--stroke); }
 
 /* Inputs focus */
-.input:focus, .btn:focus{ outline:2px solid var(--brand); outline-offset:2px; }
+.input:focus{ outline:2px solid var(--brand); outline-offset:2px; }
+.btn:focus,
+.btn:focus-visible,
+.btn:active{ outline:none; box-shadow:none; }
