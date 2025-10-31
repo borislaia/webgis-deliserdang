@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
 import * as XLSX from 'xlsx';
@@ -11,6 +11,8 @@ export default function DashboardPage() {
   const [activePanel, setActivePanel] = useState<Panel>('di');
   const [year] = useState<number>(new Date().getFullYear());
   const [userEmail, setUserEmail] = useState<string>('');
+  const [userName, setUserName] = useState<string>('');
+  const [avatarUrl, setAvatarUrl] = useState<string>('');
 
   // CSV state for Daerah Irigasi panel
   const [csvRows, setCsvRows] = useState<any[] | null>(null);
@@ -23,10 +25,33 @@ export default function DashboardPage() {
       try {
         const supabase = createClient();
         const { data } = await supabase.auth.getUser();
-        setUserEmail(data.user?.email || '');
+        const user = data.user;
+        setUserEmail(user?.email || '');
+        const displayName =
+          (user?.user_metadata as any)?.full_name ||
+          (user?.user_metadata as any)?.name ||
+          (user?.user_metadata as any)?.username ||
+          user?.email ||
+          '';
+        setUserName(displayName);
+        const avatar =
+          (user?.user_metadata as any)?.avatar_url ||
+          (user?.user_metadata as any)?.picture ||
+          '';
+        setAvatarUrl(avatar);
       } catch {}
     })();
   }, []);
+
+  const userInitials = useMemo(() => {
+    const source = (userName || userEmail || '').trim();
+    if (!source) return 'U';
+    const parts = source.split(/[\s@._-]+/).filter(Boolean);
+    if (!parts.length) return source.slice(0, 2).toUpperCase();
+    const [first, second] = parts;
+    const initials = `${first[0] || ''}${second?.[0] || ''}`.toUpperCase();
+    return initials || source.slice(0, 2).toUpperCase();
+  }, [userName, userEmail]);
 
   // Load CSV from Supabase Storage bucket 'csv' when DI panel is active
   useEffect(() => {
@@ -147,7 +172,49 @@ export default function DashboardPage() {
           <Image src="/assets/icons/logo-deliserdang.jpg" alt="Logo" width={24} height={24} className="brand-icon" />
           <span className="brand-text">WebGIS Deli Serdang</span>
         </div>
-        <nav>
+        <nav style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button className="btn" onClick={() => (window.location.href = '/')}>Home</button>
+          <div
+            className="user-chip"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              padding: '4px 10px',
+              borderRadius: 999,
+              background: 'rgba(255,255,255,0.2)',
+              backdropFilter: 'blur(6px)',
+            }}
+          >
+            {avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt={userName || userEmail || 'User'}
+                style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(255,255,255,0.6)' }}
+              />
+            ) : (
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: '50%',
+                  background: '#1f2937',
+                  color: '#f9fafb',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 600,
+                }}
+                aria-hidden
+              >
+                {userInitials}
+              </div>
+            )}
+            <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
+              <span style={{ fontWeight: 600 }}>{userName || 'Pengguna'}</span>
+              <span style={{ fontSize: 12, opacity: 0.8 }}>{userEmail || '—'}</span>
+            </div>
+          </div>
           <button className="btn" onClick={logout}>Logout</button>
         </nav>
       </header>
