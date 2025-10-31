@@ -52,7 +52,7 @@ body{
   .layout{ grid-template-columns: 1fr; }
   .sidebar{ position:static; top:auto; max-height:none; overflow:visible; margin-bottom:16px; }
 }
-.content{ padding:16px 20px; }
+.content{ padding:20px; }
 
 /* Map page specifics */
 .map-container{ position:fixed; inset:0; }
