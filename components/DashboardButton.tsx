@@ -22,18 +22,12 @@ export default function DashboardButton() {
     checkSession()
   }, [])
 
+  if (isAuthenticated === null) {
+    return null
+  }
+
   if (!isAuthenticated) {
-    return (
-      <button
-        type="button"
-        className="btn primary"
-        disabled
-        aria-disabled
-        style={{ opacity: 0.5, cursor: 'not-allowed' }}
-      >
-        Dashboard
-      </button>
-    )
+    return null
   }
 
   return <Link className="btn primary" href="/dashboard">Dashboard</Link>
