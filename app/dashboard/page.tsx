@@ -173,7 +173,6 @@ export default function DashboardPage() {
           <span className="brand-text">WebGIS Deli Serdang</span>
         </div>
         <nav style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <button className="btn" onClick={() => (window.location.href = '/')}>Home</button>
           <div
             className="user-chip"
             style={{
@@ -215,6 +214,7 @@ export default function DashboardPage() {
               <span style={{ fontSize: 12, opacity: 0.8 }}>{userEmail || '—'}</span>
             </div>
           </div>
+          <button className="btn primary" onClick={() => (window.location.href = '/')}>Home</button>
           <button className="btn" onClick={logout}>Logout</button>
         </nav>
       </header>

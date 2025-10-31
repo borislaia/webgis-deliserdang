@@ -1,5 +1,6 @@
 import Image from 'next/image'
 import dynamicImport from 'next/dynamic'
+import DashboardButton from '@/components/DashboardButton'
 
 const VantaFog = dynamicImport(() => import('@/components/VantaFog'), { ssr: false })
 
@@ -13,6 +14,9 @@ export default function HomePage() {
           <Image src="/assets/icons/logo-deliserdang.jpg" alt="Logo" width={24} height={24} className="brand-icon" />
           <span className="brand-text">WebGIS Deli Serdang</span>
         </div>
+        <nav style={{ display: 'flex', alignItems: 'center' }}>
+          <DashboardButton />
+        </nav>
       </header>
       <section className="menu-grid" style={{ margin: '40px auto', padding: '0 16px' }}>
         <a className="menu-item" href="/login"><span className="label">Daerah Irigasi</span></a>
