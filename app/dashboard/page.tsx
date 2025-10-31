@@ -227,8 +227,8 @@ export default function DashboardPage() {
               <span className="badge">Dashboard</span>
             </div>
             <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <button className="btn primary" onClick={() => (window.location.href = '/map')}>Sebaran Irigasi</button>
               <button className="btn" onClick={() => setActivePanel('di')}>Daerah Irigasi</button>
-              <button className="btn" onClick={() => (window.location.href = '/map')}>Open Map</button>
               <button className="btn" onClick={() => setActivePanel('management')}>Manajemen Irigasi</button>
               <button className="btn" onClick={() => setActivePanel('reports')}>Reports</button>
               <button className="btn" onClick={() => setActivePanel('users')} id="usersBtn">Users</button>
