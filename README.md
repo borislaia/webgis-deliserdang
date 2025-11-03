@@ -7,7 +7,7 @@ Aplikasi WebGIS menggunakan Next.js (App Router, TypeScript), Supabase untuk aut
 ```
 app/                       # Next.js App Router
   api/                     # Route Handlers (server)
-    import-irrigation-data/route.ts  # Port dari Edge Function
+    admin/users/route.ts   # Endpoint manajemen role admin
   login/                   # Halaman login (public)
   register/                # Halaman register (public)
   map/                     # Halaman peta (protected by middleware)
@@ -53,7 +53,14 @@ npm run dev
 
 ## Import Data
 
-- Endpoint `POST /api/import-irrigation-data` memindahkan logika impor dari Edge Function ke Route Handler Next.js menggunakan Service Role Key. Pastikan RLS dan tabel sudah ada sesuai migrasi.
+- Impor data irigasi dijalankan lewat Supabase Edge Function `import-irrigation-data`. UI dashboard memanggilnya via `supabase.functions.invoke` sehingga tetap memanfaatkan RLS dan token pengguna (hanya admin yang lolos).
+- File GeoJSON dapat tetap diunggah ke bucket `geojson` untuk arsip dan pemrosesan lanjutan (segmentasi saluran, foto ruas 50 m, dsb) oleh Edge Function.
+
+## Role & Akses
+
+- Migrasi menambahkan trigger untuk memastikan semua akun baru otomatis mendapat `role = "user"`, sementara admin awal `barizzzlaia@gmail.com` ditandai sebagai `role = "admin"`.
+- Panel `Users` di dashboard dapat digunakan admin untuk mempromosikan/downgrade role. Rute `/api/admin/users` memverifikasi session admin sebelum memakai service role key.
+- Fitur manajemen data (import GeoJSON/Excel) dan kontrol edit lain dikunci untuk admin; pengguna biasa hanya dapat melihat data.
 
 ## Pembersihan Framework Lama
 

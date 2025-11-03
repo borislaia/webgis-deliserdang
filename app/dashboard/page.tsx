@@ -6,6 +6,7 @@ import * as XLSX from 'xlsx';
 import IrrigationManagementView from '@/components/IrrigationManagementView';
 
 type Panel = 'di' | 'management' | 'reports' | 'users' | 'settings';
+type UserRow = { id: string; email: string; role: string; created_at: string | null; last_sign_in_at: string | null };
 
 export default function DashboardPage() {
   const [activePanel, setActivePanel] = useState<Panel>('di');
@@ -13,6 +14,10 @@ export default function DashboardPage() {
   const [userEmail, setUserEmail] = useState<string>('');
   const [userName, setUserName] = useState<string>('');
   const [avatarUrl, setAvatarUrl] = useState<string>('');
+  const [userId, setUserId] = useState<string>('');
+  const [userRole, setUserRole] = useState<string>('');
+
+  const isAdmin = userRole === 'admin';
 
   // CSV state for Daerah Irigasi panel
   const [csvRows, setCsvRows] = useState<any[] | null>(null);
@@ -20,12 +25,19 @@ export default function DashboardPage() {
   const [csvLoading, setCsvLoading] = useState<boolean>(false);
   const [csvError, setCsvError] = useState<string | null>(null);
 
+  // Users panel state
+  const [users, setUsers] = useState<UserRow[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [usersError, setUsersError] = useState<string | null>(null);
+  const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
+
   useEffect(() => {
     (async () => {
       try {
         const supabase = createClient();
         const { data } = await supabase.auth.getUser();
         const user = data.user;
+        setUserId(user?.id || '');
         setUserEmail(user?.email || '');
         const displayName =
           (user?.user_metadata as any)?.full_name ||
@@ -39,6 +51,8 @@ export default function DashboardPage() {
           (user?.user_metadata as any)?.picture ||
           '';
         setAvatarUrl(avatar);
+        const role = (user?.app_metadata as any)?.role || (user?.user_metadata as any)?.role || 'user';
+        setUserRole(role);
       } catch {}
     })();
   }, []);
@@ -108,6 +122,56 @@ export default function DashboardPage() {
       }
     })();
   }, [activePanel]);
+
+  const loadUsers = async (signal?: AbortSignal) => {
+    setUsersLoading(true);
+    setUsersError(null);
+    try {
+      const res = await fetch('/api/admin/users', { signal, cache: 'no-store' });
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        throw new Error(err?.error || `Gagal memuat data pengguna (${res.status})`);
+      }
+      const json = await res.json();
+      setUsers(Array.isArray(json.users) ? json.users : []);
+    } catch (e: any) {
+      if (e?.name === 'AbortError') return;
+      setUsersError(e?.message || 'Gagal memuat data pengguna');
+      setUsers([]);
+    } finally {
+      setUsersLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activePanel !== 'users' || !isAdmin) return;
+    const controller = new AbortController();
+    loadUsers(controller.signal);
+    return () => controller.abort();
+  }, [activePanel, isAdmin]);
+
+  const updateUserRole = async (id: string, role: string) => {
+    setUpdatingUserId(id);
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, role }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        throw new Error(err?.error || 'Gagal memperbarui role');
+      }
+      setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, role } : u)));
+      if (userId === id) {
+        setUserRole(role);
+      }
+    } catch (e: any) {
+      alert(e?.message || 'Gagal memperbarui role');
+    } finally {
+      setUpdatingUserId(null);
+    }
+  };
 
   const logout = async () => {
     const supabase = createClient();
@@ -212,6 +276,7 @@ export default function DashboardPage() {
             <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
               <span style={{ fontWeight: 600 }}>{userName || 'Pengguna'}</span>
               <span style={{ fontSize: 12, opacity: 0.8 }}>{userEmail || '—'}</span>
+              <span style={{ fontSize: 11, opacity: 0.65 }}>Role: {userRole || 'user'}</span>
             </div>
           </div>
           <button className="btn primary" onClick={() => (window.location.href = '/')}>Home</button>
@@ -231,7 +296,7 @@ export default function DashboardPage() {
               <button className="btn" onClick={() => setActivePanel('di')}>Daerah Irigasi</button>
               <button className="btn" onClick={() => setActivePanel('management')}>Manajemen Irigasi</button>
               <button className="btn" onClick={() => setActivePanel('reports')}>Reports</button>
-              <button className="btn" onClick={() => setActivePanel('users')} id="usersBtn">Users</button>
+              <button className="btn" onClick={() => setActivePanel('users')} id="usersBtn" disabled={!isAdmin}>Users</button>
               <button className="btn" onClick={() => setActivePanel('settings')}>Settings</button>
             </div>
           </div>
@@ -282,7 +347,7 @@ export default function DashboardPage() {
 
           {activePanel === 'management' && (
             <div style={{ maxWidth: 1400, margin: '0 auto' }}>
-              <IrrigationManagementView />
+              <IrrigationManagementView isAdmin={isAdmin} />
             </div>
           )}
 
@@ -296,19 +361,49 @@ export default function DashboardPage() {
           {activePanel === 'users' && (
             <div className="card" style={{ padding: 18 }} id="usersPanel">
               <h3>User Management</h3>
-              <div>
-                <div style={{ padding: 16, background: '#f5f5f5', borderRadius: 4, margin: '8px 0' }}>
-                  <strong>Admin Feature</strong>
-                  <br />
-                  User management requires additional backend endpoints to be implemented.
-                  <br />
-                  <br />
-                  Current user: {userEmail || 'Unknown'}
-                </div>
-              </div>
-              <div style={{ marginTop: 16 }}>
-                <button className="btn primary" onClick={() => {}}>Refresh Users</button>
-              </div>
+              {!isAdmin && <p style={{ color: '#b91c1c' }}>Anda tidak memiliki akses untuk mengatur role. Hubungi admin.</p>}
+              {isAdmin && (
+                <>
+                  {usersLoading && <div className="loading">Memuat data pengguna…</div>}
+                  {usersError && <div className="error-message">{usersError}</div>}
+                  {!usersLoading && !usersError && (
+                    <div style={{ overflowX: 'auto' }}>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+                        <button className="btn" onClick={() => loadUsers()}>Refresh</button>
+                      </div>
+                      <table className="data-table">
+                        <thead>
+                          <tr>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Dibuat</th>
+                            <th>Login Terakhir</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {users.map((user) => (
+                            <tr key={user.id}>
+                              <td>{user.email || '—'}</td>
+                              <td>
+                                <select
+                                  value={user.role || 'user'}
+                                  onChange={(e) => updateUserRole(user.id, e.target.value)}
+                                  disabled={updatingUserId === user.id}
+                                >
+                                  <option value="user">user</option>
+                                  <option value="admin">admin</option>
+                                </select>
+                              </td>
+                              <td>{user.created_at ? new Date(user.created_at).toLocaleString('id-ID') : '—'}</td>
+                              <td>{user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleString('id-ID') : '—'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           )}
 
