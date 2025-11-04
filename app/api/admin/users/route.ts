@@ -73,6 +73,20 @@ export async function PATCH(request: Request) {
     }
 
     const adminClient = getAdminClient()
+    const { data: existing, error: fetchError } = await adminClient.auth.admin.getUserById(id)
+    if (fetchError) throw fetchError
+
+    const targetUser = existing?.user
+    const targetRole = (targetUser?.app_metadata as any)?.role || (targetUser?.user_metadata as any)?.role || 'user'
+
+    if (targetRole === 'admin' && id !== user.id && role !== targetRole) {
+      return NextResponse.json({ error: 'Anda tidak dapat mengubah role admin lain' }, { status: 403 })
+    }
+
+    if (role === targetRole) {
+      return NextResponse.json({ ok: true, user: targetUser })
+    }
+
     const { data, error } = await adminClient.auth.admin.updateUserById(id, {
       app_metadata: { role },
       user_metadata: { ...(body?.user_metadata || {}), role },

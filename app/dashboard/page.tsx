@@ -383,27 +383,37 @@ export default function DashboardPage() {
                           <tbody>
                             {users.map((user) => {
                               const isSelf = user.id === userId;
+                              const isOtherAdmin = user.role === 'admin' && !isSelf;
+                              const rowHighlight = isSelf
+                                ? { background: 'rgba(10,132,255,0.05)' }
+                                : isOtherAdmin
+                                ? { background: 'rgba(94,92,230,0.06)' }
+                                : undefined;
+                              const lockMessage = isSelf
+                                ? 'Role Anda dikunci'
+                                : isOtherAdmin
+                                ? 'Role admin lain dikunci'
+                                : '';
+
                               return (
-                                <tr key={user.id}
-                                  style={isSelf ? { background: 'rgba(10,132,255,0.05)' } : undefined}
-                                >
+                                <tr key={user.id} style={rowHighlight}>
                                   <td>{user.email || '—'}</td>
                                   <td>
                                     <select
                                       className="role-select"
                                       value={user.role || 'user'}
                                       onChange={(e) => {
-                                        if (isSelf) return;
+                                        if (isSelf || isOtherAdmin) return;
                                         updateUserRole(user.id, e.target.value);
                                       }}
-                                      disabled={isSelf || updatingUserId === user.id}
-                                      title={isSelf ? 'Anda tidak dapat mengganti role Anda sendiri' : undefined}
+                                      disabled={isSelf || isOtherAdmin || updatingUserId === user.id}
+                                      title={lockMessage || undefined}
                                     >
                                       <option value="user">user</option>
                                       <option value="admin">admin</option>
                                     </select>
-                                    {isSelf && (
-                                      <div style={{ marginTop: 6, fontSize: 12, color: 'var(--muted)' }}>Role Anda dikunci</div>
+                                    {lockMessage && (
+                                      <div style={{ marginTop: 6, fontSize: 12, color: 'var(--muted)' }}>{lockMessage}</div>
                                     )}
                                   </td>
                                   <td>{user.created_at ? new Date(user.created_at).toLocaleString('id-ID') : '—'}</td>
