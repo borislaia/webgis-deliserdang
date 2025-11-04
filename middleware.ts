@@ -2,6 +2,16 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
 
+function resolveSafeRedirect(raw: string | null | undefined, fallback = '/dashboard') {
+  if (!raw) return fallback
+  let decoded = raw
+  try {
+    decoded = decodeURIComponent(raw)
+  } catch {}
+  if (!decoded.startsWith('/') || decoded.startsWith('//')) return fallback
+  return decoded
+}
+
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next()
   const { pathname } = req.nextUrl
@@ -16,6 +26,15 @@ export async function middleware(req: NextRequest) {
   const {
     data: { session },
   } = await supabase.auth.getSession()
+
+  if (pathname === '/login') {
+    if (session) {
+      const redirectTarget = resolveSafeRedirect(req.nextUrl.searchParams.get('redirect'), '/dashboard')
+      const redirectUrl = new URL(redirectTarget, req.nextUrl.origin)
+      return NextResponse.redirect(redirectUrl)
+    }
+    return res
+  }
 
   if (pathname.startsWith('/map') || pathname.startsWith('/dashboard')) {
     if (!session) {
@@ -32,5 +51,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/map/:path*', '/dashboard/:path*']
+  matcher: ['/map/:path*', '/dashboard/:path*', '/login']
 }
