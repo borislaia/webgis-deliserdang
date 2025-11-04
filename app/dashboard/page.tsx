@@ -380,25 +380,38 @@ export default function DashboardPage() {
                             <th>Login Terakhir</th>
                           </tr>
                         </thead>
-                        <tbody>
-                          {users.map((user) => (
-                            <tr key={user.id}>
-                              <td>{user.email || '—'}</td>
-                              <td>
-                                <select
-                                  value={user.role || 'user'}
-                                  onChange={(e) => updateUserRole(user.id, e.target.value)}
-                                  disabled={updatingUserId === user.id}
+                          <tbody>
+                            {users.map((user) => {
+                              const isSelf = user.id === userId;
+                              return (
+                                <tr key={user.id}
+                                  style={isSelf ? { background: 'rgba(10,132,255,0.05)' } : undefined}
                                 >
-                                  <option value="user">user</option>
-                                  <option value="admin">admin</option>
-                                </select>
-                              </td>
-                              <td>{user.created_at ? new Date(user.created_at).toLocaleString('id-ID') : '—'}</td>
-                              <td>{user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleString('id-ID') : '—'}</td>
-                            </tr>
-                          ))}
-                        </tbody>
+                                  <td>{user.email || '—'}</td>
+                                  <td>
+                                    <select
+                                      className="role-select"
+                                      value={user.role || 'user'}
+                                      onChange={(e) => {
+                                        if (isSelf) return;
+                                        updateUserRole(user.id, e.target.value);
+                                      }}
+                                      disabled={isSelf || updatingUserId === user.id}
+                                      title={isSelf ? 'Anda tidak dapat mengganti role Anda sendiri' : undefined}
+                                    >
+                                      <option value="user">user</option>
+                                      <option value="admin">admin</option>
+                                    </select>
+                                    {isSelf && (
+                                      <div style={{ marginTop: 6, fontSize: 12, color: 'var(--muted)' }}>Role Anda dikunci</div>
+                                    )}
+                                  </td>
+                                  <td>{user.created_at ? new Date(user.created_at).toLocaleString('id-ID') : '—'}</td>
+                                  <td>{user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleString('id-ID') : '—'}</td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
                       </table>
                     </div>
                   )}

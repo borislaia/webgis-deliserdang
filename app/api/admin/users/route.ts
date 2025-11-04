@@ -65,6 +65,9 @@ export async function PATCH(request: Request) {
     if (!id || !role) {
       return NextResponse.json({ error: 'id dan role wajib diisi' }, { status: 400 })
     }
+    if (id === user.id) {
+      return NextResponse.json({ error: 'Admin tidak dapat mengubah role sendiri' }, { status: 403 })
+    }
     if (!['admin', 'user'].includes(role)) {
       return NextResponse.json({ error: 'Role tidak valid' }, { status: 400 })
     }
