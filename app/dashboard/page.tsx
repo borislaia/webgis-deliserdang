@@ -380,25 +380,48 @@ export default function DashboardPage() {
                             <th>Login Terakhir</th>
                           </tr>
                         </thead>
-                        <tbody>
-                          {users.map((user) => (
-                            <tr key={user.id}>
-                              <td>{user.email || '—'}</td>
-                              <td>
-                                <select
-                                  value={user.role || 'user'}
-                                  onChange={(e) => updateUserRole(user.id, e.target.value)}
-                                  disabled={updatingUserId === user.id}
-                                >
-                                  <option value="user">user</option>
-                                  <option value="admin">admin</option>
-                                </select>
-                              </td>
-                              <td>{user.created_at ? new Date(user.created_at).toLocaleString('id-ID') : '—'}</td>
-                              <td>{user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleString('id-ID') : '—'}</td>
-                            </tr>
-                          ))}
-                        </tbody>
+                          <tbody>
+                            {users.map((user) => {
+                              const isSelf = user.id === userId;
+                              const isOtherAdmin = user.role === 'admin' && !isSelf;
+                              const rowHighlight = isSelf
+                                ? { background: 'rgba(10,132,255,0.05)' }
+                                : isOtherAdmin
+                                ? { background: 'rgba(94,92,230,0.06)' }
+                                : undefined;
+                              const lockMessage = isSelf
+                                ? 'Role Anda dikunci'
+                                : isOtherAdmin
+                                ? 'Role admin lain dikunci'
+                                : '';
+
+                              return (
+                                <tr key={user.id} style={rowHighlight}>
+                                  <td>{user.email || '—'}</td>
+                                  <td>
+                                    <select
+                                      className="role-select"
+                                      value={user.role || 'user'}
+                                      onChange={(e) => {
+                                        if (isSelf || isOtherAdmin) return;
+                                        updateUserRole(user.id, e.target.value);
+                                      }}
+                                      disabled={isSelf || isOtherAdmin || updatingUserId === user.id}
+                                      title={lockMessage || undefined}
+                                    >
+                                      <option value="user">user</option>
+                                      <option value="admin">admin</option>
+                                    </select>
+                                    {lockMessage && (
+                                      <div style={{ marginTop: 6, fontSize: 12, color: 'var(--muted)' }}>{lockMessage}</div>
+                                    )}
+                                  </td>
+                                  <td>{user.created_at ? new Date(user.created_at).toLocaleString('id-ID') : '—'}</td>
+                                  <td>{user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleString('id-ID') : '—'}</td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
                       </table>
                     </div>
                   )}
