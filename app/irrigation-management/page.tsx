@@ -1,11 +1,23 @@
 "use client";
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
 import IrrigationManagementView from '@/components/IrrigationManagementView';
 
 export default function IrrigationManagementPage() {
   const supabase = useMemo(() => createClient(), []);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data } = await supabase.auth.getUser();
+        setIsAdmin(((data.user?.app_metadata as any)?.role) === 'admin');
+      } catch {
+        setIsAdmin(false);
+      }
+    })();
+  }, [supabase]);
 
   const logout = async () => {
     await supabase.auth.signOut();
@@ -27,7 +39,7 @@ export default function IrrigationManagementPage() {
 
       <div className="layout">
         <main className="content">
-          <IrrigationManagementView />
+          <IrrigationManagementView isAdmin={isAdmin} />
         </main>
       </div>
 

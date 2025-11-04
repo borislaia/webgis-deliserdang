@@ -17,6 +17,7 @@ import { defaults as defaultInteractions } from 'ol/interaction';
 import { createEmpty as createEmptyExtent, extend as extendExtent, isEmpty as isExtentEmpty } from 'ol/extent';
 
 const centerLonLat: [number, number] = [98.69870163855006, 3.5460256535269954];
+type StorageResult = { points: number; lines: number; polygons: number; files: number };
 
 export default function MapPage() {
   const mapDivRef = useRef<HTMLDivElement | null>(null);
@@ -228,6 +229,7 @@ export default function MapPage() {
         try {
           setLoadingStorage(true);
           setStorageError(null);
+          setStorageCounts({ points: 0, lines: 0, polygons: 0, files: 0 });
           const fetchManifestPaths = async (): Promise<string[]> => {
             // Try public CDN manifest first
             try {
@@ -287,7 +289,7 @@ export default function MapPage() {
               targetFiles = allFiles.filter((p) => p.startsWith(`${kdi}/`));
             }
           }
-          const processFile = async (path: string) => {
+          const processFile = async (path: string): Promise<StorageResult | null> => {
             // Prefer CDN public URL fetch for speed; fallback to storage.download
             try {
               const pub = supabase.storage.from('geojson').getPublicUrl(path);
@@ -312,8 +314,7 @@ export default function MapPage() {
                       else if (t === 'LineString' || t === 'MultiLineString') { linesSrc.addFeature(f); cLines++; }
                       else if (t === 'Polygon' || t === 'MultiPolygon') { polygonsSrc.addFeature(f); cPolys++; }
                     }
-                    setStorageCounts((prev) => ({ points: prev.points + cPoints, lines: prev.lines + cLines, polygons: prev.polygons + cPolys, files: prev.files + 1 }));
-                    return;
+                    return { points: cPoints, lines: cLines, polygons: cPolys, files: 1 };
                   }
                 }
               }
@@ -321,10 +322,10 @@ export default function MapPage() {
 
             // Fallback to SDK download
             const { data: blob } = await supabase.storage.from('geojson').download(path);
-            if (!blob) return;
+            if (!blob) return null;
             const text = await blob.text();
             let json: any;
-            try { json = JSON.parse(text); } catch { return; }
+            try { json = JSON.parse(text); } catch { return null; }
             const fmt = new GeoJSON();
             const projection = map.getView().getProjection();
             const features = json?.type === 'FeatureCollection'
@@ -332,7 +333,7 @@ export default function MapPage() {
               : json?.type === 'Feature'
                 ? [fmt.readFeature(json, { dataProjection: 'EPSG:4326', featureProjection: projection })]
                 : [];
-            if (!features.length) return;
+            if (!features.length) return null;
             let cPoints = 0, cLines = 0, cPolys = 0;
             for (const f of features) {
               const geom: any = f.getGeometry?.();
@@ -341,19 +342,34 @@ export default function MapPage() {
               else if (t === 'LineString' || t === 'MultiLineString') { linesSrc.addFeature(f); cLines++; }
               else if (t === 'Polygon' || t === 'MultiPolygon') { polygonsSrc.addFeature(f); cPolys++; }
             }
-            setStorageCounts((prev) => ({ points: prev.points + cPoints, lines: prev.lines + cLines, polygons: prev.polygons + cPolys, files: prev.files + 1 }));
+            return { points: cPoints, lines: cLines, polygons: cPolys, files: 1 };
           };
 
           // Limit concurrency to avoid blocking UI
           let index = 0;
           const concurrency = 8; // slightly higher; CDN helps
+          const storageResults: StorageResult[] = [];
           const workers = Array.from({ length: concurrency }, async () => {
             while (index < targetFiles.length) {
               const current = targetFiles[index++];
-              try { await processFile(current); } catch {}
+              try {
+                const result = await processFile(current);
+                if (result) storageResults.push(result);
+              } catch {}
             }
           });
           await Promise.all(workers);
+          if (storageResults.length) {
+            const totals = storageResults.reduce<StorageResult>((acc, curr) => ({
+              points: acc.points + curr.points,
+              lines: acc.lines + curr.lines,
+              polygons: acc.polygons + curr.polygons,
+              files: acc.files + curr.files,
+            }), { points: 0, lines: 0, polygons: 0, files: 0 });
+            setStorageCounts(totals);
+          } else {
+            setStorageCounts({ points: 0, lines: 0, polygons: 0, files: 0 });
+          }
           // Update extent dari storage layers
           const combined = createEmptyExtent();
           const pExt = polygonsSrc.getExtent();

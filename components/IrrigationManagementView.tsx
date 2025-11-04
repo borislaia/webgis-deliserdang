@@ -7,7 +7,11 @@ function classNames(...parts: Array<string | false | undefined>) {
   return parts.filter(Boolean).join(' ');
 }
 
-export default function IrrigationManagementView() {
+type IrrigationManagementViewProps = {
+  isAdmin: boolean;
+};
+
+export default function IrrigationManagementView({ isAdmin }: IrrigationManagementViewProps) {
   const supabase = useMemo(() => createClient(), []);
 
   const [activeTab, setActiveTab] = useState<'overview' | 'import' | 'import-excel' | 'saluran' | 'ruas' | 'bangunan'>('overview');
@@ -98,6 +102,10 @@ export default function IrrigationManagementView() {
     setMessage(null);
     setImporting(true);
     try {
+      if (!isAdmin) {
+        setMessage({ type: 'error', text: 'Hanya admin yang dapat melakukan import.' });
+        return;
+      }
       const trimmedKode = kodeDI.trim();
       if (!trimmedKode) {
         setMessage({ type: 'error', text: 'Kode DI wajib diisi' });
@@ -136,13 +144,10 @@ export default function IrrigationManagementView() {
         readJsonFile(fungsionalFile),
       ]);
 
-      const res = await fetch('/api/import-irrigation-data', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'import', k_di: trimmedKode, bangunanData, saluranData, fungsionalData }),
+      const { data: invokeData, error: invokeError } = await supabase.functions.invoke('import-irrigation-data', {
+        body: { action: 'import', k_di: trimmedKode, bangunanData, saluranData, fungsionalData },
       });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'Gagal import');
+      if (invokeError) throw new Error(invokeError.message || 'Gagal import');
       setMessage({ type: 'success', text: 'Import berhasil' });
     } catch (e: any) {
       setMessage({ type: 'error', text: e?.message || 'Terjadi kesalahan' });
@@ -168,6 +173,12 @@ export default function IrrigationManagementView() {
     <div style={{ maxWidth: 1400, margin: '0 auto' }}>
       <h2 style={{ marginTop: 0 }}>Manajemen Data Irigasi</h2>
 
+      {!isAdmin && (
+        <div className="info" style={{ marginBottom: 16 }}>
+          Anda masuk sebagai pengguna biasa. Data dapat dilihat, tetapi perubahan hanya bisa dilakukan oleh admin.
+        </div>
+      )}
+
       {message && (
         <div className={classNames(message.type === 'error' ? 'error' : 'success')}>
           {message.text}
@@ -176,8 +187,8 @@ export default function IrrigationManagementView() {
 
       <div className="tabs">
         <button className={classNames('tab', activeTab === 'overview' && 'active')} onClick={() => setActiveTab('overview')}>Overview</button>
-        <button className={classNames('tab', activeTab === 'import' && 'active')} onClick={() => setActiveTab('import')}>Import GeoJSON</button>
-        <button className={classNames('tab', activeTab === 'import-excel' && 'active')} onClick={() => setActiveTab('import-excel')}>Import Excel</button>
+        <button className={classNames('tab', activeTab === 'import' && 'active')} onClick={() => setActiveTab('import')} disabled={!isAdmin}>Import GeoJSON</button>
+        <button className={classNames('tab', activeTab === 'import-excel' && 'active')} onClick={() => setActiveTab('import-excel')} disabled={!isAdmin}>Import Excel</button>
         <button className={classNames('tab', activeTab === 'saluran' && 'active')} onClick={() => setActiveTab('saluran')}>Saluran</button>
         <button className={classNames('tab', activeTab === 'ruas' && 'active')} onClick={() => setActiveTab('ruas')}>Ruas</button>
         <button className={classNames('tab', activeTab === 'bangunan' && 'active')} onClick={() => setActiveTab('bangunan')}>Bangunan</button>
@@ -221,25 +232,26 @@ export default function IrrigationManagementView() {
       {activeTab === 'import' && (
         <section className="tab-content active card" style={{ padding: 24 }}>
           <h3>Import Data dari GeoJSON</h3>
+          {!isAdmin && <p style={{ color: '#b91c1c' }}>Fitur ini khusus admin.</p>}
           <div className="import-section">
             <div className="form-group">
               <label htmlFor="kodeDI">Kode Daerah Irigasi</label>
-              <input id="kodeDI" type="text" value={kodeDI} onChange={(e) => setKodeDI(e.target.value)} placeholder="e.g., 12120008" />
+              <input id="kodeDI" type="text" value={kodeDI} onChange={(e) => setKodeDI(e.target.value)} placeholder="e.g., 12120008" disabled={!isAdmin} />
             </div>
             <div className="form-group">
               <label>File Bangunan (JSON)</label>
-              <input type="file" accept=".json" onChange={(e) => setBangunanFile(e.target.files?.[0] || null)} />
+              <input type="file" accept=".json" onChange={(e) => setBangunanFile(e.target.files?.[0] || null)} disabled={!isAdmin} />
             </div>
             <div className="form-group">
               <label>File Saluran (JSON)</label>
-              <input type="file" accept=".json" onChange={(e) => setSaluranFile(e.target.files?.[0] || null)} />
+              <input type="file" accept=".json" onChange={(e) => setSaluranFile(e.target.files?.[0] || null)} disabled={!isAdmin} />
             </div>
             <div className="form-group">
               <label>File Fungsional (JSON)</label>
-              <input type="file" accept=".json" onChange={(e) => setFungsionalFile(e.target.files?.[0] || null)} />
+              <input type="file" accept=".json" onChange={(e) => setFungsionalFile(e.target.files?.[0] || null)} disabled={!isAdmin} />
             </div>
             <div className="btn-group">
-              <button className="btn primary" onClick={importGeoJson} disabled={importing}>
+              <button className="btn primary" onClick={importGeoJson} disabled={importing || !isAdmin}>
                 {importing ? 'Memproses...' : 'Import Data'}
               </button>
               <button
@@ -251,7 +263,7 @@ export default function IrrigationManagementView() {
                   setFungsionalFile(null);
                   setMessage(null);
                 }}
-                disabled={importing}
+                disabled={importing || !isAdmin}
               >
                 Clear
               </button>
@@ -263,11 +275,12 @@ export default function IrrigationManagementView() {
       {activeTab === 'import-excel' && (
         <section className="tab-content active card" style={{ padding: 24 }}>
           <h3>Import Data dari Excel</h3>
+          {!isAdmin && <p style={{ color: '#b91c1c' }}>Fitur ini khusus admin.</p>}
           <div className="import-section">
             <p style={{ marginBottom: 16 }}>Upload file Excel yang berisi data daerah irigasi, saluran, atau bangunan.</p>
             <div className="form-group">
               <label>File Excel (.xlsx)</label>
-              <input type="file" accept=".xlsx,.xls" onChange={(e) => onExcelSelected(e.target.files?.[0] || null)} />
+              <input type="file" accept=".xlsx,.xls" onChange={(e) => onExcelSelected(e.target.files?.[0] || null)} disabled={!isAdmin} />
             </div>
           </div>
         </section>
