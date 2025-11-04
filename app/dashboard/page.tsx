@@ -315,7 +315,7 @@ export default function DashboardPage() {
                         {csvHeaders.map((h) => (
                           <th key={h || 'col'}>{h || '—'}</th>
                         ))}
-                        <th key="__map">Map</th>
+                        <th key="__map">MAP</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -326,14 +326,14 @@ export default function DashboardPage() {
                           ))}
                           <td key="__map_btn">
                             <button
-                              className="btn"
+                              className="primary-btn"
                               onClick={() => {
                                 const di = getDiCodeFromRow(row as Record<string, any>);
                                 const target = di ? `/map?di=${encodeURIComponent(di)}` : '/map';
                                 window.location.href = target;
                               }}
                             >
-                              Map
+                              MAP
                             </button>
                           </td>
                         </tr>
