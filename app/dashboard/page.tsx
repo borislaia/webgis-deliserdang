@@ -326,7 +326,7 @@ export default function DashboardPage() {
                           ))}
                           <td key="__map_btn">
                             <button
-                              className="primary-btn"
+                              className="btn primary"
                               onClick={() => {
                                 const di = getDiCodeFromRow(row as Record<string, any>);
                                 const target = di ? `/map?di=${encodeURIComponent(di)}` : '/map';
