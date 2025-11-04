@@ -295,16 +295,16 @@ export default function DashboardPage() {
               <button className="btn primary" onClick={() => (window.location.href = '/map')}>Sebaran Irigasi</button>
               <button className="btn" onClick={() => setActivePanel('di')}>Daerah Irigasi</button>
               <button className="btn" onClick={() => setActivePanel('management')}>Manajemen Irigasi</button>
-              <button className="btn" onClick={() => setActivePanel('reports')}>Reports</button>
+              <button className="btn" onClick={() => setActivePanel('reports')}>Laporan</button>
               <button className="btn" onClick={() => setActivePanel('users')} id="usersBtn" disabled={!isAdmin}>Users</button>
-              <button className="btn" onClick={() => setActivePanel('settings')}>Settings</button>
+              <button className="btn" onClick={() => setActivePanel('settings')}>Pengaturan</button>
             </div>
           </div>
         </aside>
         <main className="content">
           {activePanel === 'di' && (
             <div className="card" style={{ padding: 18 }}>
-              <h3 style={{ marginTop: 0 }}>Daerah Irigasi (CSV)</h3>
+              <h3 style={{ marginTop: 0 }}>Daerah Irigasi</h3>
               {csvLoading && <div className="loading">Loading...</div>}
               {csvError && <div className="error-message">{csvError}</div>}
               {!csvLoading && !csvError && csvRows && (
@@ -353,7 +353,7 @@ export default function DashboardPage() {
 
           {activePanel === 'reports' && (
             <div className="card" style={{ padding: 18 }}>
-              <h3 style={{ marginTop: 0 }}>Reports</h3>
+              <h3 style={{ marginTop: 0 }}>Laporan</h3>
               <p>Fitur laporan akan ditambahkan.</p>
             </div>
           )}
@@ -409,7 +409,7 @@ export default function DashboardPage() {
 
           {activePanel === 'settings' && (
             <div className="card" style={{ padding: 18 }}>
-              <h3 style={{ marginTop: 0 }}>Settings</h3>
+              <h3 style={{ marginTop: 0 }}>Pengaturan</h3>
               <p>Pengaturan akan ditambahkan.</p>
             </div>
           )}
