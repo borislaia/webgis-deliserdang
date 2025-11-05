@@ -16,6 +16,13 @@ export default function IrrigationManagementView({ isAdmin }: IrrigationManageme
 
   const [activeTab, setActiveTab] = useState<'overview' | 'import' | 'import-excel' | 'saluran' | 'ruas' | 'bangunan'>('overview');
 
+  // Reset tab ke overview jika bukan admin dan sedang di tab import
+  useEffect(() => {
+    if (!isAdmin && (activeTab === 'import' || activeTab === 'import-excel')) {
+      setActiveTab('overview');
+    }
+  }, [isAdmin, activeTab]);
+
   const [kodeDI, setKodeDI] = useState('');
   const [bangunanFile, setBangunanFile] = useState<File | null>(null);
   const [saluranFile, setSaluranFile] = useState<File | null>(null);
@@ -187,8 +194,12 @@ export default function IrrigationManagementView({ isAdmin }: IrrigationManageme
 
       <div className="tabs">
         <button className={classNames('tab', activeTab === 'overview' && 'active')} onClick={() => setActiveTab('overview')}>Overview</button>
-        <button className={classNames('tab', activeTab === 'import' && 'active')} onClick={() => setActiveTab('import')} disabled={!isAdmin}>Import GeoJSON</button>
-        <button className={classNames('tab', activeTab === 'import-excel' && 'active')} onClick={() => setActiveTab('import-excel')} disabled={!isAdmin}>Import Excel</button>
+        {isAdmin && (
+          <>
+            <button className={classNames('tab', activeTab === 'import' && 'active')} onClick={() => setActiveTab('import')}>Import GeoJSON</button>
+            <button className={classNames('tab', activeTab === 'import-excel' && 'active')} onClick={() => setActiveTab('import-excel')}>Import Excel</button>
+          </>
+        )}
         <button className={classNames('tab', activeTab === 'saluran' && 'active')} onClick={() => setActiveTab('saluran')}>Saluran</button>
         <button className={classNames('tab', activeTab === 'ruas' && 'active')} onClick={() => setActiveTab('ruas')}>Ruas</button>
         <button className={classNames('tab', activeTab === 'bangunan' && 'active')} onClick={() => setActiveTab('bangunan')}>Bangunan</button>
@@ -229,29 +240,28 @@ export default function IrrigationManagementView({ isAdmin }: IrrigationManageme
         </section>
       )}
 
-      {activeTab === 'import' && (
+      {activeTab === 'import' && isAdmin && (
         <section className="tab-content active card" style={{ padding: 24 }}>
           <h3>Import Data dari GeoJSON</h3>
-          {!isAdmin && <p style={{ color: '#b91c1c' }}>Fitur ini khusus admin.</p>}
           <div className="import-section">
             <div className="form-group">
               <label htmlFor="kodeDI">Kode Daerah Irigasi</label>
-              <input id="kodeDI" type="text" value={kodeDI} onChange={(e) => setKodeDI(e.target.value)} placeholder="e.g., 12120008" disabled={!isAdmin} />
+              <input id="kodeDI" type="text" value={kodeDI} onChange={(e) => setKodeDI(e.target.value)} placeholder="e.g., 12120008" />
             </div>
             <div className="form-group">
               <label>File Bangunan (JSON)</label>
-              <input type="file" accept=".json" onChange={(e) => setBangunanFile(e.target.files?.[0] || null)} disabled={!isAdmin} />
+              <input type="file" accept=".json" onChange={(e) => setBangunanFile(e.target.files?.[0] || null)} />
             </div>
             <div className="form-group">
               <label>File Saluran (JSON)</label>
-              <input type="file" accept=".json" onChange={(e) => setSaluranFile(e.target.files?.[0] || null)} disabled={!isAdmin} />
+              <input type="file" accept=".json" onChange={(e) => setSaluranFile(e.target.files?.[0] || null)} />
             </div>
             <div className="form-group">
               <label>File Fungsional (JSON)</label>
-              <input type="file" accept=".json" onChange={(e) => setFungsionalFile(e.target.files?.[0] || null)} disabled={!isAdmin} />
+              <input type="file" accept=".json" onChange={(e) => setFungsionalFile(e.target.files?.[0] || null)} />
             </div>
             <div className="btn-group">
-              <button className="btn primary" onClick={importGeoJson} disabled={importing || !isAdmin}>
+              <button className="btn primary" onClick={importGeoJson} disabled={importing}>
                 {importing ? 'Memproses...' : 'Import Data'}
               </button>
               <button
@@ -263,7 +273,7 @@ export default function IrrigationManagementView({ isAdmin }: IrrigationManageme
                   setFungsionalFile(null);
                   setMessage(null);
                 }}
-                disabled={importing || !isAdmin}
+                disabled={importing}
               >
                 Clear
               </button>
@@ -272,15 +282,14 @@ export default function IrrigationManagementView({ isAdmin }: IrrigationManageme
         </section>
       )}
 
-      {activeTab === 'import-excel' && (
+      {activeTab === 'import-excel' && isAdmin && (
         <section className="tab-content active card" style={{ padding: 24 }}>
           <h3>Import Data dari Excel</h3>
-          {!isAdmin && <p style={{ color: '#b91c1c' }}>Fitur ini khusus admin.</p>}
           <div className="import-section">
             <p style={{ marginBottom: 16 }}>Upload file Excel yang berisi data daerah irigasi, saluran, atau bangunan.</p>
             <div className="form-group">
               <label>File Excel (.xlsx)</label>
-              <input type="file" accept=".xlsx,.xls" onChange={(e) => onExcelSelected(e.target.files?.[0] || null)} disabled={!isAdmin} />
+              <input type="file" accept=".xlsx,.xls" onChange={(e) => onExcelSelected(e.target.files?.[0] || null)} />
             </div>
           </div>
         </section>
