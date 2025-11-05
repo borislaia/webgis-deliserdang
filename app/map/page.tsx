@@ -582,25 +582,16 @@ export default function MapPage() {
         delete props.metadata;
         if ('geometry' in props) delete props.geometry;
 
-        const humanizeKey = (key: string): string =>
-          key
-            .replace(/_/g, ' ')
-            .replace(/([a-z])([A-Z])/g, '$1 $2')
-            .replace(/\s+/g, ' ')
-            .trim()
-            .toLowerCase()
-            .replace(/\b\w/g, (char) => char.toUpperCase());
-
         const formatNumber = (value: number, digits?: number): string => {
           const maximumFractionDigits = typeof digits === 'number' ? digits : Number.isInteger(value) ? 0 : 2;
           return new Intl.NumberFormat('id-ID', { maximumFractionDigits }).format(value);
         };
 
-        const formatValue = (value: any, depth = 0): string => {
+        const formatDisplay = (value: any, digits?: number): string => {
           if (value === null || value === undefined) return '';
           if (typeof value === 'number') {
             if (!Number.isFinite(value)) return '';
-            return formatNumber(value);
+            return formatNumber(value, digits);
           }
           if (typeof value === 'string') {
             const trimmed = value.trim();
@@ -609,8 +600,12 @@ export default function MapPage() {
             if (numericMatch) {
               const normalized = Number(trimmed.replace(',', '.'));
               if (!Number.isNaN(normalized)) {
-                const fractionDigits = trimmed.includes('.') || trimmed.includes(',') ? Math.min(2, (trimmed.split(/[.,]/)[1] || '').length) : 0;
-                return formatNumber(normalized, fractionDigits);
+                const inferredDigits = typeof digits === 'number'
+                  ? digits
+                  : trimmed.includes('.') || trimmed.includes(',')
+                    ? Math.min(2, (trimmed.split(/[.,]/)[1] || '').length)
+                    : 0;
+                return formatNumber(normalized, inferredDigits);
               }
             }
             return trimmed;
@@ -619,9 +614,8 @@ export default function MapPage() {
             return value ? 'Ya' : 'Tidak';
           }
           if (Array.isArray(value)) {
-            if (depth > 2) return '';
             const joined = value
-              .map((item) => formatValue(item, depth + 1))
+              .map((item) => formatDisplay(item, digits))
               .filter((item) => item && item.length > 0);
             return Array.from(new Set(joined)).join(', ');
           }
@@ -629,161 +623,67 @@ export default function MapPage() {
             return value.toISOString();
           }
           if (typeof value === 'object') {
-            if (depth > 1) return '';
             const entries = Object.entries(value as Record<string, any>);
             const rendered = entries
-              .map(([k, v]) => {
-                const formatted = formatValue(v, depth + 1);
-                if (!formatted) return '';
-                return `${humanizeKey(k)}: ${formatted}`;
-              })
+              .map(([, v]) => formatDisplay(v, digits))
               .filter((item) => item && item.length > 0);
             return rendered.join(', ');
           }
           return String(value);
         };
 
-        const usedKeys = {
-          props: new Set<string>(),
-          metadata: new Set<string>(),
-        };
-
-        const registerUsed = (scope: 'props' | 'metadata', key: string) => {
-          usedKeys[scope].add(key.toLowerCase());
-        };
-
-        const trySource = (source: Record<string, any> | undefined, key: string, scope: 'props' | 'metadata'): string | null => {
-          if (!source || typeof source !== 'object') return null;
-          if (Object.prototype.hasOwnProperty.call(source, key)) {
-            const formatted = formatValue(source[key]);
-            if (formatted) {
-              registerUsed(scope, key);
-              return formatted;
-            }
-          }
-          const actualKey = Object.keys(source).find((existing) => existing.toLowerCase() === key.toLowerCase());
-          if (actualKey) {
-            const formatted = formatValue(source[actualKey]);
-            if (formatted) {
-              registerUsed(scope, actualKey);
-              return formatted;
-            }
-          }
-          return null;
-        };
-
-        const getValue = (keys: string[], scope: 'props' | 'metadata' | 'both' = 'both'): string => {
-          const scopes = scope === 'both' ? ['props', 'metadata'] : [scope];
+        const findRawValue = (keys: string[]): any => {
           for (const key of keys) {
-            for (const current of scopes) {
-              const source = current === 'metadata' ? metadata : props;
-              const result = trySource(source, key, current as 'props' | 'metadata');
-              if (result) return result;
+            for (const source of [props, metadata]) {
+              if (!source || typeof source !== 'object') continue;
+              if (Object.prototype.hasOwnProperty.call(source, key)) return source[key];
+              const actualKey = Object.keys(source).find((existing) => existing.toLowerCase() === key.toLowerCase());
+              if (actualKey) return source[actualKey];
             }
           }
-          return '';
+          return undefined;
         };
 
-        const hasKey = (keys: string[], scope: 'props' | 'metadata' | 'both' = 'both'): boolean => {
-          const scopes = scope === 'both' ? ['props', 'metadata'] : [scope];
-          return keys.some((key) =>
-            scopes.some((current) => {
-              const source = current === 'metadata' ? metadata : props;
-              if (!source || typeof source !== 'object') return false;
-              if (Object.prototype.hasOwnProperty.call(source, key) && formatValue(source[key])) return true;
-              return Object.keys(source).some((existing) => existing.toLowerCase() === key.toLowerCase() && formatValue(source[existing]));
-            })
-          );
+        const getDisplayValue = (keys: string[], digits?: number): string => {
+          const raw = findRawValue(keys);
+          return formatDisplay(raw, digits);
         };
 
-        const addRow = (label: string, value: string): boolean => {
-          if (!value) return false;
-          const rowWrapper = document.createElement('div');
-          rowWrapper.className = 'popup-row';
-          const labelSpan = document.createElement('span');
-          labelSpan.className = 'label';
-          labelSpan.textContent = label;
-          const valueSpan = document.createElement('span');
-          valueSpan.className = 'value';
-          valueSpan.textContent = value;
-          rowWrapper.appendChild(labelSpan);
-          rowWrapper.appendChild(valueSpan);
-          el.appendChild(rowWrapper);
-          return true;
-        };
+        const rows: Array<[string, string]> = [];
 
         let popupTitle = 'Feature';
-        const fieldDefs: Array<{ label: string; keys: string[]; scope?: 'props' | 'metadata' | 'both' }> = [];
-
         const isLine = t === 'LineString' || t === 'MultiLineString';
         const isPoint = t === 'Point' || t === 'MultiPoint';
         const isPolygon = t === 'Polygon' || t === 'MultiPolygon';
-        const isRuas = isLine && hasKey(['ruas_id', 'no_ruas', 'urutan']);
 
-        if (isRuas) {
-          popupTitle = 'Ruas Saluran';
-          fieldDefs.push(
-            { label: 'No Ruas', keys: ['no_ruas', 'NO_RUAS'] },
-            { label: 'Urutan', keys: ['urutan', 'URUTAN'] },
-            { label: 'Nama Ruas', keys: ['nama_ruas', 'nama', 'NAMA', 'saluran', 'SALURAN', 'NAMOBJ'] },
-            { label: 'Saluran Induk', keys: ['saluran_induk', 'saluran', 'SALURAN'] },
-            { label: 'Daerah Irigasi', keys: ['n_di', 'NAMA_DI'] },
-            { label: 'Kode DI', keys: ['k_di', 'K_DI'] },
-            { label: 'Panjang (m)', keys: ['panjang', 'panjang_m', 'PANJANG', 'PANJANG_SA', 'panjang_sa'] },
-            { label: 'Status', keys: ['status', 'STATUS', 'kondisi', 'KONDISI'] },
-            { label: 'Tahun', keys: ['tahun', 'TAHUN', 'tahun_data', 'Thn_Dat'] },
-            { label: 'Petugas', keys: ['petugas', 'survey_by', 'SURVEY_BY', 'SURVEI_BY'] },
-            { label: 'Catatan', keys: ['catatan', 'CATATAN', 'keterangan', 'KETERANGAN'] },
-            { label: 'Ruas ID', keys: ['ruas_id'] }
-          );
-        } else if (isLine) {
+        if (isLine) {
           popupTitle = 'Saluran';
-          fieldDefs.push(
-            { label: 'Daerah Irigasi', keys: ['n_di', 'NAMA_DI'] },
-            { label: 'Kode DI', keys: ['k_di', 'K_DI'] },
-            { label: 'Nama Saluran', keys: ['nama', 'NAMA', 'saluran', 'SALURAN', 'NAMOBJ'] },
-            { label: 'Nomenklatur', keys: ['nomenklatu', 'NOMENKLATU'] },
-            { label: 'Jenis Aset', keys: ['n_aset', 'N_ASET'] },
-            { label: 'Kode Aset', keys: ['k_aset', 'K_ASET'] },
-            { label: 'Panjang (m)', keys: ['panjang_sa', 'PANJANG_SA', 'panjang'] },
-            { label: 'Luas Layan (ha)', keys: ['luas_layan', 'LUAS_LAYAN', 'luas_ha', 'LUAS_HA'] },
-            { label: 'Nomor Rekord', keys: ['norec', 'NOREC'] },
-            { label: 'Profil', keys: ['profil', 'PROFIL'] }
-          );
+          const noRuasRaw = findRawValue(['no_ruas', 'NO_RUAS', 'ruas_id']);
+          const noRuas = formatDisplay(noRuasRaw);
+          rows.push(['No Ruas', noRuas ? `Ruas ${noRuas}` : 'Ruas -']);
+
+          const saluranName = getDisplayValue(['nama', 'NAMA', 'saluran', 'SALURAN', 'NAMOBJ']);
+          rows.push(['Saluran', saluranName || '-']);
         } else if (isPoint) {
           popupTitle = 'Bangunan';
-          fieldDefs.push(
-            { label: 'Daerah Irigasi', keys: ['n_di', 'NAMA_DI'] },
-            { label: 'Kode DI', keys: ['k_di', 'K_DI'] },
-            { label: 'Nama Bangunan', keys: ['nama', 'NAMA', 'NAMOBJ'] },
-            { label: 'Jenis Bangunan', keys: ['n_aset', 'N_ASET'] },
-            { label: 'Kode Bangunan', keys: ['k_aset', 'K_ASET'] },
-            { label: 'Nomenklatur', keys: ['nomenklatu', 'NOMENKLATU'] },
-            { label: 'Saluran Terkait', keys: ['saluran', 'SALURAN', 'no_saluran', 'NO_SALURAN'] },
-            { label: 'Profil', keys: ['profil', 'PROFIL'] },
-            { label: 'Luas Layan (ha)', keys: ['luas_layan', 'LUAS_LAYAN'] }
-          );
+          const nama = getDisplayValue(['nama', 'NAMA', 'NAMOBJ', 'n_di', 'NAMA_DI']);
+          rows.push(['Nama', nama || '-']);
+
+          const nomen = getDisplayValue(['nomenklatu', 'NOMENKLATU', 'nomenklatur']);
+          rows.push(['Nomenklatur', nomen || '-']);
         } else if (isPolygon) {
           popupTitle = 'Fungsional';
-          fieldDefs.push(
-            { label: 'Daerah Irigasi', keys: ['NAMA_DI', 'n_di'] },
-            { label: 'Kode DI', keys: ['k_di', 'K_DI'] },
-            { label: 'Luas (ha)', keys: ['LUAS_HA', 'luas_ha'] },
-            { label: 'Kondisi', keys: ['Kondisi', 'KONDISI', 'status', 'STATUS'] },
-            { label: 'Tahun Data', keys: ['Thn_Dat', 'tahun_data', 'TAHUN'] },
-            { label: 'Kecamatan', keys: ['Kecamatan', 'KECAMATAN'] },
-            { label: 'Desa / Kelurahan', keys: ['Desa_Kel', 'DESA_KEL', 'DESA'] },
-            { label: 'Sumber Air', keys: ['Smb_Air', 'SMBR_AIR', 'sumber_air'] },
-            { label: 'Keterangan', keys: ['Keterangan', 'KETERANGAN'] }
-          );
+          const luas = getDisplayValue(['LUAS_HA', 'luas_ha'], 2);
+          rows.push(['Luas', luas || '-']);
+
+          const tahun = getDisplayValue(['Thn_Dat', 'tahun_data', 'TAHUN']);
+          rows.push(['Tahun Data', tahun || '-']);
         } else {
           popupTitle = 'Feature';
-          fieldDefs.push(
-            { label: 'Nama', keys: ['nama', 'NAMA', 'NAMOBJ'] },
-            { label: 'Daerah Irigasi', keys: ['n_di', 'NAMA_DI'] },
-            { label: 'Kode DI', keys: ['k_di', 'K_DI'] },
-            { label: 'Keterangan', keys: ['keterangan', 'KETERANGAN', 'deskripsi', 'DESKRIPSI'] }
-          );
+          const name = getDisplayValue(['nama', 'NAMA', 'NAMOBJ']);
+          if (name) rows.push(['Nama', name]);
+          const description = getDisplayValue(['keterangan', 'KETERANGAN', 'deskripsi', 'DESKRIPSI']);
+          if (description) rows.push(['Keterangan', description]);
         }
 
         const titleDiv = document.createElement('div');
@@ -791,58 +691,33 @@ export default function MapPage() {
         titleDiv.textContent = popupTitle;
         el.appendChild(titleDiv);
 
-        let hasMainRow = false;
-        for (const field of fieldDefs) {
-          const value = getValue(field.keys, field.scope ?? 'both');
-          if (value) {
-            const added = addRow(field.label, value);
-            if (added) hasMainRow = true;
-          }
-        }
+        if (rows.length) {
+          const table = document.createElement('table');
+          table.className = 'popup-table';
+          const tbody = document.createElement('tbody');
+          table.appendChild(tbody);
 
-        if (!hasMainRow) {
-          const emptyRow = document.createElement('div');
-          emptyRow.className = 'popup-row';
-          const valueSpan = document.createElement('span');
-          valueSpan.className = 'value';
-          valueSpan.style.fontStyle = 'italic';
-          valueSpan.textContent = 'Tidak ada atribut yang dapat ditampilkan';
-          emptyRow.appendChild(valueSpan);
-          el.appendChild(emptyRow);
-        }
+          rows.forEach(([label, value]) => {
+            const tr = document.createElement('tr');
+            const labelTd = document.createElement('td');
+            labelTd.className = 'label';
+            labelTd.textContent = label;
+            tr.appendChild(labelTd);
 
-        const metadataBlacklist = new Set(['img_urls', 'imgurls', 'url_imgs', 'urlimgs', 'foto', 'photos', 'image_urls', 'images', 'url_foto', 'urlfoto']);
-        const metadataExtras = Object.entries(metadata || {})
-          .filter(([key]) => !metadataBlacklist.has(key.toLowerCase()))
-          .filter(([key]) => !usedKeys.metadata.has(key.toLowerCase()))
-          .map(([key, value]) => [humanizeKey(key), formatValue(value)] as [string, string])
-          .filter(([, value]) => Boolean(value));
+            const valueTd = document.createElement('td');
+            valueTd.className = 'value';
+            valueTd.textContent = value && value.length ? value : '-';
+            tr.appendChild(valueTd);
 
-        if (metadataExtras.length) {
-          const subtitle = document.createElement('div');
-          subtitle.className = 'subtitle';
-          subtitle.textContent = 'Metadata';
-          el.appendChild(subtitle);
-          metadataExtras.slice(0, 6).forEach(([label, value]) => {
-            addRow(label, value);
+            tbody.appendChild(tr);
           });
-        }
 
-        const propsBlacklist = new Set(['img_urls', 'imgurls', 'url_imgs', 'urlimgs', 'metadata', 'geometry', 'images']);
-        const propsExtras = Object.entries(props)
-          .filter(([key]) => !propsBlacklist.has(key.toLowerCase()))
-          .filter(([key]) => !usedKeys.props.has(key.toLowerCase()))
-          .map(([key, value]) => [humanizeKey(key), formatValue(value)] as [string, string])
-          .filter(([, value]) => Boolean(value));
-
-        if (propsExtras.length) {
-          const subtitle = document.createElement('div');
-          subtitle.className = 'subtitle';
-          subtitle.textContent = hasMainRow ? 'Atribut Lainnya' : 'Detail Fitur';
-          el.appendChild(subtitle);
-          propsExtras.slice(0, 6).forEach(([label, value]) => {
-            addRow(label, value);
-          });
+          el.appendChild(table);
+        } else {
+          const empty = document.createElement('div');
+          empty.className = 'empty-state';
+          empty.textContent = 'Data atribut tidak tersedia';
+          el.appendChild(empty);
         }
 
         const collectCandidates = (...inputs: any[]): string[] => {
