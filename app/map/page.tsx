@@ -584,12 +584,6 @@ export default function MapPage() {
               if (!label) label = 'Fungsional';
             } else if (geomType === 'Point' || geomType === 'MultiPoint') {
               label = pickText(featureForLabel, ['nama', 'NAMA', 'name', 'NAMOBJ', 'nama_di', 'NAMA_DI', 'judul', 'title']);
-            } else if (geomType === 'LineString' || geomType === 'MultiLineString') {
-              const noRuasValue = pickText(featureForLabel, ['no_ruas', 'NO_RUAS']);
-              label =
-                pickText(featureForLabel, ['nama', 'NAMA', 'name', 'NAMOBJ']) ||
-                (noRuasValue ? `Ruas ${noRuasValue}` : '') ||
-                pickText(featureForLabel, ['no_saluran', 'NO_SALURAN']);
             }
 
             if (!label) {
