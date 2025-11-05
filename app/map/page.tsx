@@ -441,37 +441,36 @@ export default function MapPage() {
               }
             }
 
-            // Build ruas layer dari DB
-            let ruasFeatures: any[] = [];
-            if (saluran && saluran.length) {
-              const salIds = saluran.map((s: any) => s.id);
-              const { data: ruas } = await supabase
-                .from('ruas')
-                .select('id,no_ruas,urutan,geojson,foto_urls,metadata,saluran_id')
-                .in('saluran_id', salIds);
-              const fmt = new GeoJSON();
-              if (ruas) {
-                for (const r of ruas) {
-                  if (!r.geojson) continue;
-                  // Sisipkan foto_urls ke properties untuk popup
-                  const featureGeo = {
-                    ...r.geojson,
-                    properties: {
-                      ...(r.geojson.properties || {}),
-                      foto_urls: r.foto_urls || [],
-                      img_urls: r.img_urls ?? r.metadata?.img_urls ?? r.metadata?.url_imgs ?? [],
-                      ruas_id: r.id,
-                      metadata: r.metadata || {},
-                    },
-                  };
-                  const f = fmt.readFeature(featureGeo, {
-                    dataProjection: 'EPSG:4326',
-                    featureProjection: map.getView().getProjection(),
-                  });
-                  ruasFeatures.push(f);
+              // Build ruas layer dari DB
+              let ruasFeatures: any[] = [];
+              if (saluran && saluran.length) {
+                const salIds = saluran.map((s: any) => s.id);
+                const { data: ruas } = await supabase
+                  .from('ruas')
+                  .select('id,no_ruas,urutan,geojson,img_urls,metadata,saluran_id')
+                  .in('saluran_id', salIds);
+                const fmt = new GeoJSON();
+                if (ruas) {
+                  for (const r of ruas) {
+                    if (!r.geojson) continue;
+                    // Sisipkan img_urls ke properties untuk popup
+                    const featureGeo = {
+                      ...r.geojson,
+                      properties: {
+                        ...(r.geojson.properties || {}),
+                        img_urls: r.img_urls ?? r.metadata?.img_urls ?? r.metadata?.url_imgs ?? [],
+                        ruas_id: r.id,
+                        metadata: r.metadata || {},
+                      },
+                    };
+                    const f = fmt.readFeature(featureGeo, {
+                      dataProjection: 'EPSG:4326',
+                      featureProjection: map.getView().getProjection(),
+                    });
+                    ruasFeatures.push(f);
+                  }
                 }
               }
-            }
 
             if (ruasFeatures.length) {
               const src = new VectorSource();
@@ -615,7 +614,7 @@ export default function MapPage() {
         el.appendChild(titleDiv);
       }
 
-        // Tampilkan foto jika tersedia (mendukung foto_urls, img_urls, url_imgs)
+        // Tampilkan foto jika tersedia (mendukung img_urls, url_imgs)
         const props = selected.getProperties ? selected.getProperties() : {};
         const metadata =
           props && typeof props === 'object' && props.metadata && typeof props.metadata === 'object'
@@ -644,14 +643,11 @@ export default function MapPage() {
         };
 
         const candidatePhotos = collectCandidates(
-          selected.get('foto_urls'),
           selected.get('img_urls'),
           selected.get('url_imgs'),
-          props.foto_urls,
           props.img_urls,
           props.url_imgs,
           props.URL_IMGS,
-          metadata?.foto_urls,
           metadata?.img_urls,
           metadata?.url_imgs
         );
