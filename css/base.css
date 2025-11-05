@@ -44,7 +44,7 @@ body{
 .form-row{ display:flex; flex-direction:column; gap:8px; }
 .error-message{ color: #dc2626; margin-top: 10px; padding: 12px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; font-size: 14px; }
 .ol-tooltip{ position: absolute; background-color: rgba(0, 0, 0, 0.8); color: white; padding: 8px 12px; border-radius: 4px; font-size: 14px; font-weight: 500; pointer-events: none; white-space: nowrap; z-index: 9999; }
-.ol-popup{ position: absolute; background: var(--card); padding: 8px; border-radius: 12px; border: 1px solid var(--stroke); min-width: 220px; }
+.ol-popup{ position: absolute; background: var(--card); padding: 12px; border-radius: 12px; border: 1px solid var(--stroke); width: clamp(260px, 40vw, 360px); }
 .ol-popup .title{ font-weight: 600; margin-bottom: 4px; }
 .ol-popup .subtitle{ margin-top: 6px; font-weight: 600; font-size: 13px; }
 .ol-popup .popup-table{ width:100%; border-collapse:collapse; margin-top:4px; }
@@ -53,7 +53,7 @@ body{
 .ol-popup .popup-table td.label::after{ content:" :"; padding-left:4px; }
 .ol-popup .popup-table td.value{ color:var(--text); font-weight:600; text-align:left; word-break:break-word; }
 .ol-popup .empty-state{ font-size:13px; color:var(--muted); font-style:italic; margin-top:4px; }
-.ol-popup img{ width: 100%; border-radius: 10px; margin-top: 6px; cursor: pointer; }
+.ol-popup img{ width: 100%; height: auto; max-height: 320px; border-radius: 10px; cursor: pointer; object-fit: contain; }
 .layout{ display:grid; grid-template-columns: minmax(220px, 260px) minmax(0, 1fr); gap:16px; align-items:start; min-height: calc(100vh - 100px); }
 .sidebar{ padding:20px; position:sticky; top:calc(var(--app-header-height, 64px) + 4px); align-self:start; height:max-content; max-height:calc(100vh - (var(--app-header-height, 64px) + 28px)); overflow-y:auto; }
 @media (max-width: 960px){
