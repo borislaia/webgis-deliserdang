@@ -593,14 +593,36 @@ export default function MapPage() {
         el.appendChild(titleDiv);
       }
 
-      // Tampilkan foto jika tersedia (ruas)
-      const photos: string[] = selected.get('foto_urls') || [];
-      if (photos.length) {
+      // Tampilkan foto jika tersedia (dari foto_urls atau url_imgs)
+      const props = selected.getProperties ? selected.getProperties() : {};
+      const fotoUrls: string[] = selected.get('foto_urls') || [];
+      const urlImgs: any = props.url_imgs || props.URL_IMGS || selected.get('url_imgs');
+      
+      // Normalize url_imgs: bisa berupa string, array of strings, atau string dengan separator
+      let urlImgsArray: string[] = [];
+      if (urlImgs) {
+        if (Array.isArray(urlImgs)) {
+          urlImgsArray = urlImgs.filter((u: any) => u && typeof u === 'string');
+        } else if (typeof urlImgs === 'string') {
+          // Jika string, coba split by comma atau newline
+          urlImgsArray = urlImgs.split(/[,\n]/).map((s: string) => s.trim()).filter((s: string) => s.length > 0);
+        }
+      }
+      
+      // Gabungkan semua foto
+      const allPhotos = [...fotoUrls, ...urlImgsArray];
+      
+      if (allPhotos.length) {
         const gallery = document.createElement('div');
         gallery.style.display = 'flex';
+        gallery.style.flexWrap = 'wrap';
         gallery.style.gap = '6px';
-        gallery.style.marginTop = '6px';
-        photos.slice(0, 4).forEach((url) => {
+        gallery.style.marginTop = '8px';
+        allPhotos.slice(0, 6).forEach((url) => {
+          const imgWrapper = document.createElement('div');
+          imgWrapper.style.position = 'relative';
+          imgWrapper.style.cursor = 'pointer';
+          
           const img = document.createElement('img');
           img.src = url;
           img.alt = 'foto';
@@ -608,8 +630,22 @@ export default function MapPage() {
           img.style.height = '72px';
           img.style.objectFit = 'cover';
           img.style.borderRadius = '6px';
-          img.onclick = () => { setModalImgSrc(url); setIsModalOpen(true); };
-          gallery.appendChild(img);
+          img.style.border = '1px solid #ddd';
+          img.style.display = 'block';
+          
+          // Error handling jika gambar gagal dimuat
+          img.onerror = () => {
+            img.style.display = 'none';
+          };
+          
+          img.onclick = (e) => {
+            e.stopPropagation();
+            setModalImgSrc(url);
+            setIsModalOpen(true);
+          };
+          
+          imgWrapper.appendChild(img);
+          gallery.appendChild(imgWrapper);
         });
         el.appendChild(gallery);
       }
@@ -758,8 +794,20 @@ export default function MapPage() {
       <div ref={popupRef} className="ol-popup card" />
 
       {/* Image modal */}
-      <div className={`modal ${isModalOpen ? 'open' : ''}`} aria-hidden={!isModalOpen} onClick={closeModal}>
-        {isModalOpen && modalImgSrc ? <img src={modalImgSrc} alt="photo" /> : null}
+      <div 
+        className={`modal ${isModalOpen ? 'open' : ''}`} 
+        aria-hidden={!isModalOpen} 
+        onClick={closeModal}
+        style={{ cursor: 'pointer' }}
+      >
+        {isModalOpen && modalImgSrc ? (
+          <img 
+            src={modalImgSrc} 
+            alt="photo" 
+            onClick={(e) => e.stopPropagation()}
+            style={{ cursor: 'default' }}
+          />
+        ) : null}
       </div>
     </main>
   );
