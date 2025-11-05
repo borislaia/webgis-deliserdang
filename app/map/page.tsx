@@ -524,26 +524,90 @@ export default function MapPage() {
         { hitTolerance: 5 }
       );
 
-      if (currentFeature && currentFeature !== hovered) currentFeature.setStyle(undefined);
-      if (hovered) {
-        if (styleForHover) hovered.setStyle(styleForHover);
-        currentFeature = hovered;
-        if (overlayRef.current && tooltipRef.current) {
-          const noRuas = hovered.get('no_ruas') || hovered.get('NO_RUAS');
-          const label =
-            hovered.get('NAMOBJ') ||
-            hovered.get('name') ||
-            (noRuas ? `Ruas ${noRuas}` : null) ||
-            hovered.get('no_saluran') ||
-            hovered.get('k_di') ||
-            'Feature';
-          tooltipRef.current.innerText = String(label);
-          overlayRef.current.setPosition(evt.coordinate);
+        if (currentFeature && currentFeature !== hovered) currentFeature.setStyle(undefined);
+        if (hovered) {
+          if (styleForHover) hovered.setStyle(styleForHover);
+          currentFeature = hovered;
+          if (overlayRef.current && tooltipRef.current) {
+            let featureForLabel: any = hovered;
+            const clusterMembers: any[] = hovered?.get && hovered.get('features');
+            if (Array.isArray(clusterMembers) && clusterMembers.length === 1) {
+              featureForLabel = clusterMembers[0];
+            }
+
+            const findInObject = (obj: Record<string, any> | null | undefined, key: string): any => {
+              if (!obj || typeof obj !== 'object') return undefined;
+              if (Object.prototype.hasOwnProperty.call(obj, key) && obj[key] != null) return obj[key];
+              const lowerKey = key.toLowerCase();
+              const matchedKey = Object.keys(obj).find((existing) => existing.toLowerCase() === lowerKey);
+              if (matchedKey && obj[matchedKey] != null) return obj[matchedKey];
+              return undefined;
+            };
+
+            const readValue = (feature: any, key: string): any => {
+              if (!feature) return undefined;
+              if (typeof feature.get === 'function') {
+                const direct = feature.get(key);
+                if (direct != null) return direct;
+              }
+              const props = typeof feature.getProperties === 'function' ? feature.getProperties() : undefined;
+              const fromProps = findInObject(props as Record<string, any>, key);
+              if (fromProps != null) return fromProps;
+              const metadata = props && typeof props.metadata === 'object' ? props.metadata : undefined;
+              return findInObject(metadata as Record<string, any>, key);
+            };
+
+            const pickText = (feature: any, keys: string[]): string => {
+              for (const key of keys) {
+                const value = readValue(feature, key);
+                if (value == null) continue;
+                if (Array.isArray(value)) {
+                  const joined = value
+                    .map((item) => (item == null ? '' : String(item).trim()))
+                    .filter((item) => item.length > 0);
+                  if (joined.length) return joined.join(', ');
+                  continue;
+                }
+                const text = String(value).trim();
+                if (text) return text;
+              }
+              return '';
+            };
+
+            const geomForLabel: any = featureForLabel?.getGeometry?.();
+            const geomType = geomForLabel?.getType?.();
+
+            let label = '';
+
+            if (geomType === 'Polygon' || geomType === 'MultiPolygon') {
+              label = pickText(featureForLabel, ['nama', 'NAMA', 'name', 'NAMOBJ', 'label', 'jenis', 'type', 'tipe', 'judul', 'title']);
+              if (!label) label = 'Fungsional';
+            } else if (geomType === 'Point' || geomType === 'MultiPoint') {
+              label = pickText(featureForLabel, ['nama', 'NAMA', 'name', 'NAMOBJ', 'nama_di', 'NAMA_DI', 'judul', 'title']);
+            } else if (geomType === 'LineString' || geomType === 'MultiLineString') {
+              const noRuasValue = pickText(featureForLabel, ['no_ruas', 'NO_RUAS']);
+              label =
+                pickText(featureForLabel, ['nama', 'NAMA', 'name', 'NAMOBJ']) ||
+                (noRuasValue ? `Ruas ${noRuasValue}` : '') ||
+                pickText(featureForLabel, ['no_saluran', 'NO_SALURAN']);
+            }
+
+            if (!label) {
+              const noRuasValue = pickText(featureForLabel, ['no_ruas', 'NO_RUAS']);
+              label =
+                pickText(featureForLabel, ['NAMOBJ', 'name', 'nama']) ||
+                (noRuasValue ? `Ruas ${noRuasValue}` : '') ||
+                pickText(featureForLabel, ['no_saluran', 'NO_SALURAN', 'k_di', 'K_DI']) ||
+                'Feature';
+            }
+
+            tooltipRef.current.innerText = label;
+            overlayRef.current.setPosition(evt.coordinate);
+          }
+        } else {
+          overlayRef.current?.setPosition(undefined);
+          currentFeature = null;
         }
-      } else {
-        overlayRef.current?.setPosition(undefined);
-        currentFeature = null;
-      }
     });
 
     // Click popup (tampilkan kolom sesuai tipe geometri)
