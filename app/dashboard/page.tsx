@@ -296,7 +296,9 @@ export default function DashboardPage() {
               <button className="btn" onClick={() => setActivePanel('di')}>Daerah Irigasi</button>
               <button className="btn" onClick={() => setActivePanel('management')}>Manajemen Irigasi</button>
               <button className="btn" onClick={() => setActivePanel('reports')}>Laporan</button>
-              <button className="btn" onClick={() => setActivePanel('users')} id="usersBtn" disabled={!isAdmin}>Users</button>
+              {isAdmin && (
+                <button className="btn" onClick={() => setActivePanel('users')} id="usersBtn">Users</button>
+              )}
               <button className="btn" onClick={() => setActivePanel('settings')}>Pengaturan</button>
             </div>
           </div>
