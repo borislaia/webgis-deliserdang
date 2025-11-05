@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import 'ol/ol.css';
@@ -27,6 +27,9 @@ export default function MapPage() {
   const popupOverlayRef = useRef<Overlay | null>(null);
   const mapRef = useRef<Map | null>(null);
   const dataExtentRef = useRef<[number, number, number, number] | null>(null);
+
+  const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? '') as string;
+  const supabase = useMemo(() => createClient(), []);
 
   // Layer refs for UI controls
   const googleHybridRef = useRef<TileLayer<any> | null>(null);
@@ -218,7 +221,6 @@ export default function MapPage() {
           }
         }
 
-        const supabase = createClient();
         // detect admin role
         try {
           const { data } = await supabase.auth.getUser();
@@ -439,18 +441,33 @@ export default function MapPage() {
               }
             }
 
-            // Build ruas layer from DB rows
+            // Build ruas layer dari DB
             let ruasFeatures: any[] = [];
             if (saluran && saluran.length) {
               const salIds = saluran.map((s: any) => s.id);
-              const { data: ruas } = await supabase.from('ruas').select('id,no_ruas,urutan,geojson,foto_urls,metadata,saluran_id').in('saluran_id', salIds);
+              const { data: ruas } = await supabase
+                .from('ruas')
+                .select('id,no_ruas,urutan,geojson,foto_urls,metadata,saluran_id')
+                .in('saluran_id', salIds);
               const fmt = new GeoJSON();
               if (ruas) {
                 for (const r of ruas) {
                   if (!r.geojson) continue;
-                  // Attach foto_urls into properties for popup use
-                  const featureGeo = { ...r.geojson, properties: { ...(r.geojson.properties || {}), foto_urls: r.foto_urls || [], ruas_id: r.id, metadata: r.metadata || {} } };
-                  const f = fmt.readFeature(featureGeo, { dataProjection: 'EPSG:4326', featureProjection: map.getView().getProjection() });
+                  // Sisipkan foto_urls ke properties untuk popup
+                  const featureGeo = {
+                    ...r.geojson,
+                    properties: {
+                      ...(r.geojson.properties || {}),
+                      foto_urls: r.foto_urls || [],
+                      img_urls: r.img_urls ?? r.metadata?.img_urls ?? r.metadata?.url_imgs ?? [],
+                      ruas_id: r.id,
+                      metadata: r.metadata || {},
+                    },
+                  };
+                  const f = fmt.readFeature(featureGeo, {
+                    dataProjection: 'EPSG:4326',
+                    featureProjection: map.getView().getProjection(),
+                  });
                   ruasFeatures.push(f);
                 }
               }
@@ -459,7 +476,11 @@ export default function MapPage() {
             if (ruasFeatures.length) {
               const src = new VectorSource();
               src.addFeatures(ruasFeatures);
-              const layer = new VectorLayer({ source: src, zIndex: 20, style: new Style({ stroke: new Stroke({ color: '#ff7f0e', width: 5 }) }) });
+              const layer = new VectorLayer({
+                source: src,
+                zIndex: 40,
+                style: new Style({ stroke: new Stroke({ color: '#ff7f0e', width: 5 }) }),
+              });
               map.addLayer(layer);
               const extent = src.getExtent();
               if (extent) {
@@ -509,10 +530,11 @@ export default function MapPage() {
         if (styleForHover) hovered.setStyle(styleForHover);
         currentFeature = hovered;
         if (overlayRef.current && tooltipRef.current) {
+          const noRuas = hovered.get('no_ruas') || hovered.get('NO_RUAS');
           const label =
             hovered.get('NAMOBJ') ||
             hovered.get('name') ||
-            hovered.get('no_ruas') ||
+            (noRuas ? `Ruas ${noRuas}` : null) ||
             hovered.get('no_saluran') ||
             hovered.get('k_di') ||
             'Feature';
@@ -593,25 +615,112 @@ export default function MapPage() {
         el.appendChild(titleDiv);
       }
 
-      // Tampilkan foto jika tersedia (dari foto_urls atau url_imgs)
-      const props = selected.getProperties ? selected.getProperties() : {};
-      const fotoUrls: string[] = selected.get('foto_urls') || [];
-      const urlImgs: any = props.url_imgs || props.URL_IMGS || selected.get('url_imgs');
-      
-      // Normalize url_imgs: bisa berupa string, array of strings, atau string dengan separator
-      let urlImgsArray: string[] = [];
-      if (urlImgs) {
-        if (Array.isArray(urlImgs)) {
-          urlImgsArray = urlImgs.filter((u: any) => u && typeof u === 'string');
-        } else if (typeof urlImgs === 'string') {
-          // Jika string, coba split by comma atau newline
-          urlImgsArray = urlImgs.split(/[,\n]/).map((s: string) => s.trim()).filter((s: string) => s.length > 0);
-        }
-      }
-      
-      // Gabungkan semua foto
-      const allPhotos = [...fotoUrls, ...urlImgsArray];
-      
+        // Tampilkan foto jika tersedia (mendukung foto_urls, img_urls, url_imgs)
+        const props = selected.getProperties ? selected.getProperties() : {};
+        const metadata =
+          props && typeof props === 'object' && props.metadata && typeof props.metadata === 'object'
+            ? props.metadata
+            : {};
+
+        const collectCandidates = (...inputs: any[]): string[] => {
+          const results: string[] = [];
+          for (const input of inputs) {
+            if (!input) continue;
+            if (Array.isArray(input)) {
+              for (const entry of input) {
+                if (entry == null) continue;
+                const value = String(entry).trim();
+                if (value) results.push(value);
+              }
+            } else if (typeof input === 'string') {
+              const parts = input.split(/[;,\n]/);
+              for (const part of parts) {
+                const value = part.trim();
+                if (value) results.push(value);
+              }
+            }
+          }
+          return results;
+        };
+
+        const candidatePhotos = collectCandidates(
+          selected.get('foto_urls'),
+          selected.get('img_urls'),
+          selected.get('url_imgs'),
+          props.foto_urls,
+          props.img_urls,
+          props.url_imgs,
+          props.URL_IMGS,
+          metadata?.foto_urls,
+          metadata?.img_urls,
+          metadata?.url_imgs
+        );
+
+        const resolveUrl = (raw: string): string | null => {
+          if (!raw) return null;
+          if (/^https?:\/\//i.test(raw)) return raw;
+
+          const diCode = (
+            props.k_di ||
+            props.K_DI ||
+            props.kdi ||
+            props.kode_di ||
+            props.KODE_DI ||
+            metadata?.k_di ||
+            metadata?.K_DI ||
+            metadata?.kdi ||
+            metadata?.kode_di ||
+            kdi ||
+            ''
+          )
+            .toString()
+            .trim();
+          if (!diCode) return null;
+
+          let folder = (
+            props.no_saluran ||
+            props.NO_SALURAN ||
+            props.noSaluran ||
+            metadata?.no_saluran ||
+            metadata?.NO_SALURAN ||
+            metadata?.noSaluran ||
+            metadata?.saluran_folder ||
+            ''
+          )
+            .toString()
+            .trim();
+          folder = folder.replace(/^\/+|\/+$|\s+$/g, '');
+          if (/^SAL\d+$/i.test(folder)) {
+            folder = folder.slice(3);
+          }
+
+          const fileName = raw.replace(/^\/+/, '').trim();
+          if (!fileName) return null;
+
+          const pathParts = [diCode];
+          if (folder) pathParts.push(folder);
+          pathParts.push(fileName);
+          const storagePath = pathParts.join('/');
+
+          const { data: publicData } = supabase.storage.from('images').getPublicUrl(storagePath);
+          if (publicData?.publicUrl) return publicData.publicUrl;
+
+          if (supabaseUrl) {
+            const encodedPath = pathParts.map((part) => encodeURIComponent(part)).join('/');
+            return `${supabaseUrl}/storage/v1/object/public/images/${encodedPath}`;
+          }
+
+          return null;
+        };
+
+        const allPhotos = Array.from(
+          new Set(
+            candidatePhotos
+              .map((raw) => resolveUrl(raw))
+              .filter((url): url is string => Boolean(url))
+          )
+        );
+
       if (allPhotos.length) {
         const gallery = document.createElement('div');
         gallery.style.display = 'flex';
