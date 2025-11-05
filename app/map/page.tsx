@@ -676,7 +676,8 @@ export default function MapPage() {
           const luas = getDisplayValue(['LUAS_HA', 'luas_ha'], 2);
           rows.push(['Luas', luas || '-']);
 
-          const tahun = getDisplayValue(['Thn_Dat', 'tahun_data', 'TAHUN']);
+          const tahunRaw = findRawValue(['Thn_Dat', 'tahun_data', 'TAHUN']);
+          const tahun = tahunRaw === null || tahunRaw === undefined ? '' : String(tahunRaw).trim();
           rows.push(['Tahun Data', tahun || '-']);
         } else {
           popupTitle = 'Feature';
