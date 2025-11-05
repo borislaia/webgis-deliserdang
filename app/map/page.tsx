@@ -568,58 +568,157 @@ export default function MapPage() {
       const geom: any = selected.getGeometry?.();
       const t = geom?.getType?.();
 
-      const getProp = (keys: string[]): string => {
-        const props = selected.getProperties ? selected.getProperties() : {};
-        for (const k of keys) {
-          if (k in props && props[k] != null && props[k] !== '') return String(props[k]);
-          const found = Object.keys(props).find((p) => p.toLowerCase() === k.toLowerCase());
-          if (found && props[found] != null && props[found] !== '') return String(props[found]);
-        }
-        return '';
-      };
+        if (!popupOverlayRef.current || !popupRef.current) return;
+        const el = popupRef.current;
+        el.textContent = '';
 
-      if (!popupOverlayRef.current || !popupRef.current) return;
-      const el = popupRef.current;
-      el.textContent = '';
-      const titleDiv = document.createElement('div');
-      titleDiv.className = 'title';
-
-      const row = (label: string, value: string) => {
-        if (!value) return;
-        const div = document.createElement('div');
-        div.textContent = `${label}: ${value}`;
-        el.appendChild(div);
-      };
-
-      if (t === 'LineString' || t === 'MultiLineString') {
-        titleDiv.textContent = 'Saluran';
-        el.appendChild(titleDiv);
-        row('k_di', getProp(['k_di']));
-        row('nama', getProp(['nama', 'NAMA']));
-        row('panjang_sa', getProp(['panjang_sa', 'PANJANG_SA', 'panjang']));
-      } else if (t === 'Point' || t === 'MultiPoint') {
-        titleDiv.textContent = 'Bangunan';
-        el.appendChild(titleDiv);
-        row('n_di', getProp(['n_di', 'NAMA_DI']));
-        row('k_di', getProp(['k_di', 'K_DI']));
-        row('nama', getProp(['nama', 'NAMA']));
-      } else if (t === 'Polygon' || t === 'MultiPolygon') {
-        titleDiv.textContent = 'Fungsional';
-        el.appendChild(titleDiv);
-        row('NAMA_DI', getProp(['NAMA_DI', 'n_di']));
-        row('LUAS_HA', getProp(['LUAS_HA', 'luas_ha']));
-        row('Thn_Dat', getProp(['Thn_Dat', 'tahun_data']));
-      } else {
-        titleDiv.textContent = 'Feature';
-        el.appendChild(titleDiv);
-      }
-
-        // Tampilkan foto jika tersedia (mendukung img_urls, url_imgs)
-        const props = selected.getProperties ? selected.getProperties() : {};
-        const metadata =
-          props && typeof props === 'object' && props.metadata && typeof props.metadata === 'object'
-            ? props.metadata
+        const propsRaw = (selected.getProperties ? (selected.getProperties() as Record<string, any>) : {}) || {};
+        const props = { ...propsRaw } as Record<string, any>;
+        const metadata: Record<string, any> =
+          propsRaw && typeof propsRaw === 'object' && propsRaw.metadata && typeof propsRaw.metadata === 'object'
+            ? (propsRaw.metadata as Record<string, any>)
             : {};
+
+        delete props.metadata;
+        if ('geometry' in props) delete props.geometry;
+
+        const formatNumber = (value: number, digits?: number): string => {
+          const maximumFractionDigits = typeof digits === 'number' ? digits : Number.isInteger(value) ? 0 : 2;
+          return new Intl.NumberFormat('id-ID', { maximumFractionDigits }).format(value);
+        };
+
+        const formatDisplay = (value: any, digits?: number): string => {
+          if (value === null || value === undefined) return '';
+          if (typeof value === 'number') {
+            if (!Number.isFinite(value)) return '';
+            return formatNumber(value, digits);
+          }
+          if (typeof value === 'string') {
+            const trimmed = value.trim();
+            if (!trimmed) return '';
+            const numericMatch = /^-?\d+(?:[.,]\d+)?$/.test(trimmed);
+            if (numericMatch) {
+              const normalized = Number(trimmed.replace(',', '.'));
+              if (!Number.isNaN(normalized)) {
+                const inferredDigits = typeof digits === 'number'
+                  ? digits
+                  : trimmed.includes('.') || trimmed.includes(',')
+                    ? Math.min(2, (trimmed.split(/[.,]/)[1] || '').length)
+                    : 0;
+                return formatNumber(normalized, inferredDigits);
+              }
+            }
+            return trimmed;
+          }
+          if (typeof value === 'boolean') {
+            return value ? 'Ya' : 'Tidak';
+          }
+          if (Array.isArray(value)) {
+            const joined = value
+              .map((item) => formatDisplay(item, digits))
+              .filter((item) => item && item.length > 0);
+            return Array.from(new Set(joined)).join(', ');
+          }
+          if (value instanceof Date) {
+            return value.toISOString();
+          }
+          if (typeof value === 'object') {
+            const entries = Object.entries(value as Record<string, any>);
+            const rendered = entries
+              .map(([, v]) => formatDisplay(v, digits))
+              .filter((item) => item && item.length > 0);
+            return rendered.join(', ');
+          }
+          return String(value);
+        };
+
+        const findRawValue = (keys: string[]): any => {
+          for (const key of keys) {
+            for (const source of [props, metadata]) {
+              if (!source || typeof source !== 'object') continue;
+              if (Object.prototype.hasOwnProperty.call(source, key)) return source[key];
+              const actualKey = Object.keys(source).find((existing) => existing.toLowerCase() === key.toLowerCase());
+              if (actualKey) return source[actualKey];
+            }
+          }
+          return undefined;
+        };
+
+        const getDisplayValue = (keys: string[], digits?: number): string => {
+          const raw = findRawValue(keys);
+          return formatDisplay(raw, digits);
+        };
+
+        const rows: Array<[string, string]> = [];
+
+        let popupTitle = 'Feature';
+        const isLine = t === 'LineString' || t === 'MultiLineString';
+        const isPoint = t === 'Point' || t === 'MultiPoint';
+        const isPolygon = t === 'Polygon' || t === 'MultiPolygon';
+
+        if (isLine) {
+          popupTitle = 'Saluran';
+          const noRuasRaw = findRawValue(['no_ruas', 'NO_RUAS', 'ruas_id']);
+          const noRuas = formatDisplay(noRuasRaw);
+          rows.push(['No Ruas', noRuas ? `Ruas ${noRuas}` : 'Ruas -']);
+
+          const saluranName = getDisplayValue(['nama', 'NAMA', 'saluran', 'SALURAN', 'NAMOBJ']);
+          rows.push(['Saluran', saluranName || '-']);
+        } else if (isPoint) {
+          popupTitle = 'Bangunan';
+          const nama = getDisplayValue(['nama', 'NAMA', 'NAMOBJ', 'n_di', 'NAMA_DI']);
+          rows.push(['Nama', nama || '-']);
+
+          const nomen = getDisplayValue(['nomenklatu', 'NOMENKLATU', 'nomenklatur']);
+          rows.push(['Nomenklatur', nomen || '-']);
+        } else if (isPolygon) {
+          popupTitle = 'Fungsional';
+          const luas = getDisplayValue(['LUAS_HA', 'luas_ha'], 2);
+          rows.push(['Luas', luas || '-']);
+
+          const tahun = getDisplayValue(['Thn_Dat', 'tahun_data', 'TAHUN']);
+          rows.push(['Tahun Data', tahun || '-']);
+        } else {
+          popupTitle = 'Feature';
+          const name = getDisplayValue(['nama', 'NAMA', 'NAMOBJ']);
+          if (name) rows.push(['Nama', name]);
+          const description = getDisplayValue(['keterangan', 'KETERANGAN', 'deskripsi', 'DESKRIPSI']);
+          if (description) rows.push(['Keterangan', description]);
+        }
+
+        const titleDiv = document.createElement('div');
+        titleDiv.className = 'title';
+        titleDiv.textContent = popupTitle;
+        el.appendChild(titleDiv);
+
+        if (rows.length) {
+          const table = document.createElement('table');
+          table.className = 'popup-table';
+          const tbody = document.createElement('tbody');
+          table.appendChild(tbody);
+
+          rows.forEach(([label, value]) => {
+            const tr = document.createElement('tr');
+            const labelTd = document.createElement('td');
+            labelTd.className = 'label';
+            labelTd.textContent = label;
+            tr.appendChild(labelTd);
+
+            const valueTd = document.createElement('td');
+            valueTd.className = 'value';
+            valueTd.textContent = value && value.length ? value : '-';
+            tr.appendChild(valueTd);
+
+            tbody.appendChild(tr);
+          });
+
+          el.appendChild(table);
+        } else {
+          const empty = document.createElement('div');
+          empty.className = 'empty-state';
+          empty.textContent = 'Data atribut tidak tersedia';
+          el.appendChild(empty);
+        }
 
         const collectCandidates = (...inputs: any[]): string[] => {
           const results: string[] = [];
@@ -717,45 +816,44 @@ export default function MapPage() {
           )
         );
 
-      if (allPhotos.length) {
-        const gallery = document.createElement('div');
-        gallery.style.display = 'flex';
-        gallery.style.flexWrap = 'wrap';
-        gallery.style.gap = '6px';
-        gallery.style.marginTop = '8px';
-        allPhotos.slice(0, 6).forEach((url) => {
-          const imgWrapper = document.createElement('div');
-          imgWrapper.style.position = 'relative';
-          imgWrapper.style.cursor = 'pointer';
-          
-          const img = document.createElement('img');
-          img.src = url;
-          img.alt = 'foto';
-          img.style.width = '72px';
-          img.style.height = '72px';
-          img.style.objectFit = 'cover';
-          img.style.borderRadius = '6px';
-          img.style.border = '1px solid #ddd';
-          img.style.display = 'block';
-          
-          // Error handling jika gambar gagal dimuat
-          img.onerror = () => {
-            img.style.display = 'none';
-          };
-          
-          img.onclick = (e) => {
-            e.stopPropagation();
-            setModalImgSrc(url);
-            setIsModalOpen(true);
-          };
-          
-          imgWrapper.appendChild(img);
-          gallery.appendChild(imgWrapper);
-        });
-        el.appendChild(gallery);
-      }
+        if (allPhotos.length) {
+          const gallery = document.createElement('div');
+          gallery.style.display = 'flex';
+          gallery.style.flexWrap = 'wrap';
+          gallery.style.gap = '6px';
+          gallery.style.marginTop = '8px';
+          allPhotos.slice(0, 6).forEach((url) => {
+            const imgWrapper = document.createElement('div');
+            imgWrapper.style.position = 'relative';
+            imgWrapper.style.cursor = 'pointer';
 
-      popupOverlayRef.current.setPosition(evt.coordinate);
+            const img = document.createElement('img');
+            img.src = url;
+            img.alt = 'foto';
+            img.style.width = '72px';
+            img.style.height = '72px';
+            img.style.objectFit = 'cover';
+            img.style.borderRadius = '6px';
+            img.style.border = '1px solid #ddd';
+            img.style.display = 'block';
+
+            img.onerror = () => {
+              img.style.display = 'none';
+            };
+
+            img.onclick = (e) => {
+              e.stopPropagation();
+              setModalImgSrc(url);
+              setIsModalOpen(true);
+            };
+
+            imgWrapper.appendChild(img);
+            gallery.appendChild(imgWrapper);
+          });
+          el.appendChild(gallery);
+        }
+
+        popupOverlayRef.current.setPosition(evt.coordinate);
     });
 
     return () => {
