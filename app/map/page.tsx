@@ -881,42 +881,44 @@ export default function MapPage() {
           )
         );
 
-        if (allPhotos.length) {
-          const gallery = document.createElement('div');
-          gallery.style.display = 'flex';
-          gallery.style.flexWrap = 'wrap';
-          gallery.style.gap = '6px';
-          gallery.style.marginTop = '8px';
-          allPhotos.slice(0, 6).forEach((url) => {
-            const imgWrapper = document.createElement('div');
-            imgWrapper.style.position = 'relative';
-            imgWrapper.style.cursor = 'pointer';
+          if (allPhotos.length) {
+            const gallery = document.createElement('div');
+            gallery.style.display = 'flex';
+            gallery.style.flexDirection = 'column';
+            gallery.style.gap = '12px';
+            gallery.style.marginTop = '12px';
+            gallery.style.width = '100%';
+            allPhotos.slice(0, 6).forEach((url) => {
+              const imgWrapper = document.createElement('div');
+              imgWrapper.style.position = 'relative';
+              imgWrapper.style.cursor = 'pointer';
+              imgWrapper.style.width = '100%';
 
-            const img = document.createElement('img');
-            img.src = url;
-            img.alt = 'foto';
-            img.style.width = '72px';
-            img.style.height = '72px';
-            img.style.objectFit = 'cover';
-            img.style.borderRadius = '6px';
-            img.style.border = '1px solid #ddd';
-            img.style.display = 'block';
+              const img = document.createElement('img');
+              img.src = url;
+              img.alt = 'foto';
+              img.style.display = 'block';
+              img.style.width = '100%';
+              img.style.height = 'auto';
+              img.style.maxHeight = '320px';
+              img.style.borderRadius = '10px';
+              img.style.border = '1px solid #ddd';
 
-            img.onerror = () => {
-              img.style.display = 'none';
-            };
+              img.onerror = () => {
+                img.style.display = 'none';
+              };
 
-            img.onclick = (e) => {
-              e.stopPropagation();
-              setModalImgSrc(url);
-              setIsModalOpen(true);
-            };
+              img.onclick = (e) => {
+                e.stopPropagation();
+                setModalImgSrc(url);
+                setIsModalOpen(true);
+              };
 
-            imgWrapper.appendChild(img);
-            gallery.appendChild(imgWrapper);
-          });
-          el.appendChild(gallery);
-        }
+              imgWrapper.appendChild(img);
+              gallery.appendChild(imgWrapper);
+            });
+            el.appendChild(gallery);
+          }
 
         popupOverlayRef.current.setPosition(evt.coordinate);
     });
