@@ -528,7 +528,14 @@ export default function MapPage() {
         if (hovered) {
           if (styleForHover) hovered.setStyle(styleForHover);
           currentFeature = hovered;
-          if (overlayRef.current && tooltipRef.current) {
+          
+          // Cek tipe geometri untuk menentukan apakah tooltip harus ditampilkan
+          const hoveredGeom: any = hovered?.getGeometry?.();
+          const hoveredGeomType = hoveredGeom?.getType?.();
+          const isLineString = hoveredGeomType === 'LineString' || hoveredGeomType === 'MultiLineString';
+          
+          // Tooltip hanya untuk Polygon dan Point, tidak untuk LineString
+          if (overlayRef.current && tooltipRef.current && !isLineString) {
             let featureForLabel: any = hovered;
             const clusterMembers: any[] = hovered?.get && hovered.get('features');
             if (Array.isArray(clusterMembers) && clusterMembers.length === 1) {
@@ -584,25 +591,17 @@ export default function MapPage() {
               if (!label) label = 'Fungsional';
             } else if (geomType === 'Point' || geomType === 'MultiPoint') {
               label = pickText(featureForLabel, ['nama', 'NAMA', 'name', 'NAMOBJ', 'nama_di', 'NAMA_DI', 'judul', 'title']);
-            } else if (geomType === 'LineString' || geomType === 'MultiLineString') {
-              const noRuasValue = pickText(featureForLabel, ['no_ruas', 'NO_RUAS']);
-              label =
-                pickText(featureForLabel, ['nama', 'NAMA', 'name', 'NAMOBJ']) ||
-                (noRuasValue ? `Ruas ${noRuasValue}` : '') ||
-                pickText(featureForLabel, ['no_saluran', 'NO_SALURAN']);
             }
 
-            if (!label) {
-              const noRuasValue = pickText(featureForLabel, ['no_ruas', 'NO_RUAS']);
-              label =
-                pickText(featureForLabel, ['NAMOBJ', 'name', 'nama']) ||
-                (noRuasValue ? `Ruas ${noRuasValue}` : '') ||
-                pickText(featureForLabel, ['no_saluran', 'NO_SALURAN', 'k_di', 'K_DI']) ||
-                'Feature';
+            if (!label && (geomType === 'Polygon' || geomType === 'MultiPolygon' || geomType === 'Point' || geomType === 'MultiPoint')) {
+              label = pickText(featureForLabel, ['NAMOBJ', 'name', 'nama']) || 'Feature';
             }
 
             tooltipRef.current.innerText = label;
             overlayRef.current.setPosition(evt.coordinate);
+          } else if (isLineString) {
+            // Sembunyikan tooltip untuk LineString
+            overlayRef.current?.setPosition(undefined);
           }
         } else {
           overlayRef.current?.setPosition(undefined);
