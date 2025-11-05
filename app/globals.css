@@ -6,15 +6,16 @@
 .app-header.blur{ background:transparent; backdrop-filter:none; -webkit-backdrop-filter:none; position:sticky; top:0; z-index:50; }
 .app-header.blur::before{ content:""; position:absolute; inset:0; background:var(--card); border:1px solid var(--stroke); backdrop-filter:saturate(180%) blur(16px); -webkit-backdrop-filter:saturate(180%) blur(16px); z-index:0; }
 .app-header.blur > *{ position:relative; z-index:1; }
-.app-header{ position:sticky; top:0; display:flex; align-items:center; justify-content:space-between; padding:12px 20px; z-index:10; }
+.app-header{ position:sticky; top:0; display:flex; align-items:center; justify-content:space-between; padding:12px 20px; z-index:10; min-height:var(--app-header-height,72px); }
 .brand{ display:flex; align-items:center; gap:10px; font-weight:600; }
 .brand-icon{ width:24px; height:24px; filter:drop-shadow(0 1px 1px rgba(0,0,0,0.1)); }
-.brand-text{ letter-spacing:0.2px; }
+.brand-text{ letter-spacing:0.2px; white-space:nowrap; }
 .app-footer{ position:fixed; bottom:0; display:flex; align-items:center; justify-content:center; padding:12px; color:var(--muted); }
 .card{ border-radius:var(--radius); background:var(--card); border:1px solid var(--stroke); box-shadow:0 10px 30px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.6); }
 .btn{ display:inline-flex; align-items:center; gap:8px; padding:10px 14px; border-radius:12px; background:linear-gradient(180deg,#fff,#f3f4f6); border:1px solid var(--stroke); color:var(--text); text-decoration:none; font-weight:600; box-shadow:0 2px 0 rgba(0,0,0,0.06); transition:transform .2s ease, box-shadow .2s ease; }
 .btn:hover{ transform:translateY(-1px); box-shadow:0 6px 14px rgba(0,0,0,0.08); }
 .btn.primary{ background:linear-gradient(180deg,#1ea1ff,#0a84ff); color:#fff; border:none; }
+.dashboard-button-placeholder{ visibility:hidden; pointer-events:none; }
 .input{ width:100%; padding:12px 14px; border-radius:12px; border:1px solid var(--stroke); background:linear-gradient(180deg,#fff,#f8fafc); }
 .form-row{ display:flex; flex-direction:column; gap:8px; }
 .error-message{ color:#dc2626; margin-top:10px; padding:12px; background:#fef2f2; border:1px solid #fecaca; border-radius:8px; font-size:14px; }

@@ -23,7 +23,11 @@ export default function DashboardButton() {
   }, [])
 
   if (isAuthenticated === null) {
-    return null
+    return (
+      <span className="btn primary dashboard-button-placeholder" aria-hidden="true">
+        Dashboard
+      </span>
+    )
   }
 
   if (!isAuthenticated) {
