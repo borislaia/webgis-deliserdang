@@ -439,18 +439,32 @@ export default function MapPage() {
               }
             }
 
-            // Build ruas layer from DB rows
+            // Build ruas layer dari DB
             let ruasFeatures: any[] = [];
             if (saluran && saluran.length) {
               const salIds = saluran.map((s: any) => s.id);
-              const { data: ruas } = await supabase.from('ruas').select('id,no_ruas,urutan,geojson,foto_urls,metadata,saluran_id').in('saluran_id', salIds);
+              const { data: ruas } = await supabase
+                .from('ruas')
+                .select('id,no_ruas,urutan,geojson,foto_urls,metadata,saluran_id')
+                .in('saluran_id', salIds);
               const fmt = new GeoJSON();
               if (ruas) {
                 for (const r of ruas) {
                   if (!r.geojson) continue;
-                  // Attach foto_urls into properties for popup use
-                  const featureGeo = { ...r.geojson, properties: { ...(r.geojson.properties || {}), foto_urls: r.foto_urls || [], ruas_id: r.id, metadata: r.metadata || {} } };
-                  const f = fmt.readFeature(featureGeo, { dataProjection: 'EPSG:4326', featureProjection: map.getView().getProjection() });
+                  // Sisipkan foto_urls ke properties untuk popup
+                  const featureGeo = {
+                    ...r.geojson,
+                    properties: {
+                      ...(r.geojson.properties || {}),
+                      foto_urls: r.foto_urls || [],
+                      ruas_id: r.id,
+                      metadata: r.metadata || {},
+                    },
+                  };
+                  const f = fmt.readFeature(featureGeo, {
+                    dataProjection: 'EPSG:4326',
+                    featureProjection: map.getView().getProjection(),
+                  });
                   ruasFeatures.push(f);
                 }
               }
@@ -459,7 +473,11 @@ export default function MapPage() {
             if (ruasFeatures.length) {
               const src = new VectorSource();
               src.addFeatures(ruasFeatures);
-              const layer = new VectorLayer({ source: src, zIndex: 20, style: new Style({ stroke: new Stroke({ color: '#ff7f0e', width: 5 }) }) });
+              const layer = new VectorLayer({
+                source: src,
+                zIndex: 40,
+                style: new Style({ stroke: new Stroke({ color: '#ff7f0e', width: 5 }) }),
+              });
               map.addLayer(layer);
               const extent = src.getExtent();
               if (extent) {
