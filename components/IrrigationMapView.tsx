@@ -160,9 +160,16 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
       fill: new Fill({ color: 'rgba(214, 39, 40, 0.25)' }),
     });
 
-    const kecamatanLayer = new VectorLayer({ source: new VectorSource(), style: kecamatanStyle, visible: kecamatanVisible, zIndex: 10 });
+    const kecamatanLayer = new VectorLayer({
+      source: new VectorSource(),
+      style: kecamatanStyle,
+      visible: !activeKdi && kecamatanVisible,
+      zIndex: 10,
+    });
     kecamatanLayerRef.current = kecamatanLayer;
-    map.addLayer(kecamatanLayer);
+    if (!activeKdi) {
+      map.addLayer(kecamatanLayer);
+    }
 
     // Storage aggregated layers: polygons, lines, points (bottom -> top)
     const polygonsSrc = new VectorSource();
@@ -219,33 +226,34 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
       map.addOverlay(overlay);
     }
 
-    // Load data
-    (async () => {
-      try {
-        // Always load boundary as context
-        const res = await fetch('/data/batas_kecamatan.json');
-        if (res.ok) {
-          const batas = await res.json();
-          const fmt = new GeoJSON();
-          const collection = Array.isArray(batas) ? { type: 'FeatureCollection', features: batas } : batas;
-          const features = fmt.readFeatures(collection, { dataProjection: 'EPSG:4326', featureProjection: map.getView().getProjection() });
-          kecamatanLayer.getSource()?.clear();
-          kecamatanLayer.getSource()?.addFeatures(features);
-          // Fit boundary only jika activeKdi kosong (mode konteks umum)
-          if (!activeKdi && features.length > 0) {
-            const ext = kecamatanLayer.getSource()?.getExtent();
-            if (ext) {
-              dataExtentRef.current = ext.slice() as any;
-              map.getView().fit(ext, { padding: [50, 50, 50, 50], duration: 500 });
+      // Load data
+      (async () => {
+        try {
+          // Load boundary for context when no DI selected
+          if (!activeKdi) {
+            const res = await fetch('/data/batas_kecamatan.json');
+            if (res.ok) {
+              const batas = await res.json();
+              const fmt = new GeoJSON();
+              const collection = Array.isArray(batas) ? { type: 'FeatureCollection', features: batas } : batas;
+              const features = fmt.readFeatures(collection, { dataProjection: 'EPSG:4326', featureProjection: map.getView().getProjection() });
+              kecamatanLayer.getSource()?.clear();
+              kecamatanLayer.getSource()?.addFeatures(features);
+              if (features.length > 0) {
+                const ext = kecamatanLayer.getSource()?.getExtent();
+                if (ext) {
+                  dataExtentRef.current = ext.slice() as any;
+                  map.getView().fit(ext, { padding: [50, 50, 50, 50], duration: 500 });
+                }
+              }
             }
           }
-        }
 
-        // detect admin role
-        try {
-          const { data } = await supabase.auth.getUser();
-          setIsAdmin(((data.user?.app_metadata as any)?.role) === 'admin');
-        } catch {}
+          // detect admin role
+          try {
+            const { data } = await supabase.auth.getUser();
+            setIsAdmin(((data.user?.app_metadata as any)?.role) === 'admin');
+          } catch {}
 
         // 1) Load GeoJSON paths via manifest (CDN) dengan fallback
         try {
