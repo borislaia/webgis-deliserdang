@@ -64,9 +64,9 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
   const searchParams = useSearchParams();
   // Terima baik ?di= maupun ?k_di= untuk fleksibilitas dari dashboard
   const rawKdi = (searchParams.get('di') || searchParams.get('k_di') || '').trim();
-  const activeKdi = useMemo(() => (variant === 'map' ? '' : rawKdi), [variant, rawKdi]);
+  const activeKdi = useMemo(() => (variant === 'map' ? rawKdi : ''), [variant, rawKdi]);
 
-  // Jika masuk dari varian Sebaran (activeKdi ada), layer kecamatan default disembunyikan
+  // Jika varian MAP memuat DI spesifik (activeKdi ada), layer kecamatan default disembunyikan
   const [kecamatanVisible, setKecamatanVisible] = useState<boolean>(!(activeKdi && activeKdi.length > 0));
 
   useEffect(() => {

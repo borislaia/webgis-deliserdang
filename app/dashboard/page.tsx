@@ -331,7 +331,7 @@ export default function DashboardPage() {
                               className="btn primary"
                               onClick={() => {
                                 const di = getDiCodeFromRow(row as Record<string, any>);
-                                const target = di ? `/sebaran-irigasi?k_di=${encodeURIComponent(di)}` : '/map';
+                                const target = di ? `/map?di=${encodeURIComponent(di)}` : '/sebaran-irigasi';
                                 window.location.href = target;
                               }}
                             >
