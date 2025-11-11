@@ -12,7 +12,7 @@
 .brand-text{ letter-spacing:0.2px; white-space:nowrap; }
 .app-footer{ position:fixed; bottom:0; display:flex; align-items:center; justify-content:center; padding:12px; color:var(--muted); }
 .card{ border-radius:var(--radius); background:var(--card); border:1px solid var(--stroke); box-shadow:0 10px 30px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.6); }
-.btn{ display:inline-flex; align-items:center; gap:8px; padding:10px 14px; border-radius:12px; background:linear-gradient(180deg,#fff,#f3f4f6); border:1px solid var(--stroke); color:var(--text); text-decoration:none; font-weight:600; box-shadow:0 2px 0 rgba(0,0,0,0.06); transition:transform .2s ease, box-shadow .2s ease; }
+.btn{ display:inline-flex; align-items:center; gap:8px; padding:10px 14px; border-radius:12px; background:linear-gradient(180deg,#fff,#f3f4f6); border:1px solid var(--stroke); color:var(--text); text-decoration:none; font-weight:600; font-size:0.975rem; line-height:1.25; box-shadow:0 2px 0 rgba(0,0,0,0.06); transition:transform .2s ease, box-shadow .2s ease; }
 .btn:hover{ transform:translateY(-1px); box-shadow:0 6px 14px rgba(0,0,0,0.08); }
 .btn.primary{ background:linear-gradient(180deg,#1ea1ff,#0a84ff); color:#fff; border:none; }
 .dashboard-button-placeholder{ visibility:hidden; pointer-events:none; }
