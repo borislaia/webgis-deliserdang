@@ -982,23 +982,35 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
     view.setZoom((view.getZoom() || 0) - 1);
   };
   const fitData = () => {
-    const map = mapRef.current; if (!map) return;
+    const map = mapRef.current;
+    if (!map) return;
 
-    // Rehitung extent dari semua layer vektor yang ada agar selalu selaras
     const computed = createEmptyExtent();
-    map.getLayers().forEach((layer: any) => {
-      const source = layer?.getSource?.();
+
+    const appendSourceExtent = (source: any) => {
       if (!source) return;
 
-      let extent = source.getExtent ? source.getExtent() : undefined;
-      if ((!extent || isExtentEmpty(extent)) && source.getSource) {
-        const inner = source.getSource();
-        extent = inner?.getExtent ? inner.getExtent() : extent;
+      if (source instanceof ClusterSource) {
+        const inner = source.getSource?.();
+        if (inner && inner !== source) appendSourceExtent(inner);
       }
 
+      if (!(source instanceof VectorSource)) {
+        const inner = typeof source.getSource === 'function' ? source.getSource() : null;
+        if (inner && inner !== source) appendSourceExtent(inner);
+        return;
+      }
+
+      const extent = source.getExtent ? source.getExtent() : undefined;
       if (extent && !isExtentEmpty(extent)) {
         extendExtent(computed, extent);
       }
+    };
+
+    map.getLayers().forEach((layer: any) => {
+      if (typeof layer?.getVisible === 'function' && !layer.getVisible()) return;
+      const source = layer?.getSource?.();
+      appendSourceExtent(source);
     });
 
     if (!isExtentEmpty(computed)) {
