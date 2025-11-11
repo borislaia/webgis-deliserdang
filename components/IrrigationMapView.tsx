@@ -63,10 +63,15 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
 
   const searchParams = useSearchParams();
   // Terima baik ?di= maupun ?k_di= untuk fleksibilitas dari dashboard
-  const kdi = (searchParams.get('di') || searchParams.get('k_di') || '').trim();
+  const rawKdi = (searchParams.get('di') || searchParams.get('k_di') || '').trim();
+  const activeKdi = useMemo(() => (variant === 'map' ? '' : rawKdi), [variant, rawKdi]);
 
-  // Jika masuk dari tombol Map (kdi ada), layer kecamatan default disembunyikan
-  const [kecamatanVisible, setKecamatanVisible] = useState<boolean>(!(kdi && kdi.length > 0));
+  // Jika masuk dari varian Sebaran (activeKdi ada), layer kecamatan default disembunyikan
+  const [kecamatanVisible, setKecamatanVisible] = useState<boolean>(!(activeKdi && activeKdi.length > 0));
+
+  useEffect(() => {
+    setKecamatanVisible(!(activeKdi && activeKdi.length > 0));
+  }, [activeKdi]);
 
   useEffect(() => {
     if (typeof document === 'undefined') return;
@@ -226,8 +231,8 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
           const features = fmt.readFeatures(collection, { dataProjection: 'EPSG:4326', featureProjection: map.getView().getProjection() });
           kecamatanLayer.getSource()?.clear();
           kecamatanLayer.getSource()?.addFeatures(features);
-          // Fit boundary only jika tidak ada kdi (mode konteks umum)
-          if (!kdi && features.length > 0) {
+          // Fit boundary only jika activeKdi kosong (mode konteks umum)
+          if (!activeKdi && features.length > 0) {
             const ext = kecamatanLayer.getSource()?.getExtent();
             if (ext) {
               dataExtentRef.current = ext.slice() as any;
@@ -295,15 +300,15 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
           };
           const allFiles = await fetchManifestPaths();
           let targetFiles: string[] = allFiles;
-          if (kdi) {
-            const codeLower = kdi.toLowerCase();
+          if (activeKdi) {
+            const codeLower = activeKdi.toLowerCase();
             // Muat hanya berkas di folder root yang PERSIS sama dengan kode DI
             const byExactRoot = allFiles.filter((p) => ((p.split('/')[0] || '').toLowerCase()) === codeLower);
             if (byExactRoot.length) {
               targetFiles = byExactRoot;
             } else {
               // Fallback aman: prefix ketat
-              targetFiles = allFiles.filter((p) => p.startsWith(`${kdi}/`));
+              targetFiles = allFiles.filter((p) => p.startsWith(`${activeKdi}/`));
             }
           }
           const processFile = async (path: string): Promise<StorageResult | null> => {
@@ -397,8 +402,8 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
           if (ptExt) extendExtent(combined, ptExt);
           if (!isExtentEmpty(combined)) {
             dataExtentRef.current = combined.slice() as any;
-            // Fit jika kdi ada (prioritaskan data DI yang termuat dari storage)
-            if (kdi) map.getView().fit(combined, { padding: [50, 50, 50, 50], duration: 500 });
+            // Fit jika activeKdi ada (prioritaskan data DI yang termuat dari storage)
+            if (activeKdi) map.getView().fit(combined, { padding: [50, 50, 50, 50], duration: 500 });
           }
         } catch (err: any) {
           setStorageError(err?.message || 'Gagal memuat GeoJSON dari Storage');
@@ -407,8 +412,8 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
         }
 
         // 2) Jika k_di/di disediakan, muat layer operasional terkait dari DB
-        if (kdi) {
-          const { data: di } = await supabase.from('daerah_irigasi').select('id,k_di,n_di').eq('k_di', kdi).maybeSingle();
+        if (activeKdi) {
+          const { data: di } = await supabase.from('daerah_irigasi').select('id,k_di,n_di').eq('k_di', activeKdi).maybeSingle();
           if (di?.id) {
             // Load saluran, ruas, bangunan, fungsional
             const [{ data: saluran }, { data: bangunan }, { data: fungsional }] = await Promise.all([
@@ -845,7 +850,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
           metadata?.K_DI ||
           metadata?.kdi ||
           metadata?.kode_di ||
-          kdi ||
+          activeKdi ||
           ''
         )
           .toString()
@@ -942,7 +947,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
       map.setTarget(undefined as any);
       mapRef.current = null;
     };
-  }, [kecamatanVisible, kdi, supabase, supabaseUrl]);
+  }, [kecamatanVisible, activeKdi, supabase, supabaseUrl]);
 
   // UI handlers
   const setBasemap = (name: string) => {
@@ -1047,7 +1052,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
           <label><input type="radio" name="basemap" onChange={() => setBasemap('sat')} /> ESRI Satellite</label>
         </div>
         <div style={{ fontWeight: 600, margin: '12px 0 6px' }}>Operational Layers</div>
-        {!kdi && (
+        {!activeKdi && (
           <>
             <label><input type="checkbox" checked={kecamatanVisible} onChange={(e) => toggleKecamatan((e.target as HTMLInputElement).checked)} /> Kecamatan Boundaries</label><br />
           </>
