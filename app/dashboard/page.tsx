@@ -291,16 +291,16 @@ export default function DashboardPage() {
               <strong>Menu</strong>
               <span className="badge">Dashboard</span>
             </div>
-            <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <button className="btn primary" onClick={() => (window.location.href = '/map')}>Sebaran Irigasi</button>
-              <button className="btn" onClick={() => setActivePanel('di')}>Daerah Irigasi</button>
-              <button className="btn" onClick={() => setActivePanel('management')}>Manajemen Irigasi</button>
-              <button className="btn" onClick={() => setActivePanel('reports')}>Laporan</button>
-              {isAdmin && (
-                <button className="btn" onClick={() => setActivePanel('users')} id="usersBtn">Users</button>
-              )}
-              <button className="btn" onClick={() => setActivePanel('settings')}>Pengaturan</button>
-            </div>
+              <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <button className="btn primary" onClick={() => (window.location.href = '/sebaran-irigasi')}>Sebaran Irigasi</button>
+                <button className="btn" onClick={() => setActivePanel('di')}>Daerah Irigasi</button>
+                <button className="btn" onClick={() => setActivePanel('management')}>Manajemen Irigasi</button>
+                <button className="btn" onClick={() => setActivePanel('reports')}>Laporan</button>
+                {isAdmin && (
+                  <button className="btn" onClick={() => setActivePanel('users')} id="usersBtn">Users</button>
+                )}
+                <button className="btn" onClick={() => setActivePanel('settings')}>Pengaturan</button>
+              </div>
           </div>
         </aside>
         <main className="content">
