@@ -16,19 +16,15 @@ export default async function DIProfilePage({ params }: { params: { k_di: string
   let ruasCount = 0;
   let bangunanCount = 0;
 
-  if (di?.id) {
-    const [{ count: sc }, { count: bc }] = await Promise.all([
-      supabase.from('saluran').select('id', { count: 'exact', head: true }).eq('daerah_irigasi_id', di.id),
-      supabase.from('bangunan').select('id', { count: 'exact', head: true }).eq('daerah_irigasi_id', di.id),
+  if (di) {
+    const [{ count: sc }, { count: bc }, { count: rc }] = await Promise.all([
+      supabase.from('saluran').select('id', { count: 'exact', head: true }).eq('k_di', kdi),
+      supabase.from('bangunan').select('id', { count: 'exact', head: true }).eq('k_di', kdi),
+      supabase.from('ruas').select('id', { count: 'exact', head: true }).eq('k_di', kdi),
     ]);
     saluranCount = sc || 0;
     bangunanCount = bc || 0;
-    const { data: saluranIds } = await supabase.from('saluran').select('id').eq('daerah_irigasi_id', di.id);
-    if (saluranIds && saluranIds.length) {
-      const ids = saluranIds.map((s) => s.id);
-      const { count: rc } = await supabase.from('ruas').select('id', { count: 'exact', head: true }).in('saluran_id', ids);
-      ruasCount = rc || 0;
-    }
+    ruasCount = rc || 0;
   }
 
   return (

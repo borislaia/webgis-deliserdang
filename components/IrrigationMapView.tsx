@@ -476,14 +476,11 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
         }
 
         // 2) Jika k_di/di disediakan, muat layer operasional terkait dari DB
-        if (activeKdi) {
-          const { data: di } = await supabase.from('daerah_irigasi').select('id,k_di,n_di').eq('k_di', activeKdi).maybeSingle();
-          if (di?.id) {
-            // Load saluran, ruas, bangunan, fungsional
-            const [{ data: saluran }, { data: bangunan }, { data: fungsional }] = await Promise.all([
-              supabase.from('saluran').select('id,no_saluran,geojson').eq('daerah_irigasi_id', di.id),
-              supabase.from('bangunan').select('id,geojson'),
-              supabase.from('fungsional').select('id,geojson').eq('daerah_irigasi_id', di.id),
+          if (activeKdi) {
+            const [{ data: bangunan }, { data: fungsional }, { data: ruas }] = await Promise.all([
+              supabase.from('bangunan').select('id,geojson').eq('k_di', activeKdi),
+              supabase.from('fungsional').select('id,geojson').eq('k_di', activeKdi),
+              supabase.from('ruas').select('id,no_ruas,urutan,geojson,img_urls,metadata').eq('k_di', activeKdi),
             ]);
 
             // Add bangunan layer
@@ -525,34 +522,26 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
               }
             }
 
-            // Build ruas layer dari DB
-            let ruasFeatures: any[] = [];
-            if (saluran && saluran.length) {
-              const salIds = saluran.map((s: any) => s.id);
-              const { data: ruas } = await supabase
-                .from('ruas')
-                .select('id,no_ruas,urutan,geojson,img_urls,metadata,saluran_id')
-                .in('saluran_id', salIds);
+            // Build ruas layer langsung berdasarkan k_di
+            const ruasFeatures: any[] = [];
+            if (ruas) {
               const fmt = new GeoJSON();
-              if (ruas) {
-                for (const r of ruas) {
-                  if (!r.geojson) continue;
-                  // Sisipkan img_urls ke properties untuk popup
-                  const featureGeo = {
-                    ...r.geojson,
-                    properties: {
-                      ...(r.geojson.properties || {}),
-                      img_urls: r.img_urls ?? r.metadata?.img_urls ?? r.metadata?.url_imgs ?? [],
-                      ruas_id: r.id,
-                      metadata: r.metadata || {},
-                    },
-                  };
-                  const f = fmt.readFeature(featureGeo, {
-                    dataProjection: 'EPSG:4326',
-                    featureProjection: map.getView().getProjection(),
-                  });
-                  ruasFeatures.push(f);
-                }
+              for (const r of ruas) {
+                if (!r.geojson) continue;
+                const featureGeo = {
+                  ...r.geojson,
+                  properties: {
+                    ...(r.geojson.properties || {}),
+                    img_urls: r.img_urls ?? r.metadata?.img_urls ?? r.metadata?.url_imgs ?? [],
+                    ruas_id: r.id,
+                    metadata: r.metadata || {},
+                  },
+                };
+                const f = fmt.readFeature(featureGeo, {
+                  dataProjection: 'EPSG:4326',
+                  featureProjection: map.getView().getProjection(),
+                });
+                ruasFeatures.push(f);
               }
             }
 
@@ -574,7 +563,6 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
               }
             }
           }
-        }
       } catch (e) {
         // ignore
       }

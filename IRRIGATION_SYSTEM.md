@@ -43,6 +43,7 @@ Menyimpan informasi umum daerah irigasi:
 
 #### 2. saluran
 Menyimpan data saluran irigasi:
+- `k_di`: Kode daerah irigasi (foreign key ke `daerah_irigasi.k_di`)
 - `no_saluran`: Nomor saluran (SAL001, SAL002, ...)
 - `nama`: Nama saluran
 - `jenis`: Tipe saluran (primer/sekunder/tersier)
@@ -52,6 +53,7 @@ Menyimpan data saluran irigasi:
 
 #### 3. ruas
 Menyimpan segmen saluran (hasil pemotongan otomatis):
+- `k_di`: Kode daerah irigasi (mirror agar dapat difilter langsung)
 - `no_ruas`: Nomor ruas (Ruas - 1, Ruas - 2, ...)
 - `urutan`: Urutan dari hulu ke hilir
 - `panjang`: Panjang ruas dalam meter
@@ -61,6 +63,7 @@ Menyimpan segmen saluran (hasil pemotongan otomatis):
 
 #### 4. bangunan
 Menyimpan data bangunan irigasi:
+- `k_di`: Kode daerah irigasi (foreign key ke `daerah_irigasi.k_di`)
 - `nama`: Nama bangunan
 - `nomenklatur`: Nomenklatur bangunan
 - `tipe`: Tipe bangunan (bendung, bagi, sadap, dll)
@@ -70,6 +73,7 @@ Menyimpan data bangunan irigasi:
 
 #### 5. fungsional
 Menyimpan data fungsional/polygon daerah irigasi:
+- `k_di`: Kode daerah irigasi (foreign key ke `daerah_irigasi.k_di`)
 - Data polygon untuk visualisasi di peta
 - Informasi statistik tambahan
 

@@ -246,21 +246,22 @@ Deno.serve(async (req: Request) => {
           const props = feature.properties;
           const coords = feature.geometry.coordinates;
 
-          const { data: bangunan, error: bangunanError } = await supabase
-            .from('bangunan')
-            .insert({
-              daerah_irigasi_id: diId,
-              nama: props.nama || '',
-              nomenklatur: props.nomenklatu || '',
-              k_aset: props.k_aset || '',
-              n_aset: props.n_aset || '',
-              tipe: props.n_aset || '',
-              latitude: coords[1],
-              longitude: coords[0],
-              elevation: coords[2] || 0,
-              geojson: feature,
-              metadata: { norec: props.norec, norec_salu: props.norec_salu, saluran: props.saluran },
-            })
+            const { data: bangunan, error: bangunanError } = await supabase
+              .from('bangunan')
+              .insert({
+                daerah_irigasi_id: diId,
+                k_di: props.k_di || k_di,
+                nama: props.nama || '',
+                nomenklatur: props.nomenklatu || '',
+                k_aset: props.k_aset || '',
+                n_aset: props.n_aset || '',
+                tipe: props.n_aset || '',
+                latitude: coords[1],
+                longitude: coords[0],
+                elevation: coords[2] || 0,
+                geojson: feature,
+                metadata: { norec: props.norec, norec_salu: props.norec_salu, saluran: props.saluran },
+              })
             .select('id')
             .single();
 
@@ -306,19 +307,20 @@ Deno.serve(async (req: Request) => {
           const no_saluran = `SAL${String(saluranCounter).padStart(3, '0')}`;
 
           // Create saluran (one record per polyline)
-          const { data: saluran, error: saluranError } = await supabase
-            .from('saluran')
-            .insert({
-              daerah_irigasi_id: diId,
-              no_saluran,
-              nama: props.nama || props.saluran || no_saluran,
-              nomenklatur: props.nomenklatu || '',
-              jenis,
-              panjang_total: totalLen,
-              luas_layanan: parseFloat(props.luas_layan || '0') || 0,
-              urutan: saluranCounter,
-              geojson: { type: 'FeatureCollection', features: [feature] },
-            })
+            const { data: saluran, error: saluranError } = await supabase
+              .from('saluran')
+              .insert({
+                daerah_irigasi_id: diId,
+                k_di,
+                no_saluran,
+                nama: props.nama || props.saluran || no_saluran,
+                nomenklatur: props.nomenklatu || '',
+                jenis,
+                panjang_total: totalLen,
+                luas_layanan: parseFloat(props.luas_layan || '0') || 0,
+                urutan: saluranCounter,
+                geojson: { type: 'FeatureCollection', features: [feature] },
+              })
             .select('id')
             .single();
           if (saluranError) throw saluranError;
@@ -349,18 +351,19 @@ Deno.serve(async (req: Request) => {
               foto_urls = matches.map((m: any) => `${base}/${encodeURIComponent(m.name)}`);
             } catch { /* ignore */ }
 
-            await supabase
-              .from('ruas')
-              .insert({
-                saluran_id: (saluran as any).id,
-                no_ruas,
-                urutan: i + 1,
-                panjang: Math.max(0, end - start),
-                bangunan_awal_id: null,
-                bangunan_akhir_id: null,
-                geojson: { type: 'Feature', geometry: { type: 'LineString', coordinates: seg }, properties: { no_saluran, no_ruas } },
-                foto_urls,
-              });
+              await supabase
+                .from('ruas')
+                .insert({
+                  saluran_id: (saluran as any).id,
+                  k_di,
+                  no_ruas,
+                  urutan: i + 1,
+                  panjang: Math.max(0, end - start),
+                  bangunan_awal_id: null,
+                  bangunan_akhir_id: null,
+                  geojson: { type: 'Feature', geometry: { type: 'LineString', coordinates: seg }, properties: { no_saluran, no_ruas } },
+                  foto_urls,
+                });
 
             start = end;
           }
@@ -374,34 +377,35 @@ Deno.serve(async (req: Request) => {
         for (const feature of fungsionalData.features as FungsionalFeature[]) {
           const props = feature.properties;
           
-          await supabase
-            .from('fungsional')
-            .insert({
-              daerah_irigasi_id: diId,
-              nama_di: props.NAMA_DI || '',
-              luas_ha: props.LUAS_HA || 0,
-              kecamatan: props.Kecamatan || '',
-              desa_kel: props.Desa_Kel || '',
-              sumber_air: props.Smb_Air || '',
-              tahun_data: props.Thn_Dat || '',
-              kondisi: props.Kondisi || '',
-              panjang_sp: props.PANJANG_SP || 0,
-              panjang_ss: props.PANJANG_SS || 0,
-              geojson: feature,
-            });
+            await supabase
+              .from('fungsional')
+              .insert({
+                daerah_irigasi_id: diId,
+                k_di,
+                nama_di: props.NAMA_DI || '',
+                luas_ha: props.LUAS_HA || 0,
+                kecamatan: props.Kecamatan || '',
+                desa_kel: props.Desa_Kel || '',
+                sumber_air: props.Smb_Air || '',
+                tahun_data: props.Thn_Dat || '',
+                kondisi: props.Kondisi || '',
+                panjang_sp: props.PANJANG_SP || 0,
+                panjang_ss: props.PANJANG_SS || 0,
+                geojson: feature,
+              });
         }
       }
 
       // 5. Update statistics in daerah_irigasi
-      const { data: saluranCount } = await supabase
-        .from('saluran')
-        .select('id', { count: 'exact', head: true })
-        .eq('daerah_irigasi_id', diId);
+        const { data: saluranCount } = await supabase
+          .from('saluran')
+          .select('id', { count: 'exact', head: true })
+          .eq('k_di', k_di);
 
-      const { data: bangunanCount } = await supabase
-        .from('bangunan')
-        .select('id', { count: 'exact', head: true })
-        .eq('daerah_irigasi_id', diId);
+        const { data: bangunanCount } = await supabase
+          .from('bangunan')
+          .select('id', { count: 'exact', head: true })
+          .eq('k_di', k_di);
 
       await supabase
         .from('daerah_irigasi')
@@ -489,28 +493,29 @@ Deno.serve(async (req: Request) => {
 
       // Insert bangunan
       const bangunanMap = new Map<string, string>();
-      for (const feature of (bangunanJson?.features || []) as BangunanFeature[]) {
-        const props = feature.properties;
-        const coords = feature.geometry.coordinates;
-        const { data: b } = await supabase
-          .from('bangunan')
-          .insert({
-            daerah_irigasi_id: diId,
-            nama: props?.nama || '',
-            nomenklatur: props?.nomenklatu || '',
-            k_aset: props?.k_aset || '',
-            n_aset: props?.n_aset || '',
-            tipe: props?.n_aset || '',
-            latitude: coords?.[1],
-            longitude: coords?.[0],
-            elevation: coords?.[2] || 0,
-            geojson: feature,
-            metadata: { norec: props?.norec, norec_salu: props?.norec_salu, saluran: props?.saluran },
-          })
-          .select('id')
-          .single();
-        if (props?.norec && b?.id) bangunanMap.set(props.norec, b.id);
-      }
+        for (const feature of (bangunanJson?.features || []) as BangunanFeature[]) {
+          const props = feature.properties;
+          const coords = feature.geometry.coordinates;
+          const { data: b } = await supabase
+            .from('bangunan')
+            .insert({
+              daerah_irigasi_id: diId,
+              k_di: props?.k_di || k_di,
+              nama: props?.nama || '',
+              nomenklatur: props?.nomenklatu || '',
+              k_aset: props?.k_aset || '',
+              n_aset: props?.n_aset || '',
+              tipe: props?.n_aset || '',
+              latitude: coords?.[1],
+              longitude: coords?.[0],
+              elevation: coords?.[2] || 0,
+              geojson: feature,
+              metadata: { norec: props?.norec, norec_salu: props?.norec_salu, saluran: props?.saluran },
+            })
+            .select('id')
+            .single();
+          if (props?.norec && b?.id) bangunanMap.set(props.norec, b.id);
+        }
 
       // Map images folders in order as before
       const imagesFolderMap: Record<string, string> = {};
@@ -542,21 +547,22 @@ Deno.serve(async (req: Request) => {
         const totalLen = lineLengthMeters(coords);
         const no_saluran = `SAL${String(saluranCounter).padStart(3, '0')}`;
 
-        const { data: sRow } = await supabase
-          .from('saluran')
-          .insert({
-            daerah_irigasi_id: diId,
-            no_saluran,
-            nama: props.nama || props.saluran || no_saluran,
-            nomenklatur: props.nomenklatu || '',
-            jenis,
-            panjang_total: totalLen,
-            luas_layanan: parseFloat(props.luas_layan || '0') || 0,
-            urutan: saluranCounter,
-            geojson: { type: 'FeatureCollection', features: [feature] },
-          })
-          .select('id')
-          .single();
+          const { data: sRow } = await supabase
+            .from('saluran')
+            .insert({
+              daerah_irigasi_id: diId,
+              k_di,
+              no_saluran,
+              nama: props.nama || props.saluran || no_saluran,
+              nomenklatur: props.nomenklatu || '',
+              jenis,
+              panjang_total: totalLen,
+              luas_layanan: parseFloat(props.luas_layan || '0') || 0,
+              urutan: saluranCounter,
+              geojson: { type: 'FeatureCollection', features: [feature] },
+            })
+            .select('id')
+            .single();
 
         const step = 50;
         const segCount = Math.max(1, Math.ceil(totalLen / step));
@@ -585,6 +591,7 @@ Deno.serve(async (req: Request) => {
             .from('ruas')
             .insert({
               saluran_id: (sRow as any).id,
+              k_di,
               no_ruas,
               urutan: i + 1,
               panjang: Math.max(0, end - start),
@@ -602,22 +609,23 @@ Deno.serve(async (req: Request) => {
       }
 
       // Insert fungsional
-      for (const feature of (fungsionalJson?.features || []) as FungsionalFeature[]) {
-        const props = feature.properties;
-        await supabase.from('fungsional').insert({
-          daerah_irigasi_id: diId,
-          nama_di: props.NAMA_DI || '',
-          luas_ha: props.LUAS_HA || 0,
-          kecamatan: props.Kecamatan || '',
-          desa_kel: props.Desa_Kel || '',
-          sumber_air: props.Smb_Air || '',
-          tahun_data: props.Thn_Dat || '',
-          kondisi: props.Kondisi || '',
-          panjang_sp: props.PANJANG_SP || 0,
-          panjang_ss: props.PANJANG_SS || 0,
-          geojson: feature,
-        });
-      }
+        for (const feature of (fungsionalJson?.features || []) as FungsionalFeature[]) {
+          const props = feature.properties;
+          await supabase.from('fungsional').insert({
+            daerah_irigasi_id: diId,
+            k_di,
+            nama_di: props.NAMA_DI || '',
+            luas_ha: props.LUAS_HA || 0,
+            kecamatan: props.Kecamatan || '',
+            desa_kel: props.Desa_Kel || '',
+            sumber_air: props.Smb_Air || '',
+            tahun_data: props.Thn_Dat || '',
+            kondisi: props.Kondisi || '',
+            panjang_sp: props.PANJANG_SP || 0,
+            panjang_ss: props.PANJANG_SS || 0,
+            geojson: feature,
+          });
+        }
 
       await supabase
         .from('daerah_irigasi')
