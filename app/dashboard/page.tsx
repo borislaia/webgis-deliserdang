@@ -179,55 +179,34 @@ export default function DashboardPage() {
     window.location.href = '/login';
   };
 
-  // Ambil kode DI dari baris CSV bila tersedia, untuk query di halaman peta
-  const getDiCodeFromRow = (row: Record<string, any>): string => {
-    if (!row) return '';
+    // Ambil kode DI dari baris CSV bila tersedia, untuk query di halaman peta
+    const getDiCodeFromRow = (row: Record<string, any>): string => {
+      if (!row) return '';
 
-    const normalize = (s: string) => s.toLowerCase().replace(/[\s\-\/()]+/g, '_');
-    const keys = Object.keys(row);
+      const keys = Object.keys(row);
+      const normalizeKey = (key: string) => key.toLowerCase().replace(/[^a-z0-9]/gi, '');
+      const keyLookup = new Map<string, string>();
 
-    // 1) Pencocokan langsung berdasarkan nama kolom umum
-    const directCandidates = new Set<string>([
-      'k_di',
-      'kode_di',
-      'kode',
-      'kdi',
-      // variasi umum lain
-      'kode_irigasi',
-      'kode_irgasi',
-      'k_irigasi',
-      'kode_di_irigasi',
-      'kode_daerah_irigasi',
-    ]);
-    for (const key of keys) {
-      const normalized = normalize(key);
-      if (directCandidates.has(normalized)) {
-        const value = row[key];
-        if (value != null && value !== '') return String(value).trim();
+      for (const key of keys) {
+        keyLookup.set(normalizeKey(key), key);
       }
-    }
 
-    // 2) Heuristik: kolom mengandung token 'kode' dan ('di' atau 'irig')
-    const heuristicKeys = keys.filter((k) => {
-      const n = normalize(k);
-      return n.includes('kode') && (n.includes('di') || n.includes('irig'));
-    });
-    for (const key of heuristicKeys) {
-      const val = row[key];
-      const str = (val == null ? '' : String(val)).trim();
-      if (/^\d{8}$/.test(str)) return str; // prefer 8 digit
-      if (/^\d{6,12}$/.test(str)) return str;
-    }
+      const directCandidates = ['k_di', 'kode_irigasi', 'kode_di', 'kode_di_irigasi', 'kode_daerah_irigasi', 'kdi', 'kode'];
+      for (const candidate of directCandidates) {
+        const matchedKey = keyLookup.get(normalizeKey(candidate));
+        if (!matchedKey) continue;
+        const value = row[matchedKey];
+        if (value != null && String(value).trim()) return String(value).trim();
+      }
 
-    // 3) Fallback terakhir: cari nilai angka 8–12 digit di baris
-    for (const key of keys) {
-      const str = (row[key] == null ? '' : String(row[key])).trim();
-      if (/^\d{8}$/.test(str)) return str;
-      if (/^\d{6,12}$/.test(str)) return str;
-    }
+      // Fallback: cari angka 6–12 digit
+      for (const key of keys) {
+        const str = (row[key] == null ? '' : String(row[key])).trim();
+        if (/^\d{6,12}$/.test(str)) return str;
+      }
 
-    return '';
-  };
+      return '';
+    };
 
   return (
     <main>
