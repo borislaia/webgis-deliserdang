@@ -27,6 +27,17 @@ type IrrigationMapViewProps = {
   variant?: MapVariant;
 };
 
+type DaerahIrigasiRow = {
+  id: string;
+  k_di: string;
+  n_di?: string | null;
+  kecamatan?: string | null;
+  desa_kel?: string | null;
+  sumber_air?: string | null;
+  luas_ha?: number | null;
+  metadata?: Record<string, any> | null;
+};
+
 export default function IrrigationMapView({ variant = 'map' }: IrrigationMapViewProps) {
   const mapDivRef = useRef<HTMLDivElement | null>(null);
   const tooltipRef = useRef<HTMLDivElement | null>(null);
@@ -60,6 +71,9 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
   const [pointsVisible, setPointsVisible] = useState(true);
   const [linesVisible, setLinesVisible] = useState(true);
   const [polygonsVisible, setPolygonsVisible] = useState(true);
+  const [diInfo, setDiInfo] = useState<DaerahIrigasiRow | null>(null);
+  const [diInfoLoading, setDiInfoLoading] = useState(false);
+  const [diInfoError, setDiInfoError] = useState<string | null>(null);
 
   const searchParams = useSearchParams();
   // Terima baik ?di= maupun ?k_di= untuk fleksibilitas dari dashboard
@@ -79,6 +93,48 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
     const pageTitle = variant === 'sebaran' ? 'Sebaran Irigasi' : 'Peta Daerah Irigasi';
     document.title = `${pageTitle} | ${baseTitle}`;
   }, [variant]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!activeKdi) {
+      setDiInfo(null);
+      setDiInfoError(null);
+      setDiInfoLoading(false);
+      return () => {
+        cancelled = true;
+      };
+    }
+    setDiInfo(null);
+    setDiInfoError(null);
+    setDiInfoLoading(true);
+    (async () => {
+      try {
+        const { data, error } = await supabase
+          .from('daerah_irigasi')
+          .select('id,k_di,n_di,kecamatan,desa_kel,sumber_air,luas_ha,metadata')
+          .eq('k_di', activeKdi)
+          .maybeSingle();
+        if (cancelled) return;
+        if (error) throw error;
+        if (!data) {
+          setDiInfo(null);
+          setDiInfoError('Data DI tidak ditemukan');
+          return;
+        }
+        setDiInfo(data as DaerahIrigasiRow);
+      } catch (err: any) {
+        if (cancelled) return;
+        setDiInfo(null);
+        setDiInfoError(err?.message || 'Gagal memuat data DI');
+      } finally {
+        if (cancelled) return;
+        setDiInfoLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeKdi, supabase]);
 
   useEffect(() => {
     if (!mapDivRef.current) return;
@@ -1040,6 +1096,107 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
     setKecamatanVisible(checked);
   };
 
+  const diInfoRows = useMemo<Array<[string, string]>>(() => {
+    if (!diInfo) return [];
+    const metadata =
+      diInfo.metadata && typeof diInfo.metadata === 'object' && !Array.isArray(diInfo.metadata)
+        ? (diInfo.metadata as Record<string, any>)
+        : {};
+    const metaKeys = Object.keys(metadata);
+    const readMeta = (...keys: string[]) => {
+      for (const key of keys) {
+        if (!key) continue;
+        if (Object.prototype.hasOwnProperty.call(metadata, key) && metadata[key] != null) {
+          return metadata[key];
+        }
+        const lower = key.toLowerCase();
+        const matched = metaKeys.find((existing) => existing.toLowerCase() === lower);
+        if (matched && metadata[matched] != null) {
+          return metadata[matched];
+        }
+      }
+      return undefined;
+    };
+    const normalizeString = (value: any): string => {
+      if (value == null) return '';
+      if (typeof value === 'string') return value.trim();
+      if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+      return '';
+    };
+    const pickString = (...values: any[]): string => {
+      for (const value of values) {
+        if (value == null) continue;
+        if (Array.isArray(value)) {
+          for (const entry of value) {
+            const str = normalizeString(entry);
+            if (str) return str;
+          }
+          continue;
+        }
+        const str = normalizeString(value);
+        if (str) return str;
+      }
+      return '';
+    };
+    const parseNumber = (value: any): number | null => {
+      if (value == null) return null;
+      if (typeof value === 'number' && Number.isFinite(value)) return value;
+      if (typeof value === 'string') {
+        const trimmed = value.trim();
+        if (!trimmed) return null;
+        const sanitized = trimmed.replace(/[^\d,.\-]/g, '');
+        const lastComma = sanitized.lastIndexOf(',');
+        const lastDot = sanitized.lastIndexOf('.');
+        let normalized = sanitized;
+        if (lastComma > -1 && lastComma > lastDot) {
+          normalized = sanitized.replace(/\./g, '').replace(',', '.');
+        } else {
+          normalized = sanitized.replace(/,/g, '');
+        }
+        if (!normalized) return null;
+        const num = Number(normalized);
+        return Number.isNaN(num) ? null : num;
+      }
+      return null;
+    };
+    const pickNumber = (...values: any[]): number | null => {
+      for (const value of values) {
+        if (value == null) continue;
+        if (Array.isArray(value)) {
+          for (const entry of value) {
+            const parsed = parseNumber(entry);
+            if (parsed != null) return parsed;
+          }
+          continue;
+        }
+        const parsed = parseNumber(value);
+        if (parsed != null) return parsed;
+      }
+      return null;
+    };
+    const formatNumber = (value: number): string =>
+      new Intl.NumberFormat('id-ID', { maximumFractionDigits: Math.abs(value % 1) < 1e-6 ? 0 : 2 }).format(value);
+
+    const code = pickString(diInfo.k_di, readMeta('k_di', 'kode_irigasi', 'kode_di'));
+    const name = pickString(diInfo.n_di, readMeta('nama_di', 'n_di', 'nama'));
+    const uptd = pickString(readMeta('uptd', 'nama_uptd'));
+    const kecamatan = pickString(diInfo.kecamatan, readMeta('kecamatan'));
+    const desa = pickString(diInfo.desa_kel, readMeta('desa_kel', 'desa', 'desa_kelurahan'));
+    const sumberAir = pickString(diInfo.sumber_air, readMeta('sumber_air', 'sumber'));
+    const luasVal = pickNumber(readMeta('luas_fungsional', 'luas_fungsi', 'luas', 'luas_ha'), diInfo.luas_ha);
+    const luasText = luasVal != null ? `${formatNumber(luasVal)} %Ha` : '-';
+
+    return [
+      ['Kode Irigasi', code || '-'],
+      ['Nama DI', name || '-'],
+      ['UPTD', uptd || '-'],
+      ['Kecamatan', kecamatan || '-'],
+      ['Desa', desa || '-'],
+      ['Sumber Air', sumberAir || '-'],
+      ['Luas fungsional', luasText],
+    ];
+  }, [diInfo]);
+
   const goHome = () => { window.location.href = '/'; };
   const goDashboard = () => { window.location.href = '/dashboard'; };
   const closeModal = () => { setIsModalOpen(false); setModalImgSrc(null); };
@@ -1098,6 +1255,31 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
           </label>
         </div>
         <div style={{ marginTop: 12 }} className="legend" />
+        {activeKdi ? (
+          <div style={{ marginTop: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+              <strong>Data DI</strong>
+              <span className="badge" title="Kode irigasi aktif">{activeKdi}</span>
+            </div>
+            {diInfoLoading && <div style={{ fontSize: 13, color: '#6b7280', marginTop: 6 }}>Memuat detail...</div>}
+            {diInfoError && <div style={{ fontSize: 13, color: '#b91c1c', marginTop: 6 }}>{diInfoError}</div>}
+            {!diInfoLoading && !diInfoError && diInfoRows.length > 0 && (
+              <table className="detail-table" style={{ marginTop: 6 }}>
+                <tbody>
+                  {diInfoRows.map(([label, value]) => (
+                    <tr key={label}>
+                      <td className="label">{label}</td>
+                      <td className="value">{value}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+            {!diInfoLoading && !diInfoError && diInfoRows.length === 0 && (
+              <div style={{ fontSize: 13, color: '#6b7280', marginTop: 6 }}>Data belum tersedia.</div>
+            )}
+          </div>
+        ) : null}
       </div>
 
       {/* Tooltip and popup overlays */}
