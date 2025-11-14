@@ -32,6 +32,7 @@ Sistem secara otomatis memotong saluran menjadi ruas-ruas berdasarkan posisi ban
 
 #### 1. daerah_irigasi
 Menyimpan informasi umum daerah irigasi:
+- `id`: UUID unik sebagai primary key
 - `k_di`: Kode daerah irigasi (unique)
 - `n_di`: Nama daerah irigasi
 - `luas_ha`: Luas dalam hektar
