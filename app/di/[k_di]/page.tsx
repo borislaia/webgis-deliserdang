@@ -1,4 +1,5 @@
 import { createServerSupabase } from '@/lib/supabase/server';
+import { fetchDaerahIrigasiByCode } from '@/lib/daerahIrigasi';
 
 export const dynamic = 'force-dynamic';
 
@@ -6,11 +7,7 @@ export default async function DIProfilePage({ params }: { params: { k_di: string
   const supabase = createServerSupabase();
   const kdi = params.k_di;
 
-  const { data: di } = await supabase
-    .from('daerah_irigasi')
-    .select('*')
-    .eq('k_di', kdi)
-    .maybeSingle();
+  const di = await fetchDaerahIrigasiByCode(supabase, kdi);
 
   let saluranCount = 0;
   let ruasCount = 0;

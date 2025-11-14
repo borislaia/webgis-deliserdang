@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { DaerahIrigasiRow, fetchDaerahIrigasiList } from '@/lib/daerahIrigasi';
 import * as XLSX from 'xlsx';
 
 function classNames(...parts: Array<string | false | undefined>) {
@@ -28,30 +29,26 @@ export default function IrrigationManagementView({ isAdmin }: IrrigationManageme
   const [saluranFile, setSaluranFile] = useState<File | null>(null);
   const [fungsionalFile, setFungsionalFile] = useState<File | null>(null);
 
-  const [message, setMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
-  const [importing, setImporting] = useState(false);
+    const [message, setMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
+    const [importing, setImporting] = useState(false);
 
-  const [diList, setDiList] = useState<any[] | null>(null);
+    const [diList, setDiList] = useState<DaerahIrigasiRow[] | null>(null);
   const [saluranList, setSaluranList] = useState<any[] | null>(null);
   const [ruasList, setRuasList] = useState<any[] | null>(null);
   const [bangunanList, setBangunanList] = useState<any[] | null>(null);
 
-  useEffect(() => {
-    if (activeTab === 'overview') {
-      (async () => {
-        try {
-          const { data, error } = await supabase
-            .from('daerah_irigasi')
-            .select('id,k_di,n_di,luas_ha,kecamatan,desa_kel,sumber_air,tahun_data')
-            .limit(50);
-          if (error) throw error;
-          setDiList(data || []);
-        } catch (e: any) {
-          setDiList([]);
-        }
-      })();
-    }
-    if (activeTab === 'saluran') {
+    useEffect(() => {
+      if (activeTab === 'overview') {
+        (async () => {
+          try {
+            const rows = await fetchDaerahIrigasiList(supabase, { limit: 50 });
+            setDiList(rows);
+          } catch {
+            setDiList([]);
+          }
+        })();
+      }
+      if (activeTab === 'saluran') {
       (async () => {
         try {
           const { data, error } = await supabase

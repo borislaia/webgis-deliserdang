@@ -2,21 +2,11 @@
 import { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
+import { DaerahIrigasiRow, fetchDaerahIrigasiList } from '@/lib/daerahIrigasi';
 import IrrigationManagementView from '@/components/IrrigationManagementView';
 
 type Panel = 'di' | 'management' | 'reports' | 'users' | 'settings';
 type UserRow = { id: string; email: string; role: string; created_at: string | null; last_sign_in_at: string | null };
-type DaerahIrigasiRow = {
-  id: string;
-  k_di: string;
-  n_di: string | null;
-  luas_ha: number | null;
-  kecamatan: string | null;
-  desa_kel: string | null;
-  sumber_air: string | null;
-  tahun_data: string | null;
-};
-
 export default function DashboardPage() {
   const [activePanel, setActivePanel] = useState<Panel>('di');
   const [year] = useState<number>(new Date().getFullYear());
@@ -80,18 +70,14 @@ export default function DashboardPage() {
     if (activePanel !== 'di') return;
     let cancelled = false;
 
-    const fetchDaerahIrigasi = async () => {
+    const loadDiRows = async () => {
       setDiLoading(true);
       setDiError(null);
       setDiRows(null);
       try {
         const supabase = createClient();
-        const { data, error } = await supabase
-          .from('daerah_irigasi')
-          .select('id,k_di,n_di,luas_ha,kecamatan,desa_kel,sumber_air,tahun_data')
-          .order('k_di', { ascending: true });
-        if (error) throw error;
-        if (!cancelled) setDiRows(data || []);
+        const rows = await fetchDaerahIrigasiList(supabase);
+        if (!cancelled) setDiRows(rows);
       } catch (e: any) {
         if (!cancelled) {
           setDiRows([]);
@@ -102,7 +88,7 @@ export default function DashboardPage() {
       }
     };
 
-    fetchDaerahIrigasi();
+    loadDiRows();
     return () => {
       cancelled = true;
     };

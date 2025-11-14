@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { DaerahIrigasiRow, fetchDaerahIrigasiByCode } from '@/lib/daerahIrigasi';
 import 'ol/ol.css';
 import Map from 'ol/Map';
 import View from 'ol/View';
@@ -25,17 +26,6 @@ type MapVariant = 'map' | 'sebaran';
 
 type IrrigationMapViewProps = {
   variant?: MapVariant;
-};
-
-type DaerahIrigasiRow = {
-  id: string;
-  k_di: string;
-  n_di?: string | null;
-  kecamatan?: string | null;
-  desa_kel?: string | null;
-  sumber_air?: string | null;
-  luas_ha?: number | null;
-  metadata?: Record<string, any> | null;
 };
 
 export default function IrrigationMapView({ variant = 'map' }: IrrigationMapViewProps) {
@@ -107,30 +97,27 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
     setDiInfo(null);
     setDiInfoError(null);
     setDiInfoLoading(true);
-    (async () => {
-      try {
-        const { data, error } = await supabase
-          .from('daerah_irigasi')
-          .select('id,k_di,n_di,kecamatan,desa_kel,sumber_air,luas_ha,metadata')
-          .eq('k_di', activeKdi)
-          .maybeSingle();
-        if (cancelled) return;
-        if (error) throw error;
-        if (!data) {
+      (async () => {
+        try {
+          const di = await fetchDaerahIrigasiByCode(supabase, activeKdi, {
+            fields: ['n_di', 'kecamatan', 'desa_kel', 'sumber_air', 'luas_ha', 'metadata'],
+          });
+          if (cancelled) return;
+          if (!di) {
+            setDiInfo(null);
+            setDiInfoError('Data DI tidak ditemukan');
+            return;
+          }
+          setDiInfo(di);
+        } catch (err: any) {
+          if (cancelled) return;
           setDiInfo(null);
-          setDiInfoError('Data DI tidak ditemukan');
-          return;
+          setDiInfoError(err?.message || 'Gagal memuat data DI');
+        } finally {
+          if (cancelled) return;
+          setDiInfoLoading(false);
         }
-        setDiInfo(data as DaerahIrigasiRow);
-      } catch (err: any) {
-        if (cancelled) return;
-        setDiInfo(null);
-        setDiInfoError(err?.message || 'Gagal memuat data DI');
-      } finally {
-        if (cancelled) return;
-        setDiInfoLoading(false);
-      }
-    })();
+      })();
     return () => {
       cancelled = true;
     };
@@ -477,7 +464,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
 
         // 2) Jika k_di/di disediakan, muat layer operasional terkait dari DB
         if (activeKdi) {
-          const { data: di } = await supabase.from('daerah_irigasi').select('id,k_di,n_di').eq('k_di', activeKdi).maybeSingle();
+          const di = await fetchDaerahIrigasiByCode(supabase, activeKdi, { fields: [] });
           if (di?.id) {
             // Load saluran, ruas, bangunan, fungsional
             const [{ data: saluran }, { data: bangunan }, { data: fungsional }] = await Promise.all([
