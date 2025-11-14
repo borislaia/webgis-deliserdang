@@ -51,11 +51,16 @@ body{
 .ol-popup{ position: absolute; background: var(--card); padding: 12px; border-radius: 12px; border: 1px solid var(--stroke); width: clamp(260px, 40vw, 360px); }
 .ol-popup .title{ font-weight: 600; margin-bottom: 4px; }
 .ol-popup .subtitle{ margin-top: 6px; font-weight: 600; font-size: 13px; }
-.ol-popup .popup-table{ width:100%; border-collapse:collapse; margin-top:4px; }
-.ol-popup .popup-table td{ font-size:13px; line-height:1.4; padding:2px 0; vertical-align:top; }
-.ol-popup .popup-table td.label{ color:var(--muted); font-weight:500; width:42%; white-space:nowrap; }
-.ol-popup .popup-table td.label::after{ content:" :"; padding-left:4px; }
-.ol-popup .popup-table td.value{ color:var(--text); font-weight:600; text-align:left; word-break:break-word; }
+.ol-popup .popup-table,
+.detail-table{ width:100%; border-collapse:collapse; margin-top:4px; }
+.ol-popup .popup-table td,
+.detail-table td{ font-size:13px; line-height:1.4; padding:2px 0; vertical-align:top; }
+.ol-popup .popup-table td.label,
+.detail-table td.label{ color:var(--muted); font-weight:500; width:42%; white-space:nowrap; }
+.ol-popup .popup-table td.label::after,
+.detail-table td.label::after{ content:" :"; padding-left:4px; }
+.ol-popup .popup-table td.value,
+.detail-table td.value{ color:var(--text); font-weight:600; text-align:left; word-break:break-word; }
 .ol-popup .empty-state{ font-size:13px; color:var(--muted); font-style:italic; margin-top:4px; }
 .ol-popup img{ width: 100%; height: auto; max-height: 320px; border-radius: 10px; cursor: pointer; object-fit: contain; }
 .layout{ display:grid; grid-template-columns: minmax(220px, 260px) minmax(0, 1fr); gap:16px; align-items:start; min-height: calc(100vh - 100px); }
