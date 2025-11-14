@@ -2,11 +2,20 @@
 import { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
-import * as XLSX from 'xlsx';
 import IrrigationManagementView from '@/components/IrrigationManagementView';
 
 type Panel = 'di' | 'management' | 'reports' | 'users' | 'settings';
 type UserRow = { id: string; email: string; role: string; created_at: string | null; last_sign_in_at: string | null };
+type DaerahIrigasiRow = {
+  id: string;
+  k_di: string;
+  n_di: string | null;
+  luas_ha: number | null;
+  kecamatan: string | null;
+  desa_kel: string | null;
+  sumber_air: string | null;
+  tahun_data: string | null;
+};
 
 export default function DashboardPage() {
   const [activePanel, setActivePanel] = useState<Panel>('di');
@@ -19,11 +28,10 @@ export default function DashboardPage() {
 
   const isAdmin = userRole === 'admin';
 
-  // CSV state for Daerah Irigasi panel
-  const [csvRows, setCsvRows] = useState<any[] | null>(null);
-  const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
-  const [csvLoading, setCsvLoading] = useState<boolean>(false);
-  const [csvError, setCsvError] = useState<string | null>(null);
+  // Data Daerah Irigasi panel (dulu via CSV, kini langsung dari tabel)
+  const [diRows, setDiRows] = useState<DaerahIrigasiRow[] | null>(null);
+  const [diLoading, setDiLoading] = useState<boolean>(false);
+  const [diError, setDiError] = useState<string | null>(null);
 
   // Users panel state
   const [users, setUsers] = useState<UserRow[]>([]);
@@ -67,60 +75,37 @@ export default function DashboardPage() {
     return initials || source.slice(0, 2).toUpperCase();
   }, [userName, userEmail]);
 
-  // Load CSV from Supabase Storage bucket 'csv' when DI panel is active
+  // Muat data DI langsung dari tabel daerah_irigasi ketika panel aktif
   useEffect(() => {
     if (activePanel !== 'di') return;
-    (async () => {
-      setCsvLoading(true);
-      setCsvError(null);
-      setCsvRows(null);
-      setCsvHeaders([]);
+    let cancelled = false;
+
+    const fetchDaerahIrigasi = async () => {
+      setDiLoading(true);
+      setDiError(null);
+      setDiRows(null);
       try {
         const supabase = createClient();
-        const objectPath = 'daerah_irigasi.csv';
-        let text: string | null = null;
-
-        // Coba unduh langsung via API
-        const { data: fileData, error: dlError } = await supabase.storage.from('csv').download(objectPath);
-        if (!dlError && fileData) {
-          text = await fileData.text();
-        }
-
-        // Fallback ke URL publik (bucket public tidak butuh izin list)
-        if (!text) {
-          const { data: pub } = supabase.storage.from('csv').getPublicUrl(objectPath);
-          const url = pub?.publicUrl;
-          if (!url) throw new Error('URL publik CSV tidak tersedia');
-          const res = await fetch(url);
-          if (!res.ok) throw new Error(`Gagal mengunduh CSV (HTTP ${res.status})`);
-          text = await res.text();
-        }
-
-        const wb = XLSX.read(text!, { type: 'string' });
-        const sheet = wb.SheetNames[0];
-        const aoa: any[][] = XLSX.utils.sheet_to_json(wb.Sheets[sheet], { header: 1, blankrows: false }) as any[];
-        if (!Array.isArray(aoa) || aoa.length === 0) {
-          setCsvRows([]);
-          setCsvHeaders([]);
-        } else {
-          const [headerRow, ...dataRows] = aoa;
-          const headers = (headerRow || []).map((h: any) => (h != null ? String(h) : '')) as string[];
-          const rows = dataRows.map((row: any[]) => {
-            const obj: Record<string, any> = {};
-            headers.forEach((h, i) => { obj[h || `col_${i + 1}`] = row[i] ?? ''; });
-            return obj;
-          });
-          setCsvHeaders(headers);
-          setCsvRows(rows);
-        }
+        const { data, error } = await supabase
+          .from('daerah_irigasi')
+          .select('id,k_di,n_di,luas_ha,kecamatan,desa_kel,sumber_air,tahun_data')
+          .order('k_di', { ascending: true });
+        if (error) throw error;
+        if (!cancelled) setDiRows(data || []);
       } catch (e: any) {
-        setCsvError(e?.message || 'Gagal memuat CSV');
-        setCsvRows([]);
-        setCsvHeaders([]);
+        if (!cancelled) {
+          setDiRows([]);
+          setDiError(e?.message || 'Gagal memuat data DI');
+        }
       } finally {
-        setCsvLoading(false);
+        if (!cancelled) setDiLoading(false);
       }
-    })();
+    };
+
+    fetchDaerahIrigasi();
+    return () => {
+      cancelled = true;
+    };
   }, [activePanel]);
 
   const loadUsers = async (signal?: AbortSignal) => {
@@ -179,50 +164,22 @@ export default function DashboardPage() {
     window.location.href = '/login';
   };
 
-  // Ambil kode DI dari baris CSV bila tersedia, untuk query di halaman peta
+  // Ambil kode DI dari baris untuk query di halaman peta
   const getDiCodeFromRow = (row: Record<string, any>): string => {
     if (!row) return '';
 
-    const normalize = (s: string) => s.toLowerCase().replace(/[\s\-\/()]+/g, '_');
-    const keys = Object.keys(row);
-
-    // 1) Pencocokan langsung berdasarkan nama kolom umum
-    const directCandidates = new Set<string>([
-      'k_di',
-      'kode_di',
-      'kode',
-      'kdi',
-      // variasi umum lain
-      'kode_irigasi',
-      'kode_irgasi',
-      'k_irigasi',
-      'kode_di_irigasi',
-      'kode_daerah_irigasi',
-    ]);
-    for (const key of keys) {
-      const normalized = normalize(key);
-      if (directCandidates.has(normalized)) {
-        const value = row[key];
-        if (value != null && value !== '') return String(value).trim();
+    const directCandidates = ['k_di', 'kode_irigasi', 'kode_di', 'kode_di_irigasi', 'kode_daerah_irigasi', 'kdi', 'kode'];
+    for (const key of directCandidates) {
+      const value = row[key];
+      if (value != null) {
+        const str = String(value).trim();
+        if (str) return str;
       }
     }
 
-    // 2) Heuristik: kolom mengandung token 'kode' dan ('di' atau 'irig')
-    const heuristicKeys = keys.filter((k) => {
-      const n = normalize(k);
-      return n.includes('kode') && (n.includes('di') || n.includes('irig'));
-    });
-    for (const key of heuristicKeys) {
-      const val = row[key];
-      const str = (val == null ? '' : String(val)).trim();
-      if (/^\d{8}$/.test(str)) return str; // prefer 8 digit
-      if (/^\d{6,12}$/.test(str)) return str;
-    }
-
-    // 3) Fallback terakhir: cari nilai angka 8–12 digit di baris
-    for (const key of keys) {
-      const str = (row[key] == null ? '' : String(row[key])).trim();
-      if (/^\d{8}$/.test(str)) return str;
+    // Fallback: cari angka 6–12 digit
+    for (const value of Object.values(row)) {
+      const str = value == null ? '' : String(value).trim();
       if (/^\d{6,12}$/.test(str)) return str;
     }
 
@@ -307,26 +264,35 @@ export default function DashboardPage() {
           {activePanel === 'di' && (
             <div className="card" style={{ padding: 18 }}>
               <h3 style={{ marginTop: 0 }}>Daerah Irigasi</h3>
-              {csvLoading && <div className="loading">Loading...</div>}
-              {csvError && <div className="error-message">{csvError}</div>}
-              {!csvLoading && !csvError && csvRows && (
+              {diLoading && <div className="loading">Memuat data...</div>}
+              {diError && <div className="error-message">{diError}</div>}
+              {!diLoading && !diError && diRows && diRows.length === 0 && <div className="info">Data daerah irigasi belum tersedia.</div>}
+              {!diLoading && !diError && diRows && diRows.length > 0 && (
                 <div style={{ overflowX: 'auto' }}>
                   <table className="data-table">
                     <thead>
                       <tr>
-                        {csvHeaders.map((h) => (
-                          <th key={h || 'col'}>{h || '—'}</th>
-                        ))}
-                        <th key="__map">MAP</th>
+                        <th>Kode DI</th>
+                        <th>Nama</th>
+                        <th>Luas (Ha)</th>
+                        <th>Kecamatan</th>
+                        <th>Desa/Kel</th>
+                        <th>Sumber Air</th>
+                        <th>Tahun Data</th>
+                        <th>MAP</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {csvRows.map((row, idx) => (
-                        <tr key={idx}>
-                          {csvHeaders.map((h, i) => (
-                            <td key={h + i}>{row[h || `col_${i + 1}`]}</td>
-                          ))}
-                          <td key="__map_btn">
+                      {diRows.map((row) => (
+                        <tr key={row.id}>
+                          <td>{row.k_di || '-'}</td>
+                          <td>{row.n_di || '-'}</td>
+                          <td>{row.luas_ha ?? '-'}</td>
+                          <td>{row.kecamatan || '-'}</td>
+                          <td>{row.desa_kel || '-'}</td>
+                          <td>{row.sumber_air || '-'}</td>
+                          <td>{row.tahun_data || '-'}</td>
+                          <td>
                             <button
                               className="btn primary"
                               onClick={() => {
