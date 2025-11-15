@@ -1,5 +1,6 @@
 'use client'
 import { Component, ReactNode } from 'react'
+import { logger } from '@/lib/utils/logger'
 
 /**
  * Props untuk ErrorBoundary component
@@ -48,7 +49,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     // Log error to error reporting service
-    console.error('ErrorBoundary caught an error:', error, errorInfo)
+    logger.error('ErrorBoundary caught an error:', error, errorInfo)
     
     if (this.props.onError) {
       this.props.onError(error, errorInfo)

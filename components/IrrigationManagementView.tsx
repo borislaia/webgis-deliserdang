@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState } from 'react';
+import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import * as XLSX from 'xlsx';
 import { usePagination } from '@/lib/hooks/usePagination';
@@ -18,16 +18,14 @@ type IrrigationManagementViewProps = {
 };
 
 export default function IrrigationManagementView({ isAdmin }: IrrigationManagementViewProps) {
-  const supabase = useMemo(() => createClient(), []);
+  const supabase = createClient();
 
   const [activeTab, setActiveTab] = useState<'overview' | 'import' | 'import-excel' | 'saluran' | 'ruas' | 'bangunan'>('overview');
 
   // Reset tab ke overview jika bukan admin dan sedang di tab import
-  useEffect(() => {
-    if (!isAdmin && (activeTab === 'import' || activeTab === 'import-excel')) {
-      setActiveTab('overview');
-    }
-  }, [isAdmin, activeTab]);
+  if (!isAdmin && (activeTab === 'import' || activeTab === 'import-excel')) {
+    setActiveTab('overview');
+  }
 
   const [kodeDI, setKodeDI] = useState('');
   const [bangunanFile, setBangunanFile] = useState<File | null>(null);
@@ -108,10 +106,11 @@ export default function IrrigationManagementView({ isAdmin }: IrrigationManageme
       const { data: invokeData, error: invokeError } = await supabase.functions.invoke('import-irrigation-data', {
         body: { action: 'import', k_di: trimmedKode, bangunanData, saluranData, fungsionalData },
       });
-      if (invokeError) throw new Error(invokeError.message || 'Gagal import');
-      setMessage({ type: 'success', text: 'Import berhasil' });
-    } catch (e: any) {
-      setMessage({ type: 'error', text: e?.message || 'Terjadi kesalahan' });
+      if (invokeError) throw new Error(invokeError.message || 'Gagal import')
+      setMessage({ type: 'success', text: 'Import berhasil' })
+    } catch (e) {
+      const errorMessage = e instanceof Error ? e.message : 'Terjadi kesalahan'
+      setMessage({ type: 'error', text: errorMessage })
     } finally {
       setImporting(false);
     }
@@ -125,8 +124,9 @@ export default function IrrigationManagementView({ isAdmin }: IrrigationManageme
       const sheet = workbook.SheetNames[0];
       const json = XLSX.utils.sheet_to_json(workbook.Sheets[sheet], { header: 1 });
       setMessage({ type: 'success', text: `Excel dimuat (${sheet}, ${json.length} baris). Import Excel belum diimplementasikan.` });
-    } catch (e: any) {
-      setMessage({ type: 'error', text: e?.message || 'Gagal membaca Excel' });
+    } catch (e) {
+      const errorMessage = e instanceof Error ? e.message : 'Gagal membaca Excel'
+      setMessage({ type: 'error', text: errorMessage })
     }
   };
 

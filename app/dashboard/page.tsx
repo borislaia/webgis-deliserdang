@@ -2,6 +2,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
+import { logger } from '@/lib/utils/logger';
 import IrrigationManagementView from '@/components/IrrigationManagementView';
 import { ROLES } from '@/lib/constants/roles';
 import type { UserMetadata, AppMetadata } from '@/lib/types/user';
@@ -76,7 +77,7 @@ export default function DashboardPage() {
         setUserRole(role);
       } catch (error) {
         // Silently fail - user will see default state
-        console.error('Failed to load user data:', error);
+        logger.error('Failed to load user data:', error);
       }
     })();
   }, []);

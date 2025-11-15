@@ -1,7 +1,8 @@
 import { SWRConfiguration } from 'swr'
+import { logger } from '@/lib/utils/logger'
 
 /**
- * Default SWR configuration untuk aplikasi
+ * Default SWR configuration untuk aplikasi.
  * 
  * - revalidateOnFocus: false - Tidak revalidate saat window focus (menghemat API calls)
  * - revalidateOnReconnect: true - Revalidate saat koneksi kembali
@@ -16,9 +17,7 @@ export const swrConfig: SWRConfiguration = {
   errorRetryCount: 3,
   errorRetryInterval: 5000,
   onError: (error) => {
-    // Log error untuk debugging (hanya di development)
-    if (process.env.NODE_ENV === 'development') {
-      console.error('SWR Error:', error)
-    }
+    // Log error untuk debugging
+    logger.error('SWR Error:', error)
   },
 }
