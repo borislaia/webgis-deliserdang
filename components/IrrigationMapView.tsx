@@ -127,6 +127,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
   const [diInfo, setDiInfo] = useState<DaerahIrigasiRow | null>(null);
   const [diInfoLoading, setDiInfoLoading] = useState(false);
   const [diInfoError, setDiInfoError] = useState<string | null>(null);
+  const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
 
   const searchParams = useSearchParams();
   // Terima baik ?di= maupun ?k_di= untuk fleksibilitas dari dashboard
@@ -1149,6 +1150,8 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
     kecamatanLayerRef.current?.setVisible(checked);
     setKecamatanVisible(checked);
   };
+  const collapsePanel = () => setIsPanelCollapsed(true);
+  const expandPanel = () => setIsPanelCollapsed(false);
 
   const diInfoRows = useMemo<Array<[string, string]>>(() => {
     if (!diInfo) return [];
@@ -1280,73 +1283,106 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
         <button onClick={zoomOut} className="btn" title="Zoom Out">－</button>
       </div>
 
-        {/* Floating layer panel */}
+      {/* Floating layer panel */}
+      {isPanelCollapsed ? (
+        <button
+          type="button"
+          className="float-panel-toggle"
+          style={{ zIndex: 2 }}
+          onClick={expandPanel}
+          aria-label="Tampilkan panel layer OpenLayers"
+          title="Buka panel layer"
+        >
+          <span className="float-panel-toggle__logo" aria-hidden="true">
+            <svg viewBox="0 0 40 40">
+              <circle cx="20" cy="20" r="18" fill="rgba(255,255,255,0.25)" />
+              <circle cx="20" cy="20" r="13" fill="none" stroke="#ecfeff" strokeWidth="2.2" opacity="0.75" />
+              <circle cx="18" cy="18" r="7" fill="rgba(255,255,255,0.9)" opacity="0.65" />
+              <path d="M12 22c2.3 4.4 7 7 12 7 4.1 0 7.7-1.9 10-5" stroke="#ffffff" strokeWidth="2" opacity="0.9" fill="none" strokeLinecap="round" />
+            </svg>
+          </span>
+          <span className="float-panel-toggle__text">OpenLayers</span>
+        </button>
+      ) : (
         <div className="float-panel card float-card scroll-silent" style={{ zIndex: 2 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <strong>Layers</strong>
-          <span className="badge">OpenLayers</span>
-        </div>
-        <div style={{ marginTop: 8 }}>
-          <div style={{ fontWeight: 600, margin: '8px 0 6px' }}>Basemap</div>
-          <label><input type="radio" name="basemap" onChange={() => setBasemap('googleHybrid')} /> Google Satellite Hybrid</label><br />
-          <label><input type="radio" name="basemap" onChange={() => setBasemap('googleSat')} /> Google Satellite</label><br />
-          <label><input type="radio" name="basemap" onChange={() => setBasemap('osm')} /> OpenStreetMap</label><br />
-          <label><input type="radio" name="basemap" defaultChecked onChange={() => setBasemap('carto')} /> CartoDB Light</label><br />
-          <label><input type="radio" name="basemap" onChange={() => setBasemap('sat')} /> ESRI Satellite</label>
-        </div>
-        <div style={{ fontWeight: 600, margin: '12px 0 6px' }}>Operational Layers</div>
-        {!activeKdi && (
-          <>
-            <label><input type="checkbox" checked={kecamatanVisible} onChange={(e) => toggleKecamatan((e.target as HTMLInputElement).checked)} /> Kecamatan Boundaries</label><br />
-          </>
-        )}
-        <div style={{ fontWeight: 600, margin: '12px 0 6px', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span>Daerah Irigasi</span>
-          <span className="badge" title="Jumlah file yang dimuat">{storageCounts.files}</span>
-        </div>
-          <div className="layer-scroll scroll-silent">
-          {loadingStorage ? <div>Memuat GeoJSON…</div> : null}
-          {storageError ? <div style={{ color: 'crimson' }}>{storageError}</div> : null}
-          {!loadingStorage && !storageError && storageCounts.files === 0 ? (
-            <div style={{ color: '#666' }}>Tidak ada file</div>
-          ) : null}
-          <label style={{ display: 'block' }}>
-            <input type="checkbox" checked={polygonsVisible} onChange={(e) => togglePolygons((e.target as HTMLInputElement).checked)} /> Fungsional ({storageCounts.polygons})
-          </label>
-          <label style={{ display: 'block' }}>
-            <input type="checkbox" checked={linesVisible} onChange={(e) => toggleLines((e.target as HTMLInputElement).checked)} /> Saluran ({storageCounts.lines})
-          </label>
-          <label style={{ display: 'block' }}>
-            <input type="checkbox" checked={pointsVisible} onChange={(e) => togglePoints((e.target as HTMLInputElement).checked)} /> Bangunan ({storageCounts.points})
-          </label>
-        </div>
-        <div style={{ marginTop: 12 }} className="legend" />
-        {activeKdi ? (
-          <div style={{ marginTop: 16 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-              <strong>Data DI</strong>
-              <span className="badge" title="Kode irigasi aktif">{activeKdi}</span>
+          <div className="panel-header">
+            <button
+              type="button"
+              className="panel-collapse-btn"
+              onClick={collapsePanel}
+              aria-label="Sembunyikan panel layer"
+              title="Sembunyikan panel"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M14.5 6l-6 6 6 6" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+            <div className="panel-header-body">
+              <span className="badge">OpenLayers</span>
             </div>
-            {diInfoLoading && <div style={{ fontSize: 13, color: '#6b7280', marginTop: 6 }}>Memuat detail...</div>}
-            {diInfoError && <div style={{ fontSize: 13, color: '#b91c1c', marginTop: 6 }}>{diInfoError}</div>}
-            {!diInfoLoading && !diInfoError && diInfoRows.length > 0 && (
-              <table className="detail-table" style={{ marginTop: 6 }}>
-                <tbody>
-                  {diInfoRows.map(([label, value]) => (
-                    <tr key={label}>
-                      <td className="label">{label}</td>
-                      <td className="value">{value}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-            {!diInfoLoading && !diInfoError && diInfoRows.length === 0 && (
-              <div style={{ fontSize: 13, color: '#6b7280', marginTop: 6 }}>Data belum tersedia.</div>
-            )}
           </div>
-        ) : null}
-      </div>
+          <div style={{ marginTop: 8 }}>
+            <div style={{ fontWeight: 600, margin: '8px 0 6px' }}>Basemap</div>
+            <label><input type="radio" name="basemap" onChange={() => setBasemap('googleHybrid')} /> Google Satellite Hybrid</label><br />
+            <label><input type="radio" name="basemap" onChange={() => setBasemap('googleSat')} /> Google Satellite</label><br />
+            <label><input type="radio" name="basemap" onChange={() => setBasemap('osm')} /> OpenStreetMap</label><br />
+            <label><input type="radio" name="basemap" defaultChecked onChange={() => setBasemap('carto')} /> CartoDB Light</label><br />
+            <label><input type="radio" name="basemap" onChange={() => setBasemap('sat')} /> ESRI Satellite</label>
+          </div>
+          <div style={{ fontWeight: 600, margin: '12px 0 6px' }}>Operational Layers</div>
+          {!activeKdi && (
+            <>
+              <label><input type="checkbox" checked={kecamatanVisible} onChange={(e) => toggleKecamatan((e.target as HTMLInputElement).checked)} /> Kecamatan Boundaries</label><br />
+            </>
+          )}
+          <div style={{ fontWeight: 600, margin: '12px 0 6px', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span>Daerah Irigasi</span>
+            <span className="badge" title="Jumlah file yang dimuat">{storageCounts.files}</span>
+          </div>
+          <div className="layer-scroll scroll-silent">
+            {loadingStorage ? <div>Memuat GeoJSON…</div> : null}
+            {storageError ? <div style={{ color: 'crimson' }}>{storageError}</div> : null}
+            {!loadingStorage && !storageError && storageCounts.files === 0 ? (
+              <div style={{ color: '#666' }}>Tidak ada file</div>
+            ) : null}
+            <label style={{ display: 'block' }}>
+              <input type="checkbox" checked={polygonsVisible} onChange={(e) => togglePolygons((e.target as HTMLInputElement).checked)} /> Fungsional ({storageCounts.polygons})
+            </label>
+            <label style={{ display: 'block' }}>
+              <input type="checkbox" checked={linesVisible} onChange={(e) => toggleLines((e.target as HTMLInputElement).checked)} /> Saluran ({storageCounts.lines})
+            </label>
+            <label style={{ display: 'block' }}>
+              <input type="checkbox" checked={pointsVisible} onChange={(e) => togglePoints((e.target as HTMLInputElement).checked)} /> Bangunan ({storageCounts.points})
+            </label>
+          </div>
+          <div style={{ marginTop: 12 }} className="legend" />
+          {activeKdi ? (
+            <div style={{ marginTop: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                <strong>Data DI</strong>
+                <span className="badge" title="Kode irigasi aktif">{activeKdi}</span>
+              </div>
+              {diInfoLoading && <div style={{ fontSize: 13, color: '#6b7280', marginTop: 6 }}>Memuat detail...</div>}
+              {diInfoError && <div style={{ fontSize: 13, color: '#b91c1c', marginTop: 6 }}>{diInfoError}</div>}
+              {!diInfoLoading && !diInfoError && diInfoRows.length > 0 && (
+                <table className="detail-table" style={{ marginTop: 6 }}>
+                  <tbody>
+                    {diInfoRows.map(([label, value]) => (
+                      <tr key={label}>
+                        <td className="label">{label}</td>
+                        <td className="value">{value}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+              {!diInfoLoading && !diInfoError && diInfoRows.length === 0 && (
+                <div style={{ fontSize: 13, color: '#6b7280', marginTop: 6 }}>Data belum tersedia.</div>
+              )}
+            </div>
+          ) : null}
+        </div>
+      )}
 
       {/* Tooltip and popup overlays */}
       <div ref={tooltipRef} className="ol-tooltip" />
