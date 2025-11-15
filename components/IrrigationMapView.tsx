@@ -1739,7 +1739,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
           </span>
         </button>
       ) : (
-        <div ref={panelRef} className="float-panel card float-card scroll-silent" style={{ zIndex: 2, maxHeight: activeKdi ? 'calc(100vh - 420px)' : 'calc(100vh - 32px)' }}>
+        <div ref={panelRef} className="float-panel card float-card scroll-silent" style={{ zIndex: 2, maxHeight: activeKdi ? 'calc(100vh - 400px)' : 'calc(100vh - 32px)' }}>
             <div className="panel-header">
               <button
                 type="button"
@@ -1824,8 +1824,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
         <div className="float-card card photo-slider-card" style={{ 
           position: 'absolute', 
           right: 16, 
-          top: panelHeight > 0 ? `${16 + panelHeight + 24}px` : 'auto',
-          bottom: panelHeight === 0 ? 16 : 'auto',
+          bottom: 16,
           width: 280,
           maxHeight: '350px',
           zIndex: 2,
