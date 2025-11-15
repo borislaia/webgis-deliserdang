@@ -20,11 +20,15 @@
 .form-row{ display:flex; flex-direction:column; gap:8px; }
 .error-message{ color:#dc2626; margin-top:10px; padding:12px; background:#fef2f2; border:1px solid #fecaca; border-radius:8px; font-size:14px; }
 .map-container{ position:fixed; inset:0; }
-.float-panel{ position:absolute; right:16px; top:16px; width:280px; max-height:70vh; overflow:auto; padding:14px; }
+.float-panel{ position:absolute; right:16px; top:16px; width:280px; max-height:70vh; overflow:auto; padding:14px; scrollbar-width:none; -ms-overflow-style:none; }
+.float-panel::-webkit-scrollbar{ display:none; }
 .float-controls{ position:absolute; left:16px; top:16px; display:flex; flex-direction:column; gap:8px; }
 .float-card{ padding:12px; }
 .badge{ font-size:12px; padding:4px 8px; border-radius:999px; background:rgba(10,132,255,0.15); color:#0a84ff; border:1px solid rgba(10,132,255,0.25); }
 .legend{ display:flex; flex-direction:column; gap:8px; }
+.layer-scroll{ max-height:220px; overflow-y:auto; padding-right:6px; }
+.scroll-silent{ scrollbar-width:none; -ms-overflow-style:none; }
+.scroll-silent::-webkit-scrollbar{ display:none; }
 .modal{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,0.6); z-index:9999; }
 .modal.open{ display:flex; }
 .modal img{ max-width:90vw; max-height:90vh; border-radius:12px; box-shadow:0 20px 60px rgba(0,0,0,0.5); }
