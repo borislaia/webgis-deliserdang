@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
 import 'ol/ol.css';
 import Map from 'ol/Map';
@@ -1316,7 +1317,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
           title="Buka panel layer"
         >
           <span className="float-panel-toggle__logo" aria-hidden="true">
-            <img src="/assets/icons/openlayers.png" alt="OpenLayers" />
+            <Image src="/assets/icons/openlayers.png" alt="OpenLayers" width={24} height={24} />
           </span>
         </button>
       ) : (
@@ -1408,11 +1409,14 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
         style={{ cursor: 'pointer' }}
       >
         {isModalOpen && modalImgSrc ? (
-          <img
+          <Image
             src={modalImgSrc}
             alt="photo"
+            width={800}
+            height={600}
+            unoptimized
             onClick={(e) => e.stopPropagation()}
-            style={{ cursor: 'default' }}
+            style={{ cursor: 'default', maxWidth: '90vw', maxHeight: '90vh', objectFit: 'contain' }}
           />
         ) : null}
       </div>
