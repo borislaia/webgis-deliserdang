@@ -391,6 +391,14 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
         if (!popupRef.current) {
           const popupEl = document.createElement('div');
           popupEl.className = 'ol-popup card';
+          popupEl.style.pointerEvents = 'auto';
+          // Prevent map click events when clicking inside popup
+          popupEl.addEventListener('click', (e) => {
+            e.stopPropagation();
+          }, true);
+          popupEl.addEventListener('mousedown', (e) => {
+            e.stopPropagation();
+          }, true);
           popupRef.current = popupEl;
         }
       }
@@ -975,6 +983,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
       if (!popupOverlayRef.current || !popupRef.current) return;
       const el = popupRef.current;
       el.textContent = '';
+      el.style.pointerEvents = 'auto';
 
       const propsRaw = (selected.getProperties ? (selected.getProperties() as Record<string, any>) : {}) || {};
       const props = { ...propsRaw } as Record<string, any>;
@@ -1233,6 +1242,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
           imgWrapper.style.position = 'relative';
           imgWrapper.style.cursor = 'pointer';
           imgWrapper.style.width = '100%';
+          imgWrapper.style.pointerEvents = 'auto';
 
           const img = document.createElement('img');
           img.src = url;
@@ -1243,16 +1253,22 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
           img.style.maxHeight = '320px';
           img.style.borderRadius = '10px';
           img.style.border = '1px solid #ddd';
+          img.style.pointerEvents = 'auto';
 
           img.onerror = () => {
             img.style.display = 'none';
           };
 
-          img.onclick = (e) => {
+          const handleClick = (e: MouseEvent) => {
+            e.preventDefault();
             e.stopPropagation();
+            e.stopImmediatePropagation();
             setModalImgSrc(url);
             setIsModalOpen(true);
           };
+
+          img.addEventListener('click', handleClick, true);
+          imgWrapper.addEventListener('click', handleClick, true);
 
           imgWrapper.appendChild(img);
           gallery.appendChild(imgWrapper);
