@@ -1836,7 +1836,6 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
               </>
             )}
           </div>
->>>>>>> cursor/tambahkan-kartu-foto-irigasi-acak-02e5
         ) : null}
       </div>
     </main>
