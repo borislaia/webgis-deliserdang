@@ -212,15 +212,15 @@ export default function IrrigationManagementView({ isAdmin }: IrrigationManageme
           {diList && (
             <table className="data-table">
               <thead>
-                <tr>
-                  <th>Kode DI</th>
-                  <th>Nama</th>
-                  <th>Luas (Ha)</th>
-                  <th>Kecamatan</th>
-                  <th>Desa/Kel</th>
-                  <th>Sumber Air</th>
-                  <th>Tahun Data</th>
-                </tr>
+                  <tr>
+                    <th>KODE DI</th>
+                    <th>NAMA</th>
+                    <th>LUAS (HA)</th>
+                    <th>KECAMATAN</th>
+                    <th>DESA/KEL</th>
+                    <th>SUMBER AIR</th>
+                    <th>TAHUN DATA</th>
+                  </tr>
               </thead>
               <tbody>
                 {diList.map((row) => (
