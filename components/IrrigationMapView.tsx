@@ -1855,6 +1855,8 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
                     width={400}
                     height={225}
                     unoptimized
+                    role="button"
+                    tabIndex={0}
                     style={{
                       width: '100%',
                       height: '100%',
@@ -1862,6 +1864,22 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
                       cursor: 'pointer',
                       display: 'block',
                       pointerEvents: 'auto'
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      if (randomPhotos.length > 0 && currentPhotoIndex >= 0 && currentPhotoIndex < randomPhotos.length && !failedPhotoUrls.has(randomPhotos[currentPhotoIndex])) {
+                        openPhotoModal(currentPhotoIndex);
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        if (randomPhotos.length > 0 && currentPhotoIndex >= 0 && currentPhotoIndex < randomPhotos.length && !failedPhotoUrls.has(randomPhotos[currentPhotoIndex])) {
+                          openPhotoModal(currentPhotoIndex);
+                        }
+                      }
                     }}
                     onError={(e) => {
                       const img = e.target as HTMLImageElement;
