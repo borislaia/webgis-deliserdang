@@ -43,7 +43,7 @@ export default function VantaFog() {
       cancelled = true;
       try { vantaRef.current?.destroy?.(); } catch {}
     };
-  }, []);
+  }, [pathname]);
 
   return <div id="vanta-bg" ref={elRef} />;
 }
