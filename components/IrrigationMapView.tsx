@@ -165,7 +165,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
       try {
         const { data, error } = await supabase
           .from('daerah_irigasi')
-            .select('id,k_di,n_di,uptd,kecamatan,desa_kel,sumber_air,luas_ha,metadata')
+          .select('id,k_di,n_di,uptd,kecamatan,desa_kel,sumber_air,luas_ha,metadata')
           .eq('k_di', activeKdi)
           .maybeSingle();
         if (cancelled) return;
@@ -190,10 +190,22 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
     };
   }, [activeKdi, supabase]);
 
-  useEffect(() => {
-    if (!mapDivRef.current) return;
+    useEffect(() => {
+      if (!mapDivRef.current) return;
+      if (typeof document !== 'undefined') {
+        if (!tooltipRef.current) {
+          const tooltipEl = document.createElement('div');
+          tooltipEl.className = 'ol-tooltip';
+          tooltipRef.current = tooltipEl;
+        }
+        if (!popupRef.current) {
+          const popupEl = document.createElement('div');
+          popupEl.className = 'ol-popup card';
+          popupRef.current = popupEl;
+        }
+      }
 
-    const center = fromLonLat(centerLonLat);
+      const center = fromLonLat(centerLonLat);
 
     // Base layers
     const googleHybrid = new TileLayer({
@@ -1058,14 +1070,24 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
         el.appendChild(gallery);
       }
 
-      popupOverlayRef.current.setPosition(evt.coordinate);
-    });
+        popupOverlayRef.current.setPosition(evt.coordinate);
+      });
 
-    return () => {
-      map.setTarget(undefined as any);
-      mapRef.current = null;
-    };
-  }, [kecamatanVisible, activeKdi, supabase, supabaseUrl]);
+      return () => {
+        map.setTarget(undefined as any);
+        mapRef.current = null;
+        overlayRef.current = null;
+        popupOverlayRef.current = null;
+        if (tooltipRef.current) {
+          tooltipRef.current.remove();
+          tooltipRef.current = null;
+        }
+        if (popupRef.current) {
+          popupRef.current.remove();
+          popupRef.current = null;
+        }
+      };
+    }, [kecamatanVisible, activeKdi, supabase, supabaseUrl]);
 
   // UI handlers
   const setBasemap = (name: string) => {
@@ -1305,22 +1327,22 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
         </button>
       ) : (
         <div className="float-panel card float-card scroll-silent" style={{ zIndex: 2 }}>
-          <div className="panel-header">
-            <button
-              type="button"
-              className="panel-collapse-btn"
-              onClick={collapsePanel}
-              aria-label="Sembunyikan panel layer"
-              title="Sembunyikan panel"
-            >
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M14.5 6l-6 6 6 6" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-            <div className="panel-header-body">
-              <span className="badge">OpenLayers</span>
+            <div className="panel-header">
+              <button
+                type="button"
+                className="panel-collapse-btn"
+                onClick={collapsePanel}
+                aria-label="Sembunyikan panel layer"
+                title="Sembunyikan panel"
+              >
+                <span className="panel-collapse-icon" aria-hidden="true">
+                  &gt;
+                </span>
+              </button>
+              <div className="panel-header-body">
+                <span className="badge badge--right">OpenLayers</span>
+              </div>
             </div>
-          </div>
           <div style={{ marginTop: 8 }}>
             <div style={{ fontWeight: 600, margin: '8px 0 6px' }}>Basemap</div>
             <label><input type="radio" name="basemap" onChange={() => setBasemap('googleHybrid')} /> Google Satellite Hybrid</label><br />
@@ -1383,10 +1405,6 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
           ) : null}
         </div>
       )}
-
-      {/* Tooltip and popup overlays */}
-      <div ref={tooltipRef} className="ol-tooltip" />
-      <div ref={popupRef} className="ol-popup card" />
 
       {/* Image modal */}
       <div

@@ -77,6 +77,7 @@ body{
 .float-controls{ position:absolute; left:16px; top:16px; display:flex; flex-direction:column; gap:8px; }
 .float-card{ padding:12px; }
 .badge{ font-size:12px; padding:4px 8px; border-radius:999px; background:rgba(10,132,255,0.15); color:#0a84ff; border:1px solid rgba(10,132,255,0.25); }
+.badge--right{ margin-left:auto; }
 .legend{ display:flex; flex-direction:column; gap:8px; }
 .float-panel-toggle{ position:absolute; right:16px; top:16px; z-index:2; display:flex; align-items:center; gap:10px; padding:10px 16px; border-radius:999px; border:1px solid var(--stroke); background:var(--card); color:var(--text); font-weight:600; box-shadow:0 12px 30px rgba(0,0,0,0.12); cursor:pointer; transition:transform .2s ease, box-shadow .2s ease; }
 .float-panel-toggle:hover{ transform:translateY(-1px); box-shadow:0 18px 36px rgba(0,0,0,0.16); }
@@ -87,7 +88,9 @@ body{
 .panel-header-body{ flex:1; display:flex; align-items:center; justify-content:space-between; gap:8px; }
 .panel-collapse-btn{ width:40px; height:40px; border-radius:14px; border:1px solid var(--stroke); background:linear-gradient(180deg,#fff,#f5f5f5); display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 4px 12px rgba(0,0,0,0.12); color:var(--text); transition:transform .2s ease, box-shadow .2s ease; }
 .panel-collapse-btn:hover{ transform:translateY(-2px); box-shadow:0 10px 20px rgba(0,0,0,0.15); }
-.panel-collapse-btn svg{ width:18px; height:18px; }
+.panel-collapse-btn svg,
+.panel-collapse-icon{ width:18px; height:18px; }
+.panel-collapse-icon{ font-size:18px; font-weight:700; line-height:1; display:flex; align-items:center; justify-content:center; }
 
 /* Tabs and data UI used on dashboard/management pages */
 .tabs{ display:flex; gap:8px; margin-bottom:20px; border-bottom:1px solid #e0e0e0; }
