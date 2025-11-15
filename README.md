@@ -2,6 +2,8 @@
 
 Aplikasi WebGIS menggunakan Next.js (App Router, TypeScript), Supabase untuk autentikasi, database, dan Storage, serta OpenLayers untuk peta.
 
+> 📖 **Setup & Documentation:** Lihat [SETUP_AND_DOCUMENTATION.md](./SETUP_AND_DOCUMENTATION.md) untuk panduan lengkap setup dan troubleshooting.
+
 ## Arsitektur
 
 ```
