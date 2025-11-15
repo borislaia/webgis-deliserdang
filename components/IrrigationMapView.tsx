@@ -31,11 +31,64 @@ type DaerahIrigasiRow = {
   id: string;
   k_di: string;
   n_di?: string | null;
+  uptd?: string | null;
   kecamatan?: string | null;
   desa_kel?: string | null;
   sumber_air?: string | null;
   luas_ha?: number | null;
-  metadata?: Record<string, any> | null;
+  metadata?: Record<string, any> | string | null;
+};
+
+const normalizeMetadata = (metadata: DaerahIrigasiRow['metadata']): Record<string, any> => {
+  if (!metadata) return {};
+  if (typeof metadata === 'string') {
+    try {
+      const parsed = JSON.parse(metadata);
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        return parsed as Record<string, any>;
+      }
+    } catch {
+      return {};
+    }
+  }
+  if (typeof metadata === 'object' && !Array.isArray(metadata)) {
+    return metadata as Record<string, any>;
+  }
+  return {};
+};
+
+const findMetadataValueBySubstring = (source: Record<string, any>, keyword: string): any => {
+  if (!source || !keyword) return undefined;
+  const lowerKeyword = keyword.toLowerCase();
+  const visited = new WeakSet<object>();
+  const walk = (node: any): any => {
+    if (!node || typeof node !== 'object') return undefined;
+    if (visited.has(node)) return undefined;
+    visited.add(node);
+    if (Array.isArray(node)) {
+      for (const item of node) {
+        const nestedFromArray = walk(item);
+        if (nestedFromArray !== undefined) return nestedFromArray;
+      }
+      return undefined;
+    }
+    for (const [key, value] of Object.entries(node)) {
+      if (key.toLowerCase().includes(lowerKeyword) && value != null) {
+        if (typeof value === 'object') {
+          const nestedMatch = walk(value);
+          if (nestedMatch !== undefined) return nestedMatch;
+          return value;
+        }
+        return value;
+      }
+      if (value && typeof value === 'object') {
+        const nested = walk(value);
+        if (nested !== undefined) return nested;
+      }
+    }
+    return undefined;
+  };
+  return walk(source);
 };
 
 export default function IrrigationMapView({ variant = 'map' }: IrrigationMapViewProps) {
@@ -111,7 +164,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
       try {
         const { data, error } = await supabase
           .from('daerah_irigasi')
-          .select('id,k_di,n_di,kecamatan,desa_kel,sumber_air,luas_ha,metadata')
+            .select('id,k_di,n_di,uptd,kecamatan,desa_kel,sumber_air,luas_ha,metadata')
           .eq('k_di', activeKdi)
           .maybeSingle();
         if (cancelled) return;
@@ -1091,6 +1144,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
 
     map.getView().animate({ center: fromLonLat(centerLonLat), zoom: 11, duration: 400 });
   };
+
   const toggleKecamatan = (checked: boolean) => {
     kecamatanLayerRef.current?.setVisible(checked);
     setKecamatanVisible(checked);
@@ -1098,10 +1152,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
 
   const diInfoRows = useMemo<Array<[string, string]>>(() => {
     if (!diInfo) return [];
-    const metadata =
-      diInfo.metadata && typeof diInfo.metadata === 'object' && !Array.isArray(diInfo.metadata)
-        ? (diInfo.metadata as Record<string, any>)
-        : {};
+    const metadata = normalizeMetadata(diInfo.metadata);
     const metaKeys = Object.keys(metadata);
     const readMeta = (...keys: string[]) => {
       for (const key of keys) {
@@ -1123,18 +1174,28 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
       if (typeof value === 'number' && Number.isFinite(value)) return String(value);
       return '';
     };
+    const pickStringFromValue = (value: any, depth = 0): string => {
+      if (value == null || depth > 5) return '';
+      if (Array.isArray(value)) {
+        for (const entry of value) {
+          const str = pickStringFromValue(entry, depth + 1);
+          if (str) return str;
+        }
+        return '';
+      }
+      if (typeof value === 'object') {
+        for (const entry of Object.values(value)) {
+          const str = pickStringFromValue(entry, depth + 1);
+          if (str) return str;
+        }
+        return '';
+      }
+      return normalizeString(value);
+    };
     const pickString = (...values: any[]): string => {
       for (const value of values) {
-        if (value == null) continue;
-        if (Array.isArray(value)) {
-          for (const entry of value) {
-            const str = normalizeString(entry);
-            if (str) return str;
-          }
-          continue;
-        }
-        const str = normalizeString(value);
-        if (str) return str;
+        const result = pickStringFromValue(value);
+        if (result) return result;
       }
       return '';
     };
@@ -1177,9 +1238,14 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
     const formatNumber = (value: number): string =>
       new Intl.NumberFormat('id-ID', { maximumFractionDigits: Math.abs(value % 1) < 1e-6 ? 0 : 2 }).format(value);
 
+    const metadataUptdCandidate = findMetadataValueBySubstring(metadata, 'uptd');
     const code = pickString(diInfo.k_di, readMeta('k_di', 'kode_irigasi', 'kode_di'));
     const name = pickString(diInfo.n_di, readMeta('nama_di', 'n_di', 'nama'));
-    const uptd = pickString(readMeta('uptd', 'nama_uptd'));
+    const uptd = pickString(
+      diInfo.uptd,
+      readMeta('uptd', 'nama_uptd', 'uptd_name', 'unit_pengelola', 'unit_uptd', 'nama_unit'),
+      metadataUptdCandidate
+    );
     const kecamatan = pickString(diInfo.kecamatan, readMeta('kecamatan'));
     const desa = pickString(diInfo.desa_kel, readMeta('desa_kel', 'desa', 'desa_kelurahan'));
     const sumberAir = pickString(diInfo.sumber_air, readMeta('sumber_air', 'sumber'));
@@ -1214,8 +1280,8 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
         <button onClick={zoomOut} className="btn" title="Zoom Out">－</button>
       </div>
 
-      {/* Floating layer panel */}
-      <div className="float-panel card float-card" style={{ zIndex: 2 }}>
+        {/* Floating layer panel */}
+        <div className="float-panel card float-card scroll-silent" style={{ zIndex: 2 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <strong>Layers</strong>
           <span className="badge">OpenLayers</span>
@@ -1238,7 +1304,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
           <span>Daerah Irigasi</span>
           <span className="badge" title="Jumlah file yang dimuat">{storageCounts.files}</span>
         </div>
-        <div style={{ maxHeight: 220, overflowY: 'auto', paddingRight: 6 }}>
+          <div className="layer-scroll scroll-silent">
           {loadingStorage ? <div>Memuat GeoJSON…</div> : null}
           {storageError ? <div style={{ color: 'crimson' }}>{storageError}</div> : null}
           {!loadingStorage && !storageError && storageCounts.files === 0 ? (
