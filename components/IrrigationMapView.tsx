@@ -135,6 +135,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [modalPhotoIndex, setModalPhotoIndex] = useState(0);
   const [failedPhotoUrls, setFailedPhotoUrls] = useState<Set<string>>(new Set());
+  const [modalPhotos, setModalPhotos] = useState<string[]>([]); // Photos to show in modal
 
   // Ensure currentPhotoIndex points to a valid photo
   useEffect(() => {
@@ -187,22 +188,22 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
 
   // Keyboard navigation for modal
   useEffect(() => {
-    if (!isModalOpen || randomPhotos.length <= 1) return;
+    if (!isModalOpen || modalPhotos.length <= 1) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowLeft') {
         e.preventDefault();
         e.stopPropagation();
         setModalPhotoIndex((prev) => {
-          const newIndex = (prev - 1 + randomPhotos.length) % randomPhotos.length;
-          setModalImgSrc(randomPhotos[newIndex]);
+          const newIndex = (prev - 1 + modalPhotos.length) % modalPhotos.length;
+          setModalImgSrc(modalPhotos[newIndex]);
           return newIndex;
         });
       } else if (e.key === 'ArrowRight') {
         e.preventDefault();
         e.stopPropagation();
         setModalPhotoIndex((prev) => {
-          const newIndex = (prev + 1) % randomPhotos.length;
-          setModalImgSrc(randomPhotos[newIndex]);
+          const newIndex = (prev + 1) % modalPhotos.length;
+          setModalImgSrc(modalPhotos[newIndex]);
           return newIndex;
         });
       } else if (e.key === 'Escape') {
@@ -214,7 +215,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
     };
     window.addEventListener('keydown', handleKeyDown, true);
     return () => window.removeEventListener('keydown', handleKeyDown, true);
-  }, [isModalOpen, randomPhotos]);
+  }, [isModalOpen, modalPhotos]);
 
   // Jika varian MAP memuat DI spesifik (activeKdi ada), layer kecamatan default disembunyikan
   const [kecamatanVisible, setKecamatanVisible] = useState<boolean>(!(activeKdi && activeKdi.length > 0));
@@ -1386,32 +1387,44 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
             if (e instanceof MouseEvent) {
               e.stopImmediatePropagation();
             }
+            // Find the index of this photo in popup photos array
+            const photoIndex = allPhotos.indexOf(url);
             // Use setTimeout to ensure React state update works from DOM event handler
             setTimeout(() => {
+              setModalPhotos(allPhotos); // Set modal photos to popup photos
+              setModalPhotoIndex(photoIndex >= 0 ? photoIndex : 0);
               setModalImgSrc(url);
               setIsModalOpen(true);
             }, 0);
           };
 
-          // Add click handlers with proper event handling
-          img.addEventListener('click', handleClick, true);
-          imgWrapper.addEventListener('click', handleClick, true);
+          // Add click handlers with proper event handling and capture phase
+          img.addEventListener('click', handleClick, { capture: true });
+          imgWrapper.addEventListener('click', handleClick, { capture: true });
           
           // Prevent map interaction on mousedown
           const handleMouseDown = (e: MouseEvent) => {
             e.stopPropagation();
             e.stopImmediatePropagation();
+            e.preventDefault();
           };
-          img.addEventListener('mousedown', handleMouseDown, true);
-          imgWrapper.addEventListener('mousedown', handleMouseDown, true);
+          img.addEventListener('mousedown', handleMouseDown, { capture: true });
+          imgWrapper.addEventListener('mousedown', handleMouseDown, { capture: true });
           
           // Also prevent touch events for mobile
           const handleTouchStart = (e: TouchEvent) => {
             e.stopPropagation();
             e.stopImmediatePropagation();
           };
-          img.addEventListener('touchstart', handleTouchStart, true);
-          imgWrapper.addEventListener('touchstart', handleTouchStart, true);
+          img.addEventListener('touchstart', handleTouchStart, { capture: true });
+          imgWrapper.addEventListener('touchstart', handleTouchStart, { capture: true });
+          
+          // Prevent double-click zoom on mobile
+          const handleTouchEnd = (e: TouchEvent) => {
+            e.stopPropagation();
+          };
+          img.addEventListener('touchend', handleTouchEnd, { capture: true });
+          imgWrapper.addEventListener('touchend', handleTouchEnd, { capture: true });
 
           imgWrapper.appendChild(img);
           gallery.appendChild(imgWrapper);
@@ -1641,6 +1654,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
   const goDashboard = () => { window.location.href = '/dashboard'; };
   const openPhotoModal = (index: number) => {
     if (randomPhotos.length > 0 && index >= 0 && index < randomPhotos.length && !failedPhotoUrls.has(randomPhotos[index])) {
+      setModalPhotos(randomPhotos); // Set modal photos to card slider photos
       setModalPhotoIndex(index);
       setModalImgSrc(randomPhotos[index]);
       setIsModalOpen(true);
@@ -1675,19 +1689,19 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
     }
   };
   const prevModalPhoto = () => {
-    if (randomPhotos.length > 1) {
+    if (modalPhotos.length > 1) {
       setModalPhotoIndex((prev) => {
-        const newIndex = (prev - 1 + randomPhotos.length) % randomPhotos.length;
-        setModalImgSrc(randomPhotos[newIndex]);
+        const newIndex = (prev - 1 + modalPhotos.length) % modalPhotos.length;
+        setModalImgSrc(modalPhotos[newIndex]);
         return newIndex;
       });
     }
   };
   const nextModalPhoto = () => {
-    if (randomPhotos.length > 1) {
+    if (modalPhotos.length > 1) {
       setModalPhotoIndex((prev) => {
-        const newIndex = (prev + 1) % randomPhotos.length;
-        setModalImgSrc(randomPhotos[newIndex]);
+        const newIndex = (prev + 1) % modalPhotos.length;
+        setModalImgSrc(modalPhotos[newIndex]);
         return newIndex;
       });
     }
@@ -2040,23 +2054,66 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
               width: '100%',
               height: '100%',
               maxWidth: '90vw',
-              maxHeight: '90vh'
+              maxHeight: '90vh',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
             }}
             onClick={(e) => e.stopPropagation()}
           >
+            {/* Close button */}
+            <button
+              type="button"
+              onClick={closeModal}
+              style={{
+                position: 'fixed',
+                top: 20,
+                right: 20,
+                width: 48,
+                height: 48,
+                borderRadius: '50%',
+                border: '2px solid rgba(255, 255, 255, 0.9)',
+                background: 'rgba(0, 0, 0, 0.6)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                fontSize: 24,
+                fontWeight: 600,
+                color: '#ffffff',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                zIndex: 10000,
+                transition: 'background 0.2s ease, transform 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(0, 0, 0, 0.8)';
+                e.currentTarget.style.transform = 'scale(1.1)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(0, 0, 0, 0.6)';
+                e.currentTarget.style.transform = 'scale(1)';
+              }}
+              aria-label="Tutup"
+              title="Tutup (Esc)"
+            >
+              ×
+            </button>
             <Image
               src={modalImgSrc}
               alt={`Foto irigasi ${modalPhotoIndex + 1}`}
-              width={800}
-              height={600}
+              width={1200}
+              height={900}
               unoptimized
               style={{
+                width: 'auto',
+                height: 'auto',
                 maxWidth: '90vw',
                 maxHeight: '90vh',
                 borderRadius: 12,
                 boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
                 cursor: 'default',
-                objectFit: 'contain'
+                objectFit: 'contain',
+                display: 'block'
               }}
               onError={(e) => {
                 const img = e.target as HTMLImageElement;
@@ -2067,18 +2124,18 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
                   return newSet;
                 });
                 // Try next photo if current one fails
-                if (randomPhotos.length > 1) {
-                  const nextIndex = (modalPhotoIndex + 1) % randomPhotos.length;
-                  if (nextIndex !== modalPhotoIndex && !failedPhotoUrls.has(randomPhotos[nextIndex])) {
+                if (modalPhotos.length > 1) {
+                  const nextIndex = (modalPhotoIndex + 1) % modalPhotos.length;
+                  if (nextIndex !== modalPhotoIndex && !failedPhotoUrls.has(modalPhotos[nextIndex])) {
                     setTimeout(() => {
                       setModalPhotoIndex(nextIndex);
-                      setModalImgSrc(randomPhotos[nextIndex]);
+                      setModalImgSrc(modalPhotos[nextIndex]);
                     }, 100);
                   }
                 }
               }}
             />
-            {randomPhotos.length > 1 && (
+            {modalPhotos.length > 1 && (
               <>
                 <button
                   type="button"
@@ -2177,14 +2234,14 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
                   }}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  {randomPhotos.map((_, idx) => (
+                  {modalPhotos.map((_, idx) => (
                     <button
                       key={idx}
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         setModalPhotoIndex(idx);
-                        setModalImgSrc(randomPhotos[idx]);
+                        setModalImgSrc(modalPhotos[idx]);
                       }}
                       style={{
                         width: idx === modalPhotoIndex ? 24 : 8,
@@ -2217,7 +2274,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
                   }}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  {modalPhotoIndex + 1} / {randomPhotos.length}
+                  {modalPhotoIndex + 1} / {modalPhotos.length}
                 </div>
               </>
             )}
