@@ -1323,7 +1323,6 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
               <path d="M12 22c2.3 4.4 7 7 12 7 4.1 0 7.7-1.9 10-5" stroke="#ffffff" strokeWidth="2" opacity="0.9" fill="none" strokeLinecap="round" />
             </svg>
           </span>
-          <span className="float-panel-toggle__text">OpenLayers</span>
         </button>
       ) : (
         <div className="float-panel card float-card scroll-silent" style={{ zIndex: 2 }}>
