@@ -1318,7 +1318,6 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
               </svg>
             </button>
             <div className="panel-header-body">
-              <strong>Layers</strong>
               <span className="badge">OpenLayers</span>
             </div>
           </div>
