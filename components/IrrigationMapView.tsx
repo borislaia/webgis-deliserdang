@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import type { KeyboardEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import 'ol/ol.css';
@@ -38,6 +39,16 @@ type DaerahIrigasiRow = {
   metadata?: Record<string, any> | null;
 };
 
+type MapSearchResult = {
+  id: string;
+  title: string;
+  subtitle?: string;
+  type: 'point' | 'line' | 'polygon';
+  feature?: any;
+  extent?: [number, number, number, number];
+  coordinate?: [number, number];
+};
+
 export default function IrrigationMapView({ variant = 'map' }: IrrigationMapViewProps) {
   const mapDivRef = useRef<HTMLDivElement | null>(null);
   const tooltipRef = useRef<HTMLDivElement | null>(null);
@@ -68,12 +79,20 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
   const storagePointsLayerRef = useRef<VectorLayer<any> | null>(null);
   const storageLinesLayerRef = useRef<VectorLayer<any> | null>(null);
   const storagePolygonsLayerRef = useRef<VectorLayer<any> | null>(null);
+  const storagePointsSourceRef = useRef<VectorSource<any> | null>(null);
+  const storageLinesSourceRef = useRef<VectorSource<any> | null>(null);
+  const storagePolygonsSourceRef = useRef<VectorSource<any> | null>(null);
   const [pointsVisible, setPointsVisible] = useState(true);
   const [linesVisible, setLinesVisible] = useState(true);
   const [polygonsVisible, setPolygonsVisible] = useState(true);
   const [diInfo, setDiInfo] = useState<DaerahIrigasiRow | null>(null);
   const [diInfoLoading, setDiInfoLoading] = useState(false);
   const [diInfoError, setDiInfoError] = useState<string | null>(null);
+  const [mapSearchOpen, setMapSearchOpen] = useState(false);
+  const [mapSearchQuery, setMapSearchQuery] = useState('');
+  const [mapSearchResults, setMapSearchResults] = useState<MapSearchResult[]>([]);
+  const mapSearchInputRef = useRef<HTMLInputElement | null>(null);
+  const mapSearchContainerRef = useRef<HTMLDivElement | null>(null);
 
   const searchParams = useSearchParams();
   // Terima baik ?di= maupun ?k_di= untuk fleksibilitas dari dashboard
@@ -227,10 +246,13 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
       map.addLayer(kecamatanLayer);
     }
 
-    // Storage aggregated layers: polygons, lines, points (bottom -> top)
-    const polygonsSrc = new VectorSource();
-    const linesSrc = new VectorSource();
-    const pointsSrc = new VectorSource();
+      // Storage aggregated layers: polygons, lines, points (bottom -> top)
+      const polygonsSrc = new VectorSource();
+      const linesSrc = new VectorSource();
+      const pointsSrc = new VectorSource();
+      storagePolygonsSourceRef.current = polygonsSrc;
+      storageLinesSourceRef.current = linesSrc;
+      storagePointsSourceRef.current = pointsSrc;
     const clusterSrc = new ClusterSource({ distance: 40, minDistance: 20, source: pointsSrc });
     const polygonsLayer = new VectorLayer({
       source: polygonsSrc,
@@ -1007,11 +1029,94 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
       popupOverlayRef.current.setPosition(evt.coordinate);
     });
 
-    return () => {
-      map.setTarget(undefined as any);
-      mapRef.current = null;
-    };
+      return () => {
+        storagePolygonsSourceRef.current = null;
+        storageLinesSourceRef.current = null;
+        storagePointsSourceRef.current = null;
+        map.setTarget(undefined as any);
+        mapRef.current = null;
+      };
   }, [kecamatanVisible, activeKdi, supabase, supabaseUrl]);
+
+  useEffect(() => {
+    if (!mapSearchOpen) return;
+    const timer = window.setTimeout(() => mapSearchInputRef.current?.focus(), 80);
+    return () => window.clearTimeout(timer);
+  }, [mapSearchOpen]);
+
+  useEffect(() => {
+    if (!mapSearchOpen) return;
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+      if (!mapSearchContainerRef.current) return;
+      if (!mapSearchContainerRef.current.contains(event.target as Node)) {
+        setMapSearchOpen(false);
+        setMapSearchQuery('');
+        setMapSearchResults([]);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [mapSearchOpen]);
+
+  useEffect(() => {
+    if (!mapSearchOpen) {
+      setMapSearchResults([]);
+      return;
+    }
+    const query = mapSearchQuery.trim().toLowerCase();
+    if (!query) {
+      setMapSearchResults([]);
+      return;
+    }
+
+    const limit = 12;
+    const matches: MapSearchResult[] = [];
+    const searchSource = (source: VectorSource<any> | null, type: MapSearchResult['type'], visible: boolean) => {
+      if (!visible || !source) return;
+      const features = source.getFeatures();
+      for (const feature of features) {
+        if (!feature) continue;
+        const haystack = featureSearchHaystack(feature);
+        if (!haystack || !haystack.includes(query)) continue;
+        const geometry = (feature as any).getGeometry?.();
+        let coordinate: [number, number] | undefined;
+        let extent: [number, number, number, number] | undefined;
+        const geomType = geometry?.getType?.();
+        if (geomType === 'Point' || geomType === 'MultiPoint') {
+          const coords = geometry?.getCoordinates?.();
+          if (coords && Array.isArray(coords) && !Array.isArray(coords[0])) {
+            coordinate = coords as [number, number];
+          } else if (geometry?.getFirstCoordinate) {
+            const first = geometry.getFirstCoordinate();
+            if (first) coordinate = first as [number, number];
+          }
+        } else if (geometry) {
+          const ext = geometry.getExtent?.();
+          if (ext) extent = ext as [number, number, number, number];
+        }
+        const { title, subtitle } = summarizeFeatureForSearch(feature, type);
+        matches.push({
+          id: `${type}-${(feature as any).ol_uid ?? (feature as any).getId?.() ?? `${type}-${matches.length}`}`,
+          title,
+          subtitle,
+          type,
+          feature,
+          extent,
+          coordinate,
+        });
+        if (matches.length >= limit) return;
+      }
+    };
+
+    searchSource(storagePolygonsSourceRef.current, 'polygon', polygonsVisible);
+    if (matches.length < limit) searchSource(storageLinesSourceRef.current, 'line', linesVisible);
+    if (matches.length < limit) searchSource(storagePointsSourceRef.current, 'point', pointsVisible);
+    setMapSearchResults(matches);
+  }, [mapSearchOpen, mapSearchQuery, polygonsVisible, linesVisible, pointsVisible, storageCounts, activeKdi]);
 
   // UI handlers
   const setBasemap = (name: string) => {
@@ -1094,6 +1199,82 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
   const toggleKecamatan = (checked: boolean) => {
     kecamatanLayerRef.current?.setVisible(checked);
     setKecamatanVisible(checked);
+  };
+
+  const handleMapResultSelect = useCallback((result: MapSearchResult) => {
+    const map = mapRef.current;
+    if (!map) return;
+    const view = map.getView();
+    const feature = result.feature;
+    const geometry = feature && typeof feature.getGeometry === 'function' ? feature.getGeometry() : null;
+
+    if (result.type === 'point') {
+      let coordinate = result.coordinate;
+      if (!coordinate && geometry && typeof geometry.getCoordinates === 'function') {
+        const coords = geometry.getCoordinates();
+        if (Array.isArray(coords) && typeof coords[0] === 'number') {
+          coordinate = coords as [number, number];
+        } else if (geometry.getFirstCoordinate) {
+          const first = geometry.getFirstCoordinate();
+          if (first) coordinate = first as [number, number];
+        }
+      }
+      if (coordinate) {
+        view.animate({ center: coordinate, duration: 450, zoom: Math.max(view.getZoom() || 0, 16) });
+      }
+    } else {
+      const extent = result.extent || (geometry && geometry.getExtent ? geometry.getExtent() : undefined);
+      if (extent) {
+        view.fit(extent, { padding: [80, 80, 80, 80], duration: 500 });
+      }
+      if (feature && typeof feature.setStyle === 'function') {
+        const highlightStyle =
+          result.type === 'line'
+            ? new Style({ stroke: new Stroke({ color: '#ff1493', width: 5 }) })
+            : new Style({
+                stroke: new Stroke({ color: '#ff1493', width: 3 }),
+                fill: new Fill({ color: 'rgba(255,20,147,0.25)' }),
+              });
+        const previousStyle = feature.getStyle ? feature.getStyle() : undefined;
+        feature.setStyle(highlightStyle);
+        window.setTimeout(() => {
+          feature.setStyle(previousStyle);
+        }, 1800);
+      }
+    }
+
+    setMapSearchOpen(false);
+    setMapSearchQuery('');
+    setMapSearchResults([]);
+  }, []);
+
+  const toggleMapSearch = () => {
+    setMapSearchOpen((prev) => {
+      const next = !prev;
+      if (!next) {
+        setMapSearchQuery('');
+        setMapSearchResults([]);
+      }
+      return next;
+    });
+  };
+
+  const handleMapSearchClear = () => {
+    setMapSearchQuery('');
+    setMapSearchResults([]);
+    mapSearchInputRef.current?.focus();
+  };
+
+  const handleMapSearchKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter' && mapSearchResults.length > 0) {
+      event.preventDefault();
+      handleMapResultSelect(mapSearchResults[0]);
+    } else if (event.key === 'Escape') {
+      event.preventDefault();
+      setMapSearchOpen(false);
+      setMapSearchQuery('');
+      setMapSearchResults([]);
+    }
   };
 
   const diInfoRows = useMemo<Array<[string, string]>>(() => {
@@ -1206,7 +1387,57 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
       {/* Map container */}
       <div ref={mapDivRef} className="map-container" />
       {/* Floating controls (custom UI) */}
-      <div className="float-controls">
+        <div className="float-controls">
+          <div ref={mapSearchContainerRef} className={`map-search-control ${mapSearchOpen ? 'open' : ''}`}>
+            <button
+              type="button"
+              className="btn map-search-button"
+              aria-label={mapSearchOpen ? 'Tutup pencarian peta' : 'Buka pencarian peta'}
+              onClick={toggleMapSearch}
+            >
+              <span aria-hidden>🔍</span>
+              {mapSearchOpen && <span className="map-search-button-text">Cari DI</span>}
+            </button>
+            <input
+              ref={mapSearchInputRef}
+              type="search"
+              className="map-search-input"
+              value={mapSearchQuery}
+              onChange={(event) => setMapSearchQuery(event.target.value)}
+              onKeyDown={handleMapSearchKeyDown}
+              placeholder="Cari DI / saluran / bangunan…"
+            />
+            {mapSearchOpen && mapSearchQuery && (
+              <button type="button" className="map-search-clear" onClick={handleMapSearchClear} aria-label="Bersihkan pencarian peta">
+                ×
+              </button>
+            )}
+            {mapSearchOpen && (
+              <div className="map-search-results card">
+                {!mapSearchQuery.trim() && <div className="map-search-empty">Masukkan kata kunci untuk mencari pada layer aktif.</div>}
+                {mapSearchQuery.trim() && loadingStorage && <div className="map-search-empty">Memuat layer…</div>}
+                {mapSearchQuery.trim() && !loadingStorage && mapSearchResults.length === 0 && (
+                  <div className="map-search-empty">Tidak ada kecocokan pada layer yang tampil.</div>
+                )}
+                {mapSearchResults.map((result) => (
+                  <button
+                    key={result.id}
+                    type="button"
+                    className="map-search-result"
+                    onClick={() => handleMapResultSelect(result)}
+                  >
+                    <div>
+                      <div className="map-search-result-title">{result.title}</div>
+                      {result.subtitle && <div className="map-search-result-subtitle">{result.subtitle}</div>}
+                    </div>
+                    <span className="map-search-result-type">
+                      {result.type === 'point' ? 'Bangunan' : result.type === 'line' ? 'Saluran' : 'DI'}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         <button onClick={goHome} className="btn" title="Home">🏠</button>
         <button onClick={goDashboard} className="btn" title="Dashboard">📊</button>
         <button onClick={fitData} className="btn" title="Fit Data">🗺️</button>
@@ -1304,4 +1535,90 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
       </div>
     </main>
   );
+}
+
+type LooseRecord = Record<string, any>;
+
+const normalizeTextValue = (value: any): string => {
+  if (value == null) return '';
+  if (Array.isArray(value)) {
+    return value
+      .map((entry) => normalizeTextValue(entry))
+      .filter(Boolean)
+      .join(', ')
+      .trim();
+  }
+  return String(value).trim();
+};
+
+const readCaseInsensitive = (obj: LooseRecord | null | undefined, key: string): any => {
+  if (!obj || typeof obj !== 'object') return undefined;
+  if (Object.prototype.hasOwnProperty.call(obj, key) && obj[key] != null) return obj[key];
+  const lowerKey = key.toLowerCase();
+  const matched = Object.keys(obj).find((existing) => existing.toLowerCase() === lowerKey);
+  if (matched && obj[matched] != null) return obj[matched];
+  return undefined;
+};
+
+const readFeatureValue = (feature: any, key: string): any => {
+  if (!feature) return undefined;
+  if (typeof feature.get === 'function') {
+    const direct = feature.get(key);
+    if (direct != null) return direct;
+  }
+  const props = typeof feature.getProperties === 'function' ? feature.getProperties() : undefined;
+  const fromProps = readCaseInsensitive(props as LooseRecord, key);
+  if (fromProps != null) return fromProps;
+  const metadata = props && typeof props?.metadata === 'object' ? props.metadata : undefined;
+  return readCaseInsensitive(metadata as LooseRecord, key);
+};
+
+const pickFeatureText = (feature: any, keys: string[]): string => {
+  for (const key of keys) {
+    const value = readFeatureValue(feature, key);
+    const normalized = normalizeTextValue(value);
+    if (normalized) return normalized;
+  }
+  return '';
+};
+
+function summarizeFeatureForSearch(feature: any, type: MapSearchResult['type']): { title: string; subtitle?: string } {
+  let title =
+    pickFeatureText(feature, ['nama', 'NAMA', 'nama_di', 'NAMA_DI', 'n_di', 'N_DI', 'judul', 'title', 'label', 'NAMOBJ']) ||
+    pickFeatureText(feature, ['no_saluran', 'NO_SALURAN', 'no_ruas', 'NO_RUAS']);
+  if (!title) {
+    title = type === 'polygon' ? 'Daerah Irigasi' : type === 'line' ? 'Saluran' : 'Bangunan';
+  }
+
+  const subtitleParts: string[] = [];
+  const code = pickFeatureText(feature, ['k_di', 'K_DI', 'kode_irigasi', 'kode_di']);
+  const saluran = pickFeatureText(feature, ['no_saluran', 'NO_SALURAN']);
+  const ruas = pickFeatureText(feature, ['no_ruas', 'NO_RUAS']);
+  const kecamatan = pickFeatureText(feature, ['kecamatan']);
+  const desa = pickFeatureText(feature, ['desa_kel', 'desa', 'desa_kelurahan']);
+  if (code) subtitleParts.push(`DI ${code}`);
+  if (type !== 'polygon' && (saluran || ruas)) subtitleParts.push(saluran || (ruas ? `Ruas ${ruas}` : ''));
+  if (kecamatan) subtitleParts.push(kecamatan);
+  if (desa) subtitleParts.push(desa);
+
+  const subtitle = subtitleParts.filter(Boolean).join(' • ') || undefined;
+  return { title, subtitle };
+}
+
+function featureSearchHaystack(feature: any): string {
+  if (!feature || typeof feature.getProperties !== 'function') return '';
+  const props = feature.getProperties() || {};
+  const { geometry, ...rest } = props;
+  try {
+    return JSON.stringify(rest).toLowerCase();
+  } catch {
+    const flatten = (value: any): string => {
+      if (value == null) return '';
+      if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return String(value).toLowerCase();
+      if (Array.isArray(value)) return value.map(flatten).join(' ');
+      if (typeof value === 'object') return Object.values(value).map(flatten).join(' ');
+      return '';
+    };
+    return flatten(rest);
+  }
 }

@@ -32,6 +32,7 @@ export default function DashboardPage() {
   const [diRows, setDiRows] = useState<DaerahIrigasiRow[] | null>(null);
   const [diLoading, setDiLoading] = useState<boolean>(false);
   const [diError, setDiError] = useState<string | null>(null);
+  const [diSearch, setDiSearch] = useState<string>('');
 
   // Users panel state
   const [users, setUsers] = useState<UserRow[]>([]);
@@ -158,6 +159,37 @@ export default function DashboardPage() {
     }
   };
 
+  const diFilteredRows = useMemo<DaerahIrigasiRow[] | null>(() => {
+    if (!Array.isArray(diRows)) return null;
+    const query = diSearch.trim().toLowerCase();
+    if (!query) return diRows;
+
+    return diRows.filter((row) => {
+      const values = Object.values(row as Record<string, unknown>);
+      return values.some((value) => {
+        if (value == null) return false;
+        if (typeof value === 'object') {
+          try {
+            return JSON.stringify(value)
+              .toLowerCase()
+              .includes(query);
+          } catch {
+            return false;
+          }
+        }
+        return String(value).toLowerCase().includes(query);
+      });
+    });
+  }, [diRows, diSearch]);
+
+  const hasDiRows = Array.isArray(diRows);
+  const diRowsToRender: DaerahIrigasiRow[] = hasDiRows ? diFilteredRows ?? diRows ?? [] : [];
+  const totalDiCount = hasDiRows ? diRows!.length : 0;
+  const filteredDiCount = hasDiRows ? diRowsToRender.length : 0;
+  const diSearchActive = diSearch.trim().length > 0;
+  const showDiEmptyState = !diLoading && !diError && hasDiRows && diRows!.length === 0;
+  const showDiNoMatches = !diLoading && !diError && hasDiRows && diRows!.length > 0 && diSearchActive && diRowsToRender.length === 0;
+
   const logout = async () => {
     const supabase = createClient();
     await supabase.auth.signOut();
@@ -265,10 +297,43 @@ export default function DashboardPage() {
             <div className="card" style={{ padding: 18 }}>
               <h3 style={{ marginTop: 0 }}>Daerah Irigasi</h3>
               {diLoading && <div className="loading">Memuat data...</div>}
-              {diError && <div className="error-message">{diError}</div>}
-              {!diLoading && !diError && diRows && diRows.length === 0 && <div className="info">Data daerah irigasi belum tersedia.</div>}
-              {!diLoading && !diError && diRows && diRows.length > 0 && (
-                <div style={{ overflowX: 'auto' }}>
+                {diError && <div className="error-message">{diError}</div>}
+                {!diLoading && !diError && hasDiRows && (
+                  <div className="di-search-panel">
+                    <div className="di-search-wrapper">
+                      <span className="di-search-icon" aria-hidden>🔍</span>
+                      <input
+                        type="search"
+                        className="di-search-input"
+                        placeholder="Cari kode, nama, kecamatan, atau desa…"
+                        value={diSearch}
+                        onChange={(event) => setDiSearch(event.target.value)}
+                        disabled={totalDiCount === 0}
+                      />
+                      {diSearch && (
+                        <button
+                          type="button"
+                          className="di-search-clear"
+                          onClick={() => setDiSearch('')}
+                          aria-label="Bersihkan pencarian daerah irigasi"
+                        >
+                          ×
+                        </button>
+                      )}
+                    </div>
+                    <small className="di-search-meta">
+                      {filteredDiCount} dari {totalDiCount} DI
+                    </small>
+                  </div>
+                )}
+                {showDiEmptyState && <div className="info">Data daerah irigasi belum tersedia.</div>}
+                {showDiNoMatches && (
+                  <div className="info">
+                    Tidak ada daerah irigasi yang cocok untuk pencarian "<strong>{diSearch.trim()}</strong>"
+                  </div>
+                )}
+                {!diLoading && !diError && diRowsToRender.length > 0 && (
+                  <div style={{ overflowX: 'auto' }}>
                   <table className="data-table">
                     <thead>
                       <tr>
@@ -282,8 +347,8 @@ export default function DashboardPage() {
                         <th>MAP</th>
                       </tr>
                     </thead>
-                    <tbody>
-                      {diRows.map((row) => (
+                      <tbody>
+                        {diRowsToRender.map((row) => (
                         <tr key={row.id}>
                           <td>{row.k_di || '-'}</td>
                           <td>{row.n_di || '-'}</td>
