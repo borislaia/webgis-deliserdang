@@ -1327,22 +1327,22 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
         </button>
       ) : (
         <div className="float-panel card float-card scroll-silent" style={{ zIndex: 2 }}>
-          <div className="panel-header">
-            <button
-              type="button"
-              className="panel-collapse-btn"
-              onClick={collapsePanel}
-              aria-label="Sembunyikan panel layer"
-              title="Sembunyikan panel"
-            >
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M14.5 6l-6 6 6 6" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-            <div className="panel-header-body">
-              <span className="badge">OpenLayers</span>
+            <div className="panel-header">
+              <button
+                type="button"
+                className="panel-collapse-btn"
+                onClick={collapsePanel}
+                aria-label="Sembunyikan panel layer"
+                title="Sembunyikan panel"
+              >
+                <span className="panel-collapse-icon" aria-hidden="true">
+                  &gt;
+                </span>
+              </button>
+              <div className="panel-header-body">
+                <span className="badge badge--right">OpenLayers</span>
+              </div>
             </div>
-          </div>
           <div style={{ marginTop: 8 }}>
             <div style={{ fontWeight: 600, margin: '8px 0 6px' }}>Basemap</div>
             <label><input type="radio" name="basemap" onChange={() => setBasemap('googleHybrid')} /> Google Satellite Hybrid</label><br />
