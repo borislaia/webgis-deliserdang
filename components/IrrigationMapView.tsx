@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
+import { usePhotoModal } from '@/hooks/usePhotoModal';
+import PhotoModal from '@/components/PhotoModal';
 import 'ol/ol.css';
 import Map from 'ol/Map';
 import View from 'ol/View';
@@ -112,9 +114,8 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
   const esriSatRef = useRef<TileLayer<any> | null>(null);
   const kecamatanLayerRef = useRef<VectorLayer<any> | null>(null);
 
-  // Modal state for image preview from popup
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalImgSrc, setModalImgSrc] = useState<string | null>(null);
+  // Photo modal hook - handles both popup and card slider photos
+  const photoModal = usePhotoModal();
   const [isAdmin, setIsAdmin] = useState(false);
   const [loadingStorage, setLoadingStorage] = useState(false);
   const [storageError, setStorageError] = useState<string | null>(null);
@@ -133,9 +134,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
   const [randomPhotos, setRandomPhotos] = useState<string[]>([]);
   const [photosLoading, setPhotosLoading] = useState(false);
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
-  const [modalPhotoIndex, setModalPhotoIndex] = useState(0);
   const [failedPhotoUrls, setFailedPhotoUrls] = useState<Set<string>>(new Set());
-  const [modalPhotos, setModalPhotos] = useState<string[]>([]); // Photos to show in modal
 
   // Ensure currentPhotoIndex points to a valid photo
   useEffect(() => {
@@ -185,37 +184,6 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
       return () => window.removeEventListener('resize', handleResize);
     }
   }, [isPanelCollapsed, diInfo, diInfoLoading, storageCounts, activeKdi]);
-
-  // Keyboard navigation for modal
-  useEffect(() => {
-    if (!isModalOpen || modalPhotos.length <= 1) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowLeft') {
-        e.preventDefault();
-        e.stopPropagation();
-        setModalPhotoIndex((prev) => {
-          const newIndex = (prev - 1 + modalPhotos.length) % modalPhotos.length;
-          setModalImgSrc(modalPhotos[newIndex]);
-          return newIndex;
-        });
-      } else if (e.key === 'ArrowRight') {
-        e.preventDefault();
-        e.stopPropagation();
-        setModalPhotoIndex((prev) => {
-          const newIndex = (prev + 1) % modalPhotos.length;
-          setModalImgSrc(modalPhotos[newIndex]);
-          return newIndex;
-        });
-      } else if (e.key === 'Escape') {
-        e.preventDefault();
-        e.stopPropagation();
-        setIsModalOpen(false);
-        setModalImgSrc(null);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown, true);
-    return () => window.removeEventListener('keydown', handleKeyDown, true);
-  }, [isModalOpen, modalPhotos]);
 
   // Jika varian MAP memuat DI spesifik (activeKdi ada), layer kecamatan default disembunyikan
   const [kecamatanVisible, setKecamatanVisible] = useState<boolean>(!(activeKdi && activeKdi.length > 0));
@@ -491,13 +459,23 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
           const popupEl = document.createElement('div');
           popupEl.className = 'ol-popup card';
           popupEl.style.pointerEvents = 'auto';
-          // Prevent map click events when clicking inside popup
+          // Prevent map click events when clicking inside popup (except for images)
           popupEl.addEventListener('click', (e) => {
+            // Allow clicks on images to propagate to their handlers
+            const target = e.target as HTMLElement;
+            if (target.tagName === 'IMG' || target.closest('img')) {
+              return; // Don't stop propagation for images
+            }
             e.stopPropagation();
-          }, true);
+          }, false);
           popupEl.addEventListener('mousedown', (e) => {
+            // Allow mousedown on images to propagate to their handlers
+            const target = e.target as HTMLElement;
+            if (target.tagName === 'IMG' || target.closest('img')) {
+              return; // Don't stop propagation for images
+            }
             e.stopPropagation();
-          }, true);
+          }, false);
           popupRef.current = popupEl;
         }
       }
@@ -1356,7 +1334,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
           imgWrapper.style.cursor = 'pointer';
           imgWrapper.style.width = '100%';
           imgWrapper.style.pointerEvents = 'auto';
-          imgWrapper.style.zIndex = '10';
+          imgWrapper.style.zIndex = '1001';
 
           const img = document.createElement('img');
           img.src = url;
@@ -1376,13 +1354,25 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
             img.style.display = 'none';
           };
 
-          img.onclick = (e) => {
+          // Use both onclick and addEventListener for better compatibility
+          const openModalHandler = (e: Event) => {
             e.stopPropagation();
+            e.preventDefault();
             const photoIndex = allPhotos.indexOf(url);
-            setModalPhotos(allPhotos);
-            setModalPhotoIndex(photoIndex >= 0 ? photoIndex : 0);
-            setModalImgSrc(url);
-            setIsModalOpen(true);
+            // Open modal with 'popup' source
+            photoModal.openModal(allPhotos, photoIndex >= 0 ? photoIndex : 0, 'popup');
+          };
+
+          img.onclick = openModalHandler;
+          img.addEventListener('click', openModalHandler, { capture: true });
+
+          // Also add click handler to wrapper for better clickability
+          imgWrapper.onclick = (e: Event) => {
+            e.stopPropagation();
+            e.preventDefault();
+            const photoIndex = allPhotos.indexOf(url);
+            // Open modal with 'popup' source
+            photoModal.openModal(allPhotos, photoIndex >= 0 ? photoIndex : 0, 'popup');
           };
 
           imgWrapper.appendChild(img);
@@ -1408,7 +1398,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
           popupRef.current = null;
         }
       };
-    }, [kecamatanVisible, activeKdi, supabase, supabaseUrl]);
+    }, [kecamatanVisible, activeKdi, supabase, supabaseUrl, photoModal]);
 
   // UI handlers
   const setBasemap = (name: string) => {
@@ -1611,14 +1601,15 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
 
   const goHome = () => { window.location.href = '/'; };
   const goDashboard = () => { window.location.href = '/dashboard'; };
-  const openPhotoModal = (index: number) => {
+  
+  // Open photo modal from card slider
+  const openPhotoModalFromCard = (index: number) => {
     if (randomPhotos.length > 0 && index >= 0 && index < randomPhotos.length && !failedPhotoUrls.has(randomPhotos[index])) {
-      setModalPhotos(randomPhotos); // Set modal photos to card slider photos
-      setModalPhotoIndex(index);
-      setModalImgSrc(randomPhotos[index]);
-      setIsModalOpen(true);
+      // Open modal with 'card-slider' source
+      photoModal.openModal(randomPhotos, index, 'card-slider');
     }
   };
+  
   const prevPhoto = () => {
     if (randomPhotos.length > 1) {
       setCurrentPhotoIndex((prev) => {
@@ -1647,25 +1638,6 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
       });
     }
   };
-  const prevModalPhoto = () => {
-    if (modalPhotos.length > 1) {
-      setModalPhotoIndex((prev) => {
-        const newIndex = (prev - 1 + modalPhotos.length) % modalPhotos.length;
-        setModalImgSrc(modalPhotos[newIndex]);
-        return newIndex;
-      });
-    }
-  };
-  const nextModalPhoto = () => {
-    if (modalPhotos.length > 1) {
-      setModalPhotoIndex((prev) => {
-        const newIndex = (prev + 1) % modalPhotos.length;
-        setModalImgSrc(modalPhotos[newIndex]);
-        return newIndex;
-      });
-    }
-  };
-  const closeModal = () => { setIsModalOpen(false); setModalImgSrc(null); };
 
   return (
     <main data-variant={variant}>
@@ -1816,7 +1788,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
                   onClick={(e) => {
                     e.stopPropagation();
                     if (randomPhotos.length > 0 && currentPhotoIndex >= 0 && currentPhotoIndex < randomPhotos.length && !failedPhotoUrls.has(randomPhotos[currentPhotoIndex])) {
-                      openPhotoModal(currentPhotoIndex);
+                      openPhotoModalFromCard(currentPhotoIndex);
                     }
                   }}
                 >
@@ -1841,7 +1813,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
                       e.stopPropagation();
                       e.preventDefault();
                       if (randomPhotos.length > 0 && currentPhotoIndex >= 0 && currentPhotoIndex < randomPhotos.length && !failedPhotoUrls.has(randomPhotos[currentPhotoIndex])) {
-                        openPhotoModal(currentPhotoIndex);
+                        openPhotoModalFromCard(currentPhotoIndex);
                       }
                     }}
                     onKeyDown={(e) => {
@@ -1849,7 +1821,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
                         e.stopPropagation();
                         e.preventDefault();
                         if (randomPhotos.length > 0 && currentPhotoIndex >= 0 && currentPhotoIndex < randomPhotos.length && !failedPhotoUrls.has(randomPhotos[currentPhotoIndex])) {
-                          openPhotoModal(currentPhotoIndex);
+                          openPhotoModalFromCard(currentPhotoIndex);
                         }
                       }
                     }}
@@ -1998,245 +1970,25 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
         </div>
       )}
 
-      {/* Image modal */}
-      <div
-        className={`modal ${isModalOpen ? 'open' : ''}`}
-        aria-hidden={!isModalOpen}
-        onClick={closeModal}
-        style={{ cursor: 'pointer', position: 'fixed', inset: 0, display: isModalOpen ? 'flex' : 'none', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.85)', zIndex: 9999, padding: '20px' }}
-      >
-        {isModalOpen && modalImgSrc ? (
-          <div
-            style={{
-              position: 'relative',
-              width: '100%',
-              height: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Close button */}
-            <button
-              type="button"
-              onClick={closeModal}
-              style={{
-                position: 'fixed',
-                top: 20,
-                right: 20,
-                width: 48,
-                height: 48,
-                borderRadius: '50%',
-                border: '2px solid rgba(255, 255, 255, 0.9)',
-                background: 'rgba(0, 0, 0, 0.6)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                fontSize: 24,
-                fontWeight: 600,
-                color: '#ffffff',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-                zIndex: 10000,
-                transition: 'background 0.2s ease, transform 0.2s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(0, 0, 0, 0.8)';
-                e.currentTarget.style.transform = 'scale(1.1)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(0, 0, 0, 0.6)';
-                e.currentTarget.style.transform = 'scale(1)';
-              }}
-              aria-label="Tutup"
-              title="Tutup (Esc)"
-            >
-              ×
-            </button>
-            <Image
-              src={modalImgSrc}
-              alt={`Foto irigasi ${modalPhotoIndex + 1}`}
-              width={1920}
-              height={1080}
-              unoptimized
-              style={{
-                maxWidth: 'calc(100vw - 160px)',
-                maxHeight: 'calc(100vh - 160px)',
-                width: 'auto',
-                height: 'auto',
-                borderRadius: 12,
-                boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
-                cursor: 'default',
-                objectFit: 'contain',
-                display: 'block'
-              }}
-              onError={(e) => {
-                const img = e.target as HTMLImageElement;
-                const failedUrl = img.src;
-                setFailedPhotoUrls((prev) => {
-                  const newSet = new Set(prev);
-                  newSet.add(failedUrl);
-                  return newSet;
-                });
-                // Try next photo if current one fails
-                if (modalPhotos.length > 1) {
-                  const nextIndex = (modalPhotoIndex + 1) % modalPhotos.length;
-                  if (nextIndex !== modalPhotoIndex && !failedPhotoUrls.has(modalPhotos[nextIndex])) {
-                    setTimeout(() => {
-                      setModalPhotoIndex(nextIndex);
-                      setModalImgSrc(modalPhotos[nextIndex]);
-                    }, 100);
-                  }
-                }
-              }}
-            />
-            {modalPhotos.length > 1 && (
-              <>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    prevModalPhoto();
-                  }}
-                  style={{
-                    position: 'absolute',
-                    left: 20,
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    width: 48,
-                    height: 48,
-                    borderRadius: '50%',
-                    border: '2px solid rgba(255, 255, 255, 0.9)',
-                    background: 'rgba(0, 0, 0, 0.5)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    fontSize: 24,
-                    fontWeight: 600,
-                    color: '#ffffff',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-                    zIndex: 10,
-                    transition: 'background 0.2s ease, transform 0.2s ease'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'rgba(0, 0, 0, 0.7)';
-                    e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'rgba(0, 0, 0, 0.5)';
-                    e.currentTarget.style.transform = 'translateY(-50%)';
-                  }}
-                  aria-label="Foto sebelumnya"
-                  title="Foto sebelumnya (←)"
-                >
-                  ‹
-                </button>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    nextModalPhoto();
-                  }}
-                  style={{
-                    position: 'absolute',
-                    right: 20,
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    width: 48,
-                    height: 48,
-                    borderRadius: '50%',
-                    border: '2px solid rgba(255, 255, 255, 0.9)',
-                    background: 'rgba(0, 0, 0, 0.5)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    fontSize: 24,
-                    fontWeight: 600,
-                    color: '#ffffff',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-                    zIndex: 10,
-                    transition: 'background 0.2s ease, transform 0.2s ease'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'rgba(0, 0, 0, 0.7)';
-                    e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'rgba(0, 0, 0, 0.5)';
-                    e.currentTarget.style.transform = 'translateY(-50%)';
-                  }}
-                  aria-label="Foto berikutnya"
-                  title="Foto berikutnya (→)"
-                >
-                  ›
-                </button>
-                <div
-                  style={{
-                    position: 'absolute',
-                    bottom: 20,
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    padding: '8px 16px',
-                    borderRadius: 20,
-                    background: 'rgba(0, 0, 0, 0.6)',
-                    backdropFilter: 'blur(8px)',
-                    zIndex: 10
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {modalPhotos.map((_, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setModalPhotoIndex(idx);
-                        setModalImgSrc(modalPhotos[idx]);
-                      }}
-                      style={{
-                        width: idx === modalPhotoIndex ? 24 : 8,
-                        height: 8,
-                        borderRadius: 4,
-                        border: 'none',
-                        background: idx === modalPhotoIndex ? '#ffffff' : 'rgba(255, 255, 255, 0.5)',
-                        cursor: 'pointer',
-                        padding: 0,
-                        transition: 'width 0.2s ease, background 0.2s ease'
-                      }}
-                      aria-label={`Foto ${idx + 1}`}
-                    />
-                  ))}
-                </div>
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: 20,
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    padding: '6px 12px',
-                    borderRadius: 16,
-                    background: 'rgba(0, 0, 0, 0.6)',
-                    backdropFilter: 'blur(8px)',
-                    color: '#ffffff',
-                    fontSize: 14,
-                    fontWeight: 500,
-                    zIndex: 10
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {modalPhotoIndex + 1} / {modalPhotos.length}
-                </div>
-              </>
-            )}
-          </div>
-        ) : null}
-      </div>
+      {/* Photo Modal - Unified modal for both popup and card slider photos */}
+      <PhotoModal
+        isOpen={photoModal.isOpen}
+        currentPhotoSrc={photoModal.currentPhotoSrc}
+        currentPhotoIndex={photoModal.currentPhotoIndex}
+        photos={photoModal.photos}
+        source={photoModal.source}
+        onClose={photoModal.closeModal}
+        onNext={photoModal.nextPhoto}
+        onPrev={photoModal.prevPhoto}
+        onGoToPhoto={photoModal.goToPhoto}
+        onPhotoError={(url) => {
+          setFailedPhotoUrls((prev) => {
+            const newSet = new Set(prev);
+            newSet.add(url);
+            return newSet;
+          });
+        }}
+      />
     </main>
   );
 }
