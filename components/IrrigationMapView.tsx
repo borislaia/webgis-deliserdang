@@ -1316,11 +1316,10 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
           title="Buka panel layer"
         >
           <span className="float-panel-toggle__logo" aria-hidden="true">
-            <svg viewBox="0 0 40 40">
-              <circle cx="20" cy="20" r="18" fill="rgba(255,255,255,0.25)" />
-              <circle cx="20" cy="20" r="13" fill="none" stroke="#ecfeff" strokeWidth="2.2" opacity="0.75" />
-              <circle cx="18" cy="18" r="7" fill="rgba(255,255,255,0.9)" opacity="0.65" />
-              <path d="M12 22c2.3 4.4 7 7 12 7 4.1 0 7.7-1.9 10-5" stroke="#ffffff" strokeWidth="2" opacity="0.9" fill="none" strokeLinecap="round" />
+            <svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="128" cy="128" r="120" fill="#1f6bff"/>
+              <path d="M128 32L48 72v112l80 40 80-40V72L128 32zm0 24.5L200 88v80l-72 36-72-36V88l72-31.5z" fill="#fff"/>
+              <path d="M128 56.5L200 88v80l-72 36-72-36V88l72-31.5z" fill="#fff" opacity="0.3"/>
             </svg>
           </span>
         </button>
