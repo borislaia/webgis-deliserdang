@@ -4,6 +4,10 @@ import { createClient } from '@/lib/supabase/client';
 import * as XLSX from 'xlsx';
 import { usePagination } from '@/lib/hooks/usePagination';
 import Pagination from '@/components/Pagination';
+import { useDaerahIrigasi } from '@/lib/hooks/useDaerahIrigasi';
+import { useSaluran } from '@/lib/hooks/useSaluran';
+import { useRuas } from '@/lib/hooks/useRuas';
+import { useBangunan } from '@/lib/hooks/useBangunan';
 
 function classNames(...parts: Array<string | false | undefined>) {
   return parts.filter(Boolean).join(' ');
@@ -33,10 +37,11 @@ export default function IrrigationManagementView({ isAdmin }: IrrigationManageme
   const [message, setMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
   const [importing, setImporting] = useState(false);
 
-  const [diList, setDiList] = useState<any[] | null>(null);
-  const [saluranList, setSaluranList] = useState<any[] | null>(null);
-  const [ruasList, setRuasList] = useState<any[] | null>(null);
-  const [bangunanList, setBangunanList] = useState<any[] | null>(null);
+  // Data dengan SWR caching
+  const { data: diList } = useDaerahIrigasi()
+  const { data: saluranList } = useSaluran()
+  const { data: ruasList } = useRuas()
+  const { data: bangunanList } = useBangunan()
 
   // Pagination hooks
   const saluranPagination = usePagination(saluranList || [], 50);
@@ -44,63 +49,8 @@ export default function IrrigationManagementView({ isAdmin }: IrrigationManageme
   const bangunanPagination = usePagination(bangunanList || [], 50);
   const diPagination = usePagination(diList || [], 50);
 
-  useEffect(() => {
-    if (activeTab === 'overview') {
-      (async () => {
-        try {
-          const { data, error } = await supabase
-            .from('daerah_irigasi')
-            .select('id,k_di,n_di,luas_ha,kecamatan,desa_kel,sumber_air,tahun_data');
-          if (error) throw error;
-          setDiList(data || []);
-        } catch (e: any) {
-          setDiList([]);
-        }
-      })();
-    }
-    if (activeTab === 'saluran') {
-      (async () => {
-        try {
-          const { data, error } = await supabase
-            .from('saluran')
-            .select('id,no_saluran,nama,jenis,panjang_total,luas_layanan,urutan')
-            .order('urutan', { ascending: true });
-          if (error) throw error;
-          setSaluranList(data || []);
-        } catch {
-          setSaluranList([]);
-        }
-      })();
-    }
-    if (activeTab === 'ruas') {
-      (async () => {
-        try {
-          const { data, error } = await supabase
-            .from('ruas')
-            .select('id,no_ruas,urutan,panjang')
-            .order('urutan', { ascending: true });
-          if (error) throw error;
-          setRuasList(data || []);
-        } catch {
-          setRuasList([]);
-        }
-      })();
-    }
-    if (activeTab === 'bangunan') {
-      (async () => {
-        try {
-          const { data, error } = await supabase
-            .from('bangunan')
-            .select('id,nama,tipe,latitude,longitude,urutan_di_saluran')
-            .order('urutan_di_saluran', { ascending: true });
-          if (error) throw error;
-          setBangunanList(data || []);
-        } catch {
-          setBangunanList([]);
-        }
-      })();
-    }
-  }, [activeTab, supabase]);
+  // Data sudah di-fetch dengan SWR, tidak perlu useEffect lagi
+  // SWR akan handle caching dan revalidation otomatis
 
   const readJsonFile = async (file: File | null) => {
     if (!file) return null as any;

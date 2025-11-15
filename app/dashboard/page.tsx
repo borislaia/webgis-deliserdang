@@ -8,6 +8,8 @@ import type { UserMetadata, AppMetadata } from '@/lib/types/user';
 import { getErrorMessage } from '@/lib/utils/errors';
 import { usePagination } from '@/lib/hooks/usePagination';
 import Pagination from '@/components/Pagination';
+import { useDaerahIrigasi } from '@/lib/hooks/useDaerahIrigasi';
+import { useUsers } from '@/lib/hooks/useUsers';
 
 type Panel = 'di' | 'management' | 'reports' | 'users' | 'settings';
 type UserRow = { id: string; email: string; role: string; created_at: string | null; last_sign_in_at: string | null };
@@ -33,18 +35,13 @@ export default function DashboardPage() {
 
   const isAdmin = userRole === ROLES.ADMIN;
 
-  // Data Daerah Irigasi panel (dulu via CSV, kini langsung dari tabel)
-  const [diRows, setDiRows] = useState<DaerahIrigasiRow[] | null>(null);
-  const [diLoading, setDiLoading] = useState<boolean>(false);
-  const [diError, setDiError] = useState<string | null>(null);
+  // Data Daerah Irigasi dengan SWR caching
+  const { data: diRows, isLoading: diLoading, error: diError } = useDaerahIrigasi()
   
   // Pagination untuk Daerah Irigasi
   const diPagination = usePagination(diRows || [], 20);
 
   // Users panel state
-  const [users, setUsers] = useState<UserRow[]>([]);
-  const [usersLoading, setUsersLoading] = useState(false);
-  const [usersError, setUsersError] = useState<string | null>(null);
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -94,65 +91,11 @@ export default function DashboardPage() {
     return initials || source.slice(0, 2).toUpperCase();
   }, [userName, userEmail]);
 
-  // Muat data DI langsung dari tabel daerah_irigasi ketika panel aktif
-  useEffect(() => {
-    if (activePanel !== 'di') return;
-    let cancelled = false;
+  // Data DI sudah di-fetch dengan SWR, tidak perlu useEffect lagi
 
-    const fetchDaerahIrigasi = async () => {
-      setDiLoading(true);
-      setDiError(null);
-      setDiRows(null);
-      try {
-        const supabase = createClient();
-        const { data, error } = await supabase
-          .from('daerah_irigasi')
-          .select('id,k_di,n_di,luas_ha,kecamatan,desa_kel,sumber_air,tahun_data')
-          .order('k_di', { ascending: true });
-        if (error) throw error;
-        if (!cancelled) setDiRows(data || []);
-      } catch (e) {
-        if (!cancelled) {
-          setDiRows([]);
-          setDiError(getErrorMessage(e, 'Gagal memuat data DI'));
-        }
-      } finally {
-        if (!cancelled) setDiLoading(false);
-      }
-    };
-
-    fetchDaerahIrigasi();
-    return () => {
-      cancelled = true;
-    };
-  }, [activePanel]);
-
-  const loadUsers = async (signal?: AbortSignal) => {
-    setUsersLoading(true);
-    setUsersError(null);
-    try {
-      const res = await fetch('/api/admin/users', { signal, cache: 'no-store' });
-      if (!res.ok) {
-        const err = await res.json().catch(() => null);
-        throw new Error(err?.error || `Gagal memuat data pengguna (${res.status})`);
-      }
-      const json = await res.json();
-      setUsers(Array.isArray(json.users) ? json.users : []);
-    } catch (e) {
-      if (e instanceof Error && e.name === 'AbortError') return;
-      setUsersError(getErrorMessage(e, 'Gagal memuat data pengguna'));
-      setUsers([]);
-    } finally {
-      setUsersLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (activePanel !== 'users' || !isAdmin) return;
-    const controller = new AbortController();
-    loadUsers(controller.signal);
-    return () => controller.abort();
-  }, [activePanel, isAdmin]);
+  // Users dengan SWR caching (hanya fetch jika admin dan panel aktif)
+  const shouldFetchUsers = activePanel === 'users' && isAdmin
+  const { data: users = [], isLoading: usersLoading, error: usersErrorDisplay, mutate: mutateUsers } = useUsers(shouldFetchUsers)
 
   const updateUserRole = async (id: string, role: string) => {
     setUpdatingUserId(id);
@@ -166,7 +109,8 @@ export default function DashboardPage() {
         const err = await res.json().catch(() => null);
         throw new Error(err?.error || 'Gagal memperbarui role');
       }
-        setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, role } : u)));
+      // Revalidate users data setelah update
+      mutateUsers();
       if (userId === id) {
         setUserRole(role);
       }
@@ -284,8 +228,8 @@ export default function DashboardPage() {
             <div className="card" style={{ padding: 18 }}>
               <h3 style={{ marginTop: 0 }}>Daerah Irigasi</h3>
               {diLoading && <div className="loading">Memuat data...</div>}
-              {diError && <div className="error-message">{diError}</div>}
-              {!diLoading && !diError && diRows && diRows.length === 0 && <div className="info">Data daerah irigasi belum tersedia.</div>}
+              {diError && <div className="error-message">{getErrorMessage(diError, 'Gagal memuat data DI')}</div>}
+              {!diLoading && !diError && (!diRows || diRows.length === 0) && <div className="info">Data daerah irigasi belum tersedia.</div>}
               {!diLoading && !diError && diRows && diRows.length > 0 && (
                 <>
                   <div style={{ overflowX: 'auto' }}>
@@ -359,11 +303,11 @@ export default function DashboardPage() {
               {isAdmin && (
                 <>
                   {usersLoading && <div className="loading">Memuat data pengguna…</div>}
-                  {usersError && <div className="error-message">{usersError}</div>}
-                  {!usersLoading && !usersError && (
+                  {usersErrorDisplay && <div className="error-message">{getErrorMessage(usersErrorDisplay, 'Gagal memuat data pengguna')}</div>}
+                  {!usersLoading && !usersErrorDisplay && (
                     <div style={{ overflowX: 'auto' }}>
                       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
-                        <button className="btn" onClick={() => loadUsers()}>Refresh</button>
+                        <button className="btn" onClick={() => mutateUsers()}>Refresh</button>
                       </div>
                       <table className="data-table">
                         <thead>
