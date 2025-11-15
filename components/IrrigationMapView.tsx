@@ -116,6 +116,10 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
 
   // Photo modal hook - handles both popup and card slider photos
   const photoModal = usePhotoModal();
+  const photoModalRef = useRef(photoModal);
+  useEffect(() => {
+    photoModalRef.current = photoModal;
+  }, [photoModal]);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loadingStorage, setLoadingStorage] = useState(false);
   const [storageError, setStorageError] = useState<string | null>(null);
@@ -432,23 +436,34 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
           const popupEl = document.createElement('div');
           popupEl.className = 'ol-popup card';
           popupEl.style.pointerEvents = 'auto';
+          
+          // Store handlers for cleanup
+          const popupClickHandler = (e: Event) => {
+            // Allow clicks on images and their wrappers to propagate to their handlers
+            const target = e.target as HTMLElement;
+            if (target.tagName === 'IMG' || target.closest('img') || target.closest('[data-photo-wrapper]')) {
+              return; // Don't stop propagation for images and photo wrappers
+            }
+            e.stopPropagation();
+          };
+          
+          const popupMousedownHandler = (e: Event) => {
+            // Allow mousedown on images and their wrappers to propagate to their handlers
+            const target = e.target as HTMLElement;
+            if (target.tagName === 'IMG' || target.closest('img') || target.closest('[data-photo-wrapper]')) {
+              return; // Don't stop propagation for images and photo wrappers
+            }
+            e.stopPropagation();
+          };
+          
           // Prevent map click events when clicking inside popup (except for images)
-          popupEl.addEventListener('click', (e) => {
-            // Allow clicks on images to propagate to their handlers
-            const target = e.target as HTMLElement;
-            if (target.tagName === 'IMG' || target.closest('img')) {
-              return; // Don't stop propagation for images
-            }
-            e.stopPropagation();
-          }, false);
-          popupEl.addEventListener('mousedown', (e) => {
-            // Allow mousedown on images to propagate to their handlers
-            const target = e.target as HTMLElement;
-            if (target.tagName === 'IMG' || target.closest('img')) {
-              return; // Don't stop propagation for images
-            }
-            e.stopPropagation();
-          }, false);
+          popupEl.addEventListener('click', popupClickHandler, false);
+          popupEl.addEventListener('mousedown', popupMousedownHandler, false);
+          
+          // Store handlers on element for cleanup
+          (popupEl as any)._popupClickHandler = popupClickHandler;
+          (popupEl as any)._popupMousedownHandler = popupMousedownHandler;
+          
           popupRef.current = popupEl;
         }
       }
@@ -910,7 +925,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
 
     // Hover (highlight + tooltip) untuk semua layer vektor (prioritas top-most)
     let currentFeature: any = null;
-    map.on('pointermove', (evt) => {
+    const pointerMoveHandler = (evt: any) => {
       if (evt.dragging) return;
       let hovered: any = null;
       let styleForHover: Style | undefined;
@@ -1020,10 +1035,11 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
         overlayRef.current?.setPosition(undefined);
         currentFeature = null;
       }
-    });
+    };
+    map.on('pointermove', pointerMoveHandler);
 
     // Click popup (tampilkan kolom sesuai tipe geometri)
-    map.on('singleclick', (evt) => {
+    const singleClickHandler = (evt: any) => {
       let selected: any = null;
       map.forEachFeatureAtPixel(evt.pixel, (f) => { selected = f; return true; });
       if (!selected) { popupOverlayRef.current?.setPosition(undefined); return; }
@@ -1295,14 +1311,32 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
       );
 
       if (allPhotos.length) {
+        // Cleanup previous photo handlers if popup was recreated
+        const existingGallery = el.querySelector('[data-photo-gallery]');
+        if (existingGallery) {
+          const existingHandlers = (existingGallery as any)._photoHandlers || [];
+          existingHandlers.forEach((handler: any) => {
+            if (handler.element && handler.handler) {
+              handler.element.removeEventListener('click', handler.handler);
+            }
+          });
+          existingGallery.remove();
+        }
+        
         const gallery = document.createElement('div');
+        gallery.setAttribute('data-photo-gallery', 'true');
         gallery.style.display = 'flex';
         gallery.style.flexDirection = 'column';
         gallery.style.gap = '12px';
         gallery.style.marginTop = '12px';
         gallery.style.width = '100%';
-        allPhotos.slice(0, 6).forEach((url) => {
+        
+        // Store handlers for cleanup
+        const photoHandlers: Array<{ element: HTMLElement; handler: (e: Event) => void }> = [];
+        
+        allPhotos.slice(0, 6).forEach((url, index) => {
           const imgWrapper = document.createElement('div');
+          imgWrapper.setAttribute('data-photo-wrapper', 'true'); // Mark as photo wrapper for event handling
           imgWrapper.style.position = 'relative';
           imgWrapper.style.cursor = 'pointer';
           imgWrapper.style.width = '100%';
@@ -1327,37 +1361,70 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
             img.style.display = 'none';
           };
 
-          // Use both onclick and addEventListener for better compatibility
+          // Single handler for both img and wrapper - use capture phase to run first
           const openModalHandler = (e: Event) => {
             e.stopPropagation();
             e.preventDefault();
-            const photoIndex = allPhotos.indexOf(url);
-            // Open modal with 'popup' source
-            photoModal.openModal(allPhotos, photoIndex >= 0 ? photoIndex : 0, 'popup');
+            e.stopImmediatePropagation(); // Prevent other handlers from interfering
+            // Use index directly instead of indexOf to avoid closure issues
+            setTimeout(() => {
+              photoModalRef.current.openModal(allPhotos, index, 'popup');
+            }, 0);
           };
 
-          img.onclick = openModalHandler;
+          // Add handler once with capture phase
           img.addEventListener('click', openModalHandler, { capture: true });
-
-          // Also add click handler to wrapper for better clickability
-          imgWrapper.onclick = (e: Event) => {
-            e.stopPropagation();
-            e.preventDefault();
-            const photoIndex = allPhotos.indexOf(url);
-            // Open modal with 'popup' source
-            photoModal.openModal(allPhotos, photoIndex >= 0 ? photoIndex : 0, 'popup');
-          };
+          imgWrapper.addEventListener('click', openModalHandler, { capture: true });
+          
+          // Store handlers for cleanup
+          photoHandlers.push(
+            { element: img, handler: openModalHandler },
+            { element: imgWrapper, handler: openModalHandler }
+          );
 
           imgWrapper.appendChild(img);
           gallery.appendChild(imgWrapper);
         });
+        
+        // Store handlers on gallery for cleanup
+        (gallery as any)._photoHandlers = photoHandlers;
+        
         el.appendChild(gallery);
       }
 
         popupOverlayRef.current.setPosition(evt.coordinate);
-      });
+      };
+    map.on('singleclick', singleClickHandler);
 
       return () => {
+        // Remove map event listeners
+        map.un('pointermove', pointerMoveHandler);
+        map.un('singleclick', singleClickHandler);
+        
+        // Cleanup popup event listeners and photo handlers
+        if (popupRef.current) {
+          const popupEl = popupRef.current as any;
+          if (popupEl._popupClickHandler) {
+            popupEl.removeEventListener('click', popupEl._popupClickHandler);
+          }
+          if (popupEl._popupMousedownHandler) {
+            popupEl.removeEventListener('mousedown', popupEl._popupMousedownHandler);
+          }
+          
+          // Cleanup photo handlers
+          const existingGallery = popupEl.querySelector('[data-photo-gallery]');
+          if (existingGallery) {
+            const existingHandlers = (existingGallery as any)._photoHandlers || [];
+            existingHandlers.forEach((handler: any) => {
+              if (handler.element && handler.handler) {
+                handler.element.removeEventListener('click', handler.handler);
+              }
+            });
+          }
+          
+          popupEl.remove();
+          popupRef.current = null;
+        }
         map.setTarget(undefined as any);
         mapRef.current = null;
         overlayRef.current = null;
@@ -1366,12 +1433,8 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
           tooltipRef.current.remove();
           tooltipRef.current = null;
         }
-        if (popupRef.current) {
-          popupRef.current.remove();
-          popupRef.current = null;
-        }
       };
-    }, [kecamatanVisible, activeKdi, supabase, supabaseUrl, photoModal]);
+    }, [kecamatanVisible, activeKdi, supabase, supabaseUrl]);
 
   // UI handlers
   const setBasemap = (name: string) => {
