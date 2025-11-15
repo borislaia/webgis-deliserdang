@@ -1659,7 +1659,6 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
           flexDirection: 'column',
           gap: 8
         }}>
-          <div style={{ fontWeight: 600, marginBottom: 4, fontSize: 14 }}>Foto Irigasi</div>
           {photosLoading ? (
             <div style={{ fontSize: 13, color: '#6b7280', textAlign: 'center', padding: '20px 0' }}>
               Memuat foto...
