@@ -128,6 +128,35 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
   const [diInfoLoading, setDiInfoLoading] = useState(false);
   const [diInfoError, setDiInfoError] = useState<string | null>(null);
   const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
+  const [randomPhotos, setRandomPhotos] = useState<string[]>([]);
+  const [photosLoading, setPhotosLoading] = useState(false);
+  const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const [panelHeight, setPanelHeight] = useState(0);
+
+  // Measure panel height for photo card positioning
+  useEffect(() => {
+    if (!panelRef.current || isPanelCollapsed) {
+      setPanelHeight(0);
+      return;
+    }
+    const updateHeight = () => {
+      if (panelRef.current) {
+        setPanelHeight(panelRef.current.offsetHeight);
+      }
+    };
+    updateHeight();
+    if (typeof ResizeObserver !== 'undefined') {
+      const resizeObserver = new ResizeObserver(updateHeight);
+      resizeObserver.observe(panelRef.current);
+      return () => resizeObserver.disconnect();
+    } else {
+      // Fallback: update on window resize
+      const handleResize = () => updateHeight();
+      window.addEventListener('resize', handleResize);
+      return () => window.removeEventListener('resize', handleResize);
+    }
+  }, [isPanelCollapsed, diInfo, diInfoLoading, storageCounts, activeKdi]);
 
   const searchParams = useSearchParams();
   // Terima baik ?di= maupun ?k_di= untuk fleksibilitas dari dashboard
@@ -154,6 +183,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
       setDiInfo(null);
       setDiInfoError(null);
       setDiInfoLoading(false);
+      setRandomPhotos([]);
       return () => {
         cancelled = true;
       };
@@ -183,6 +213,76 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
       } finally {
         if (cancelled) return;
         setDiInfoLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeKdi, supabase]);
+
+  // Load random photos from storage bucket
+  useEffect(() => {
+    let cancelled = false;
+    if (!activeKdi) {
+      setRandomPhotos([]);
+      setCurrentPhotoIndex(0);
+      return () => {
+        cancelled = true;
+      };
+    }
+    setPhotosLoading(true);
+    setRandomPhotos([]);
+    setCurrentPhotoIndex(0);
+    (async () => {
+      try {
+        // List all files in the bucket for this k_di
+        const listAllFiles = async (prefix: string): Promise<string[]> => {
+          const { data, error } = await supabase.storage
+            .from('images')
+            .list(prefix, { limit: 1000, sortBy: { column: 'name', order: 'asc' } });
+          if (error) return [];
+          const files: string[] = [];
+          for (const item of data || []) {
+            const name = item.name || '';
+            const fullPath = prefix ? `${prefix}/${name}` : name;
+            // Check if it's a file (has extension) or folder
+            const isFile = /\.[a-z0-9]+$/i.test(name);
+            if (isFile) {
+              // Check if it's an image file
+              const lower = name.toLowerCase();
+              if (lower.match(/\.(jpg|jpeg|png|gif|webp|bmp)$/)) {
+                files.push(fullPath);
+              }
+            } else {
+              // It's a folder, recurse
+              const nested = await listAllFiles(fullPath);
+              files.push(...nested);
+            }
+          }
+          return files;
+        };
+        const allFiles = await listAllFiles(activeKdi);
+        if (cancelled) return;
+        // Convert to public URLs
+        const photoUrls: string[] = [];
+        for (const filePath of allFiles) {
+          const { data: publicData } = supabase.storage.from('images').getPublicUrl(filePath);
+          if (publicData?.publicUrl) {
+            photoUrls.push(publicData.publicUrl);
+          }
+        }
+        // Shuffle and take up to 10 random photos
+        const shuffled = photoUrls.sort(() => Math.random() - 0.5);
+        const selected = shuffled.slice(0, 10);
+        if (cancelled) return;
+        setRandomPhotos(selected);
+      } catch (err: any) {
+        if (cancelled) return;
+        console.error('Error loading photos:', err);
+        setRandomPhotos([]);
+      } finally {
+        if (cancelled) return;
+        setPhotosLoading(false);
       }
     })();
     return () => {
@@ -1291,6 +1391,18 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
   const goHome = () => { window.location.href = '/'; };
   const goDashboard = () => { window.location.href = '/dashboard'; };
   const closeModal = () => { setIsModalOpen(false); setModalImgSrc(null); };
+  const nextPhoto = () => {
+    if (randomPhotos.length === 0) return;
+    setCurrentPhotoIndex((prev) => (prev + 1) % randomPhotos.length);
+  };
+  const prevPhoto = () => {
+    if (randomPhotos.length === 0) return;
+    setCurrentPhotoIndex((prev) => (prev - 1 + randomPhotos.length) % randomPhotos.length);
+  };
+  const openPhotoModal = (url: string) => {
+    setModalImgSrc(url);
+    setIsModalOpen(true);
+  };
 
   return (
     <main data-variant={variant}>
@@ -1320,7 +1432,11 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
           </span>
         </button>
       ) : (
-        <div className="float-panel card float-card scroll-silent" style={{ zIndex: 2 }}>
+        <div 
+          ref={panelRef}
+          className="float-panel card float-card scroll-silent" 
+          style={{ zIndex: 2 }}
+        >
             <div className="panel-header">
               <button
                 type="button"
@@ -1397,6 +1513,148 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
               )}
             </div>
           ) : null}
+        </div>
+      )}
+
+      {/* Photo slider card */}
+      {activeKdi && !isPanelCollapsed && (
+        <div className="float-card card photo-slider-card" style={{ 
+          position: 'absolute', 
+          right: 16, 
+          top: panelHeight > 0 ? `${16 + panelHeight + 16}px` : 'auto',
+          bottom: panelHeight === 0 ? 16 : 'auto',
+          width: 280,
+          maxHeight: '300px',
+          zIndex: 2,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 8
+        }}>
+          <div style={{ fontWeight: 600, marginBottom: 4, fontSize: 14 }}>Foto Irigasi</div>
+          {photosLoading ? (
+            <div style={{ fontSize: 13, color: '#6b7280', textAlign: 'center', padding: '20px 0' }}>
+              Memuat foto...
+            </div>
+          ) : randomPhotos.length === 0 ? (
+            <div style={{ fontSize: 13, color: '#6b7280', textAlign: 'center', padding: '20px 0' }}>
+              Tidak ada foto tersedia
+            </div>
+          ) : (
+            <>
+              <div style={{ position: 'relative', width: '100%', aspectRatio: '16/9', borderRadius: 8, overflow: 'hidden', backgroundColor: '#f3f4f6' }}>
+                <img
+                  src={randomPhotos[currentPhotoIndex]}
+                  alt={`Foto irigasi ${currentPhotoIndex + 1}`}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    cursor: 'pointer',
+                    display: 'block'
+                  }}
+                  onClick={() => openPhotoModal(randomPhotos[currentPhotoIndex])}
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
+                />
+                {randomPhotos.length > 1 && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        prevPhoto();
+                      }}
+                      style={{
+                        position: 'absolute',
+                        left: 8,
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        width: 32,
+                        height: 32,
+                        borderRadius: '50%',
+                        border: '1px solid var(--stroke)',
+                        background: 'rgba(255, 255, 255, 0.9)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        fontSize: 18,
+                        fontWeight: 600,
+                        color: 'var(--text)',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                        zIndex: 10
+                      }}
+                      aria-label="Foto sebelumnya"
+                      title="Foto sebelumnya"
+                    >
+                      ‹
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        nextPhoto();
+                      }}
+                      style={{
+                        position: 'absolute',
+                        right: 8,
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        width: 32,
+                        height: 32,
+                        borderRadius: '50%',
+                        border: '1px solid var(--stroke)',
+                        background: 'rgba(255, 255, 255, 0.9)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        fontSize: 18,
+                        fontWeight: 600,
+                        color: 'var(--text)',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                        zIndex: 10
+                      }}
+                      aria-label="Foto berikutnya"
+                      title="Foto berikutnya"
+                    >
+                      ›
+                    </button>
+                  </>
+                )}
+              </div>
+              {randomPhotos.length > 1 && (
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  gap: 4,
+                  fontSize: 12,
+                  color: '#6b7280'
+                }}>
+                  {randomPhotos.map((_, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setCurrentPhotoIndex(idx)}
+                      style={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: '50%',
+                        border: 'none',
+                        background: idx === currentPhotoIndex ? '#0a84ff' : '#d1d5db',
+                        cursor: 'pointer',
+                        padding: 0,
+                        transition: 'background 0.2s ease'
+                      }}
+                      aria-label={`Foto ${idx + 1}`}
+                    />
+                  ))}
+                </div>
+              )}
+            </>
+          )}
         </div>
       )}
 
