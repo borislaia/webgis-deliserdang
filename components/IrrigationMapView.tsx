@@ -116,6 +116,10 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
 
   // Photo modal hook - handles both popup and card slider photos
   const photoModal = usePhotoModal();
+  const photoModalRef = useRef(photoModal);
+  useEffect(() => {
+    photoModalRef.current = photoModal;
+  }, [photoModal]);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loadingStorage, setLoadingStorage] = useState(false);
   const [storageError, setStorageError] = useState<string | null>(null);
@@ -434,18 +438,18 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
           popupEl.style.pointerEvents = 'auto';
           // Prevent map click events when clicking inside popup (except for images)
           popupEl.addEventListener('click', (e) => {
-            // Allow clicks on images to propagate to their handlers
+            // Allow clicks on images and their wrappers to propagate to their handlers
             const target = e.target as HTMLElement;
-            if (target.tagName === 'IMG' || target.closest('img')) {
-              return; // Don't stop propagation for images
+            if (target.tagName === 'IMG' || target.closest('img') || target.closest('[data-photo-wrapper]')) {
+              return; // Don't stop propagation for images and photo wrappers
             }
             e.stopPropagation();
           }, false);
           popupEl.addEventListener('mousedown', (e) => {
-            // Allow mousedown on images to propagate to their handlers
+            // Allow mousedown on images and their wrappers to propagate to their handlers
             const target = e.target as HTMLElement;
-            if (target.tagName === 'IMG' || target.closest('img')) {
-              return; // Don't stop propagation for images
+            if (target.tagName === 'IMG' || target.closest('img') || target.closest('[data-photo-wrapper]')) {
+              return; // Don't stop propagation for images and photo wrappers
             }
             e.stopPropagation();
           }, false);
@@ -1303,6 +1307,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
         gallery.style.width = '100%';
         allPhotos.slice(0, 6).forEach((url) => {
           const imgWrapper = document.createElement('div');
+          imgWrapper.setAttribute('data-photo-wrapper', 'true'); // Mark as photo wrapper for event handling
           imgWrapper.style.position = 'relative';
           imgWrapper.style.cursor = 'pointer';
           imgWrapper.style.width = '100%';
@@ -1327,26 +1332,42 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
             img.style.display = 'none';
           };
 
-          // Use both onclick and addEventListener for better compatibility
+          // Handler to open photo modal
           const openModalHandler = (e: Event) => {
             e.stopPropagation();
             e.preventDefault();
+            e.stopImmediatePropagation(); // Prevent other handlers from interfering
             const photoIndex = allPhotos.indexOf(url);
-            // Open modal with 'popup' source
-            photoModal.openModal(allPhotos, photoIndex >= 0 ? photoIndex : 0, 'popup');
+            if (photoIndex >= 0) {
+              // Use setTimeout to ensure modal opens after all event handlers complete
+              setTimeout(() => {
+                photoModalRef.current.openModal(allPhotos, photoIndex, 'popup');
+              }, 0);
+            }
           };
 
-          img.onclick = openModalHandler;
+          // Add handler with capture phase to ensure it runs first
           img.addEventListener('click', openModalHandler, { capture: true });
+          img.addEventListener('click', openModalHandler, { capture: false });
+          img.onclick = openModalHandler;
 
           // Also add click handler to wrapper for better clickability
-          imgWrapper.onclick = (e: Event) => {
+          const wrapperHandler = (e: Event) => {
             e.stopPropagation();
             e.preventDefault();
+            e.stopImmediatePropagation(); // Prevent other handlers from interfering
             const photoIndex = allPhotos.indexOf(url);
-            // Open modal with 'popup' source
-            photoModal.openModal(allPhotos, photoIndex >= 0 ? photoIndex : 0, 'popup');
+            if (photoIndex >= 0) {
+              // Use setTimeout to ensure modal opens after all event handlers complete
+              setTimeout(() => {
+                photoModalRef.current.openModal(allPhotos, photoIndex, 'popup');
+              }, 0);
+            }
           };
+          
+          imgWrapper.addEventListener('click', wrapperHandler, { capture: true });
+          imgWrapper.addEventListener('click', wrapperHandler, { capture: false });
+          imgWrapper.onclick = wrapperHandler;
 
           imgWrapper.appendChild(img);
           gallery.appendChild(imgWrapper);
@@ -1371,7 +1392,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
           popupRef.current = null;
         }
       };
-    }, [kecamatanVisible, activeKdi, supabase, supabaseUrl, photoModal]);
+    }, [kecamatanVisible, activeKdi, supabase, supabaseUrl]);
 
   // UI handlers
   const setBasemap = (name: string) => {
