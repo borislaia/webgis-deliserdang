@@ -23,6 +23,7 @@ export default function DashboardPage() {
   const [userEmail, setUserEmail] = useState<string>('');
   const [userName, setUserName] = useState<string>('');
   const [avatarUrl, setAvatarUrl] = useState<string>('');
+  const [avatarError, setAvatarError] = useState<boolean>(false);
   const [userId, setUserId] = useState<string>('');
   const [userRole, setUserRole] = useState<string>('');
 
@@ -59,6 +60,7 @@ export default function DashboardPage() {
           (user?.user_metadata as any)?.picture ||
           '';
         setAvatarUrl(avatar);
+        setAvatarError(false); // Reset error when avatar URL changes
         const role = (user?.app_metadata as any)?.role || (user?.user_metadata as any)?.role || 'user';
         setUserRole(role);
       } catch {}
@@ -206,12 +208,14 @@ export default function DashboardPage() {
               backdropFilter: 'blur(6px)',
             }}
           >
-            {avatarUrl ? (
+            {avatarUrl && !avatarError ? (
               <Image
                 src={avatarUrl}
                 alt={userName || userEmail || 'User'}
                 width={36}
                 height={36}
+                unoptimized
+                onError={() => setAvatarError(true)}
                 style={{ borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(255,255,255,0.6)' }}
               />
             ) : (
