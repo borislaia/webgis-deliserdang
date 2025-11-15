@@ -165,7 +165,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
       try {
         const { data, error } = await supabase
           .from('daerah_irigasi')
-            .select('id,k_di,n_di,uptd,kecamatan,desa_kel,sumber_air,luas_ha,metadata')
+          .select('id,k_di,n_di,uptd,kecamatan,desa_kel,sumber_air,luas_ha,metadata')
           .eq('k_di', activeKdi)
           .maybeSingle();
         if (cancelled) return;
@@ -190,10 +190,22 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
     };
   }, [activeKdi, supabase]);
 
-  useEffect(() => {
-    if (!mapDivRef.current) return;
+    useEffect(() => {
+      if (!mapDivRef.current) return;
+      if (typeof document !== 'undefined') {
+        if (!tooltipRef.current) {
+          const tooltipEl = document.createElement('div');
+          tooltipEl.className = 'ol-tooltip';
+          tooltipRef.current = tooltipEl;
+        }
+        if (!popupRef.current) {
+          const popupEl = document.createElement('div');
+          popupEl.className = 'ol-popup card';
+          popupRef.current = popupEl;
+        }
+      }
 
-    const center = fromLonLat(centerLonLat);
+      const center = fromLonLat(centerLonLat);
 
     // Base layers
     const googleHybrid = new TileLayer({
@@ -1058,14 +1070,24 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
         el.appendChild(gallery);
       }
 
-      popupOverlayRef.current.setPosition(evt.coordinate);
-    });
+        popupOverlayRef.current.setPosition(evt.coordinate);
+      });
 
-    return () => {
-      map.setTarget(undefined as any);
-      mapRef.current = null;
-    };
-  }, [kecamatanVisible, activeKdi, supabase, supabaseUrl]);
+      return () => {
+        map.setTarget(undefined as any);
+        mapRef.current = null;
+        overlayRef.current = null;
+        popupOverlayRef.current = null;
+        if (tooltipRef.current) {
+          tooltipRef.current.remove();
+          tooltipRef.current = null;
+        }
+        if (popupRef.current) {
+          popupRef.current.remove();
+          popupRef.current = null;
+        }
+      };
+    }, [kecamatanVisible, activeKdi, supabase, supabaseUrl]);
 
   // UI handlers
   const setBasemap = (name: string) => {
@@ -1383,10 +1405,6 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
           ) : null}
         </div>
       )}
-
-      {/* Tooltip and popup overlays */}
-      <div ref={tooltipRef} className="ol-tooltip" />
-      <div ref={popupRef} className="ol-popup card" />
 
       {/* Image modal */}
       <div
