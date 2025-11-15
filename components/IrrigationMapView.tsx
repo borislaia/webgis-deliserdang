@@ -491,13 +491,23 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
           const popupEl = document.createElement('div');
           popupEl.className = 'ol-popup card';
           popupEl.style.pointerEvents = 'auto';
-          // Prevent map click events when clicking inside popup
+          // Prevent map click events when clicking inside popup (except for images)
           popupEl.addEventListener('click', (e) => {
+            // Allow clicks on images to propagate to their handlers
+            const target = e.target as HTMLElement;
+            if (target.tagName === 'IMG' || target.closest('img')) {
+              return; // Don't stop propagation for images
+            }
             e.stopPropagation();
-          }, true);
+          }, false);
           popupEl.addEventListener('mousedown', (e) => {
+            // Allow mousedown on images to propagate to their handlers
+            const target = e.target as HTMLElement;
+            if (target.tagName === 'IMG' || target.closest('img')) {
+              return; // Don't stop propagation for images
+            }
             e.stopPropagation();
-          }, true);
+          }, false);
           popupRef.current = popupEl;
         }
       }
@@ -1356,7 +1366,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
           imgWrapper.style.cursor = 'pointer';
           imgWrapper.style.width = '100%';
           imgWrapper.style.pointerEvents = 'auto';
-          imgWrapper.style.zIndex = '10';
+          imgWrapper.style.zIndex = '1001';
 
           const img = document.createElement('img');
           img.src = url;
@@ -1376,8 +1386,24 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
             img.style.display = 'none';
           };
 
-          img.onclick = (e) => {
+          // Use both onclick and addEventListener for better compatibility
+          const openModalHandler = (e: Event) => {
             e.stopPropagation();
+            e.preventDefault();
+            const photoIndex = allPhotos.indexOf(url);
+            setModalPhotos(allPhotos);
+            setModalPhotoIndex(photoIndex >= 0 ? photoIndex : 0);
+            setModalImgSrc(url);
+            setIsModalOpen(true);
+          };
+
+          img.onclick = openModalHandler;
+          img.addEventListener('click', openModalHandler, { capture: true });
+
+          // Also add click handler to wrapper for better clickability
+          imgWrapper.onclick = (e: Event) => {
+            e.stopPropagation();
+            e.preventDefault();
             const photoIndex = allPhotos.indexOf(url);
             setModalPhotos(allPhotos);
             setModalPhotoIndex(photoIndex >= 0 ? photoIndex : 0);
