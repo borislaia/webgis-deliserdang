@@ -253,6 +253,124 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
     };
   }, [activeKdi, supabase]);
 
+  // Load photos for photo card
+  useEffect(() => {
+    let cancelled = false;
+    if (!activeKdi) {
+      setRandomPhotos([]);
+      setPhotosLoading(false);
+      return () => {
+        cancelled = true;
+      };
+    }
+    setPhotosLoading(true);
+    setRandomPhotos([]);
+    (async () => {
+      try {
+        const diCode = activeKdi.trim();
+        if (!diCode) {
+          setRandomPhotos([]);
+          return;
+        }
+
+        // List all files in the images/{k_di}/ directory
+        const { data: files, error } = await supabase.storage
+          .from('images')
+          .list(diCode, {
+            limit: 100,
+            sortBy: { column: 'name', order: 'asc' },
+          });
+
+        if (cancelled) return;
+        if (error) {
+          console.warn('Error loading images:', error);
+          setRandomPhotos([]);
+          return;
+        }
+
+        if (!files || files.length === 0) {
+          setRandomPhotos([]);
+          return;
+        }
+
+        // Filter image files and build URLs
+        const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'];
+        const imageFiles = files.filter((file) => {
+          const name = (file.name || '').toLowerCase();
+          return imageExtensions.some((ext) => name.endsWith(ext));
+        });
+
+        if (imageFiles.length === 0) {
+          setRandomPhotos([]);
+          return;
+        }
+
+        // Build public URLs for images
+        const photoUrls: string[] = [];
+        for (const file of imageFiles) {
+          const path = `${diCode}/${file.name}`;
+          const { data: publicData } = supabase.storage.from('images').getPublicUrl(path);
+          if (publicData?.publicUrl) {
+            photoUrls.push(publicData.publicUrl);
+          }
+        }
+
+        // Also check subdirectories (e.g., saluran folders)
+        // Re-list to get folders (items without file extensions)
+        if (files) {
+          for (const item of files) {
+            const itemName = (item.name || '').toLowerCase();
+            const isImageFile = imageExtensions.some((ext) => itemName.endsWith(ext));
+            
+            // If it's not an image file and doesn't have an extension, it might be a folder
+            if (!isImageFile && !itemName.includes('.')) {
+              try {
+                const { data: subFiles } = await supabase.storage
+                  .from('images')
+                  .list(`${diCode}/${item.name}`, {
+                    limit: 50,
+                  });
+
+                if (subFiles) {
+                  for (const subFile of subFiles) {
+                    const subName = (subFile.name || '').toLowerCase();
+                    if (imageExtensions.some((ext) => subName.endsWith(ext))) {
+                      const path = `${diCode}/${item.name}/${subFile.name}`;
+                      const { data: publicData } = supabase.storage.from('images').getPublicUrl(path);
+                      if (publicData?.publicUrl) {
+                        photoUrls.push(publicData.publicUrl);
+                      }
+                    }
+                  }
+                }
+              } catch (subErr) {
+                // Ignore errors when checking subdirectories
+                console.warn('Error checking subdirectory:', item.name, subErr);
+              }
+            }
+          }
+        }
+
+        if (cancelled) return;
+
+        // Shuffle and limit to reasonable number
+        const shuffled = photoUrls.sort(() => Math.random() - 0.5);
+        setRandomPhotos(shuffled.slice(0, 20)); // Limit to 20 photos max
+      } catch (err: any) {
+        if (cancelled) return;
+        console.warn('Error loading photos:', err);
+        setRandomPhotos([]);
+      } finally {
+        if (!cancelled) {
+          setPhotosLoading(false);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeKdi, supabase]);
+
     useEffect(() => {
       if (!mapDivRef.current) return;
       if (typeof document !== 'undefined') {
@@ -1136,12 +1254,25 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
             e.preventDefault();
             e.stopPropagation();
             e.stopImmediatePropagation();
-            setModalImgSrc(url);
-            setIsModalOpen(true);
+            // Use setTimeout to ensure React state update works from DOM event handler
+            setTimeout(() => {
+              setModalImgSrc(url);
+              setIsModalOpen(true);
+            }, 0);
           };
 
-          img.addEventListener('click', handleClick, true);
-          imgWrapper.addEventListener('click', handleClick, true);
+          img.addEventListener('click', handleClick, { capture: true });
+          imgWrapper.addEventListener('click', handleClick, { capture: true });
+          
+          // Also add mousedown to prevent map interaction
+          img.addEventListener('mousedown', (e) => {
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+          }, { capture: true });
+          imgWrapper.addEventListener('mousedown', (e) => {
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+          }, { capture: true });
 
           imgWrapper.appendChild(img);
           gallery.appendChild(imgWrapper);
@@ -1528,7 +1659,6 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
           flexDirection: 'column',
           gap: 8
         }}>
-          <div style={{ fontWeight: 600, marginBottom: 4, fontSize: 14 }}>Foto Irigasi</div>
           {photosLoading ? (
             <div style={{ fontSize: 13, color: '#6b7280', textAlign: 'center', padding: '20px 0' }}>
               Memuat foto...
