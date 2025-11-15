@@ -57,8 +57,8 @@ body{
 .detail-table td{ font-size:13px; line-height:1.4; padding:2px 0; vertical-align:top; }
 .ol-popup .popup-table td.label,
 .detail-table td.label{ color:var(--muted); font-weight:500; width:42%; white-space:nowrap; }
-.ol-popup .popup-table td.label::after,
-.detail-table td.label::after{ content:" :"; padding-left:4px; }
+.ol-popup .popup-table td.label::after{ content:" :"; padding-left:4px; }
+.detail-table td.label::after{ content:""; padding-left:0; }
 .ol-popup .popup-table td.value,
 .detail-table td.value{ color:var(--text); font-weight:600; text-align:left; word-break:break-word; }
 .ol-popup .empty-state{ font-size:13px; color:var(--muted); font-style:italic; margin-top:4px; }
@@ -73,7 +73,7 @@ body{
 
 /* Map page specifics */
 .map-container{ position:fixed; inset:0; }
-.float-panel{ position:absolute; right:16px; top:16px; width:280px; max-height:70vh; overflow:auto; padding:14px; }
+.float-panel{ position:absolute; right:16px; top:16px; width:280px; max-height:calc(100vh - 32px); overflow:auto; padding:14px; }
 .float-controls{ position:absolute; left:16px; top:16px; display:flex; flex-direction:column; gap:8px; }
 .float-card{ padding:12px; }
 .badge{ font-size:12px; padding:4px 8px; border-radius:999px; background:rgba(10,132,255,0.15); color:#0a84ff; border:1px solid rgba(10,132,255,0.25); }

@@ -1250,7 +1250,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
     const desa = pickString(diInfo.desa_kel, readMeta('desa_kel', 'desa', 'desa_kelurahan'));
     const sumberAir = pickString(diInfo.sumber_air, readMeta('sumber_air', 'sumber'));
     const luasVal = pickNumber(readMeta('luas_fungsional', 'luas_fungsi', 'luas', 'luas_ha'), diInfo.luas_ha);
-    const luasText = luasVal != null ? `${formatNumber(luasVal)} %Ha` : '-';
+    const luasText = luasVal != null ? `${formatNumber(luasVal)} ha` : '-';
 
     return [
       ['Kode Irigasi', code || '-'],
