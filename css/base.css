@@ -57,8 +57,8 @@ body{
 .detail-table td{ font-size:13px; line-height:1.4; padding:2px 0; vertical-align:top; }
 .ol-popup .popup-table td.label,
 .detail-table td.label{ color:var(--muted); font-weight:500; width:42%; white-space:nowrap; }
-.ol-popup .popup-table td.label::after,
-.detail-table td.label::after{ content:" :"; padding-left:4px; }
+.ol-popup .popup-table td.label::after{ content:" :"; padding-left:4px; }
+.detail-table td.label::after{ content:""; padding-left:0; }
 .ol-popup .popup-table td.value,
 .detail-table td.value{ color:var(--text); font-weight:600; text-align:left; word-break:break-word; }
 .ol-popup .empty-state{ font-size:13px; color:var(--muted); font-style:italic; margin-top:4px; }
