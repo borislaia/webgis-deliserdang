@@ -1350,44 +1350,84 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
         gallery.style.gap = '12px';
         gallery.style.marginTop = '12px';
         gallery.style.width = '100%';
-        allPhotos.slice(0, 6).forEach((url) => {
-          const imgWrapper = document.createElement('div');
-          imgWrapper.style.position = 'relative';
-          imgWrapper.style.cursor = 'pointer';
-          imgWrapper.style.width = '100%';
-          imgWrapper.style.pointerEvents = 'auto';
-          imgWrapper.style.zIndex = '10';
+          allPhotos.slice(0, 6).forEach((url) => {
+            const imgWrapper = document.createElement('div');
+            imgWrapper.style.position = 'relative';
+            imgWrapper.style.cursor = 'pointer';
+            imgWrapper.style.width = '100%';
+            imgWrapper.style.pointerEvents = 'auto';
+            imgWrapper.style.zIndex = '10';
 
-          const img = document.createElement('img');
-          img.src = url;
-          img.alt = 'foto';
-          img.style.display = 'block';
-          img.style.width = '100%';
-          img.style.height = 'auto';
-          img.style.maxHeight = '320px';
-          img.style.borderRadius = '10px';
-          img.style.border = '1px solid #ddd';
-          img.style.pointerEvents = 'auto';
-          img.style.cursor = 'pointer';
-          img.style.userSelect = 'none';
-          img.draggable = false;
+            const img = document.createElement('img');
+            img.src = url;
+            img.alt = 'foto';
+            img.style.display = 'block';
+            img.style.width = '100%';
+            img.style.height = 'auto';
+            img.style.maxHeight = '320px';
+            img.style.borderRadius = '10px';
+            img.style.border = '1px solid #ddd';
+            img.style.pointerEvents = 'auto';
+            img.style.cursor = 'pointer';
+            img.style.userSelect = 'none';
+            img.draggable = false;
 
-          img.onerror = () => {
-            img.style.display = 'none';
-          };
+            img.onerror = () => {
+              img.style.display = 'none';
+              if (!imgWrapper.querySelector('[data-photo-placeholder="true"]')) {
+                const placeholder = document.createElement('div');
+                placeholder.setAttribute('data-photo-placeholder', 'true');
+                placeholder.style.width = '100%';
+                placeholder.style.padding = '32px 16px';
+                placeholder.style.textAlign = 'center';
+                placeholder.style.color = '#6b7280';
+                placeholder.style.fontSize = '13px';
+                placeholder.textContent = 'Foto tidak dapat dimuat';
+                imgWrapper.appendChild(placeholder);
+              }
+            };
 
-          img.onclick = (e) => {
-            e.stopPropagation();
-            const photoIndex = allPhotos.indexOf(url);
-            setModalPhotos(allPhotos);
-            setModalPhotoIndex(photoIndex >= 0 ? photoIndex : 0);
-            setModalImgSrc(url);
-            setIsModalOpen(true);
-          };
+            const openModalFromPopup = () => {
+              const photoIndex = allPhotos.indexOf(url);
+              setModalPhotos(allPhotos);
+              setModalPhotoIndex(photoIndex >= 0 ? photoIndex : 0);
+              setModalImgSrc(url);
+              setIsModalOpen(true);
+            };
 
-          imgWrapper.appendChild(img);
-          gallery.appendChild(imgWrapper);
-        });
+            const stopEvent = (event: Event, preventDefault = true) => {
+              if (!event) return;
+              if (preventDefault && typeof event.preventDefault === 'function') {
+                event.preventDefault();
+              }
+              event.stopPropagation();
+              if (typeof (event as any).stopImmediatePropagation === 'function') {
+                (event as any).stopImmediatePropagation();
+              }
+            };
+
+            const handleClick = (event: Event) => {
+              stopEvent(event);
+              setTimeout(openModalFromPopup, 0);
+            };
+
+            const lockInteraction = (event: Event, preventDefault = true) => {
+              stopEvent(event, preventDefault);
+            };
+
+            img.addEventListener('click', handleClick, { capture: true });
+            imgWrapper.addEventListener('click', handleClick, { capture: true });
+
+            ['mousedown', 'touchstart', 'touchend'].forEach((type) => {
+              const listener = (evt: Event) => lockInteraction(evt, type !== 'touchend');
+              const options: AddEventListenerOptions = { capture: true, passive: false };
+              img.addEventListener(type, listener, options);
+              imgWrapper.addEventListener(type, listener, options);
+            });
+
+            imgWrapper.appendChild(img);
+            gallery.appendChild(imgWrapper);
+          });
         el.appendChild(gallery);
       }
 
