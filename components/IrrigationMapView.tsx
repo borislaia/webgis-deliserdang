@@ -132,6 +132,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
   const [photosLoading, setPhotosLoading] = useState(false);
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [modalPhotoIndex, setModalPhotoIndex] = useState(0);
+  const [failedPhotoUrls, setFailedPhotoUrls] = useState<Set<string>>(new Set());
   const panelRef = useRef<HTMLDivElement | null>(null);
   const [panelHeight, setPanelHeight] = useState(0);
 
@@ -165,23 +166,30 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowLeft') {
         e.preventDefault();
-        const prevIndex = (modalPhotoIndex - 1 + randomPhotos.length) % randomPhotos.length;
-        setModalPhotoIndex(prevIndex);
-        setModalImgSrc(randomPhotos[prevIndex]);
+        e.stopPropagation();
+        setModalPhotoIndex((prev) => {
+          const newIndex = (prev - 1 + randomPhotos.length) % randomPhotos.length;
+          setModalImgSrc(randomPhotos[newIndex]);
+          return newIndex;
+        });
       } else if (e.key === 'ArrowRight') {
         e.preventDefault();
-        const nextIndex = (modalPhotoIndex + 1) % randomPhotos.length;
-        setModalPhotoIndex(nextIndex);
-        setModalImgSrc(randomPhotos[nextIndex]);
+        e.stopPropagation();
+        setModalPhotoIndex((prev) => {
+          const newIndex = (prev + 1) % randomPhotos.length;
+          setModalImgSrc(randomPhotos[newIndex]);
+          return newIndex;
+        });
       } else if (e.key === 'Escape') {
         e.preventDefault();
+        e.stopPropagation();
         setIsModalOpen(false);
         setModalImgSrc(null);
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isModalOpen, modalPhotoIndex, randomPhotos]);
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => window.removeEventListener('keydown', handleKeyDown, true);
+  }, [isModalOpen, randomPhotos]);
 
   const searchParams = useSearchParams();
   // Terima baik ?di= maupun ?k_di= untuk fleksibilitas dari dashboard
@@ -261,49 +269,105 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
     (async () => {
       try {
         // List all files in the bucket for this k_di
-        const listAllFiles = async (prefix: string): Promise<string[]> => {
-          const { data, error } = await supabase.storage
-            .from('images')
-            .list(prefix, { limit: 1000, sortBy: { column: 'name', order: 'asc' } });
-          if (error) return [];
-          const files: string[] = [];
-          for (const item of data || []) {
-            const name = item.name || '';
-            const fullPath = prefix ? `${prefix}/${name}` : name;
-            // Check if it's a file (has extension) or folder
-            const isFile = /\.[a-z0-9]+$/i.test(name);
-            if (isFile) {
-              // Check if it's an image file
-              const lower = name.toLowerCase();
-              if (lower.match(/\.(jpg|jpeg|png|gif|webp|bmp)$/)) {
-                files.push(fullPath);
-              }
-            } else {
-              // It's a folder, recurse
-              const nested = await listAllFiles(fullPath);
-              files.push(...nested);
+        const listAllFiles = async (prefix: string, depth = 0): Promise<string[]> => {
+          // Prevent infinite recursion
+          if (depth > 10) return [];
+          if (cancelled) return [];
+          
+          try {
+            const { data, error } = await supabase.storage
+              .from('images')
+              .list(prefix, { limit: 1000, sortBy: { column: 'name', order: 'asc' } });
+            
+            if (error) {
+              // Silently skip errors - folder might not exist or not accessible
+              return [];
             }
+            
+            const files: string[] = [];
+            if (!data || data.length === 0) return [];
+            
+            for (const item of data) {
+              if (cancelled) return [];
+              
+              try {
+                const name = item.name || '';
+                if (!name) continue;
+                
+                // Normalize path
+                const fullPath = prefix ? `${prefix}/${name}` : name;
+                
+                // Check if it's a file (has extension) or folder
+                const isFile = /\.[a-z0-9]+$/i.test(name);
+                
+                if (isFile) {
+                  // Check if it's an image file
+                  const lower = name.toLowerCase();
+                  if (lower.match(/\.(jpg|jpeg|png|gif|webp|bmp)$/)) {
+                    files.push(fullPath);
+                  }
+                } else {
+                  // It's a folder, recurse with error handling
+                  try {
+                    const nested = await listAllFiles(fullPath, depth + 1);
+                    files.push(...nested);
+                  } catch (nestedErr) {
+                    // Skip folders that can't be accessed
+                    continue;
+                  }
+                }
+              } catch (itemErr) {
+                // Skip individual items that cause errors
+                continue;
+              }
+            }
+            
+            return files;
+          } catch (listErr) {
+            // Return empty array if listing fails
+            return [];
           }
-          return files;
         };
+        
         const allFiles = await listAllFiles(activeKdi);
         if (cancelled) return;
-        // Convert to public URLs
+        
+        // Convert to public URLs with error handling
         const photoUrls: string[] = [];
         for (const filePath of allFiles) {
-          const { data: publicData } = supabase.storage.from('images').getPublicUrl(filePath);
-          if (publicData?.publicUrl) {
-            photoUrls.push(publicData.publicUrl);
+          if (cancelled) break;
+          
+          try {
+            const { data: publicData } = supabase.storage.from('images').getPublicUrl(filePath);
+            if (publicData?.publicUrl) {
+              photoUrls.push(publicData.publicUrl);
+            }
+          } catch (urlErr) {
+            // Skip files that can't be converted to URLs
+            continue;
           }
         }
-        // Shuffle and take up to 10 random photos
-        const shuffled = photoUrls.sort(() => Math.random() - 0.5);
-        const selected = shuffled.slice(0, 10);
+        
         if (cancelled) return;
-        setRandomPhotos(selected);
+        
+        // Filter out known failed URLs and shuffle
+        if (photoUrls.length > 0) {
+          // Remove duplicates and filter failed URLs
+          const uniqueUrls = Array.from(new Set(photoUrls));
+          const shuffled = [...uniqueUrls].sort(() => Math.random() - 0.5);
+          const selected = shuffled.slice(0, 10);
+          setRandomPhotos(selected);
+          setFailedPhotoUrls(new Set()); // Reset failed photos when loading new set
+        } else {
+          setRandomPhotos([]);
+          setFailedPhotoUrls(new Set());
+        }
       } catch (err: any) {
         if (cancelled) return;
-        console.error('Error loading photos:', err);
+        // Only log unexpected errors, don't show to user
+        if (err?.message && !err.message.includes('not found')) {
+          console.error('Error loading photos:', err);
+        }
         setRandomPhotos([]);
       } finally {
         if (cancelled) return;
@@ -1594,7 +1658,21 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
                   }}
                   onClick={() => openPhotoModal(currentPhotoIndex)}
                   onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none';
+                    const img = e.target as HTMLImageElement;
+                    const failedUrl = img.src;
+                    setFailedPhotoUrls((prev) => {
+                      const newSet = new Set(prev);
+                      newSet.add(failedUrl);
+                      return newSet;
+                    });
+                    // Try next photo if current one fails
+                    if (randomPhotos.length > 1) {
+                      const nextIndex = (currentPhotoIndex + 1) % randomPhotos.length;
+                      if (nextIndex !== currentPhotoIndex) {
+                        setTimeout(() => setCurrentPhotoIndex(nextIndex), 100);
+                      }
+                    }
+                    img.style.display = 'none';
                   }}
                 />
                 {randomPhotos.length > 1 && (
@@ -1729,6 +1807,26 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
                 boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
                 cursor: 'default',
                 objectFit: 'contain'
+              }}
+              onError={(e) => {
+                const img = e.target as HTMLImageElement;
+                const failedUrl = img.src;
+                setFailedPhotoUrls((prev) => {
+                  const newSet = new Set(prev);
+                  newSet.add(failedUrl);
+                  return newSet;
+                });
+                // Try next photo if current one fails
+                if (randomPhotos.length > 1) {
+                  const nextIndex = (modalPhotoIndex + 1) % randomPhotos.length;
+                  if (nextIndex !== modalPhotoIndex && !failedPhotoUrls.has(randomPhotos[nextIndex])) {
+                    setTimeout(() => {
+                      setModalPhotoIndex(nextIndex);
+                      setModalImgSrc(randomPhotos[nextIndex]);
+                    }, 100);
+                  }
+                }
+                img.style.display = 'none';
               }}
             />
             {randomPhotos.length > 1 && (
