@@ -6,6 +6,8 @@ import IrrigationManagementView from '@/components/IrrigationManagementView';
 import { ROLES } from '@/lib/constants/roles';
 import type { UserMetadata, AppMetadata } from '@/lib/types/user';
 import { getErrorMessage } from '@/lib/utils/errors';
+import { usePagination } from '@/lib/hooks/usePagination';
+import Pagination from '@/components/Pagination';
 
 type Panel = 'di' | 'management' | 'reports' | 'users' | 'settings';
 type UserRow = { id: string; email: string; role: string; created_at: string | null; last_sign_in_at: string | null };
@@ -35,6 +37,9 @@ export default function DashboardPage() {
   const [diRows, setDiRows] = useState<DaerahIrigasiRow[] | null>(null);
   const [diLoading, setDiLoading] = useState<boolean>(false);
   const [diError, setDiError] = useState<string | null>(null);
+  
+  // Pagination untuk Daerah Irigasi
+  const diPagination = usePagination(diRows || [], 20);
 
   // Users panel state
   const [users, setUsers] = useState<UserRow[]>([]);
@@ -282,22 +287,23 @@ export default function DashboardPage() {
               {diError && <div className="error-message">{diError}</div>}
               {!diLoading && !diError && diRows && diRows.length === 0 && <div className="info">Data daerah irigasi belum tersedia.</div>}
               {!diLoading && !diError && diRows && diRows.length > 0 && (
-                <div style={{ overflowX: 'auto' }}>
-                  <table className="data-table">
-                    <thead>
-                        <tr>
-                          <th>KODE DI</th>
-                          <th>NAMA</th>
-                          <th>LUAS (HA)</th>
-                          <th>KECAMATAN</th>
-                          <th>DESA/KEL</th>
-                          <th>SUMBER AIR</th>
-                          <th>TAHUN DATA</th>
-                          <th>MAP</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                      {diRows.map((row) => (
+                <>
+                  <div style={{ overflowX: 'auto' }}>
+                    <table className="data-table">
+                      <thead>
+                          <tr>
+                            <th>KODE DI</th>
+                            <th>NAMA</th>
+                            <th>LUAS (HA)</th>
+                            <th>KECAMATAN</th>
+                            <th>DESA/KEL</th>
+                            <th>SUMBER AIR</th>
+                            <th>TAHUN DATA</th>
+                            <th>MAP</th>
+                          </tr>
+                      </thead>
+                      <tbody>
+                        {diPagination.currentItems.map((row) => (
                         <tr key={row.id}>
                           <td>{row.k_di || '-'}</td>
                           <td>{row.n_di || '-'}</td>
@@ -319,10 +325,16 @@ export default function DashboardPage() {
                             </button>
                           </td>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <Pagination
+                    currentPage={diPagination.currentPage}
+                    totalPages={diPagination.totalPages}
+                    onPageChange={diPagination.goToPage}
+                  />
+                </>
               )}
             </div>
           )}

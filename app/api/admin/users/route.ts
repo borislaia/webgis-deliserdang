@@ -9,6 +9,12 @@ import type { UserResponse } from '@/lib/types/api'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
+/**
+ * Memastikan user yang sedang login adalah admin.
+ * 
+ * @returns Object dengan user jika admin, atau { user: null } jika bukan admin
+ * @throws Error jika terjadi kesalahan saat mengambil user
+ */
 async function ensureAdmin() {
   const cookieStore = cookies()
   const supabase = createServerClient(
@@ -54,6 +60,13 @@ async function ensureAdmin() {
   return { user }
 }
 
+/**
+ * Membuat Supabase client dengan service role key untuk akses admin.
+ * Service role key bypass RLS dan memiliki akses penuh ke database.
+ * 
+ * @returns Supabase client dengan service role
+ * @throws Error jika environment variables tidak dikonfigurasi
+ */
 function getAdminClient() {
   if (!supabaseUrl || !serviceRoleKey) {
     throw new Error('Supabase environment variables are not configured')
@@ -61,6 +74,22 @@ function getAdminClient() {
   return createClient(supabaseUrl, serviceRoleKey)
 }
 
+/**
+ * GET /api/admin/users
+ * 
+ * Mengambil daftar semua users dalam sistem.
+ * Hanya dapat diakses oleh admin.
+ * 
+ * @returns JSON response dengan array of users
+ * @throws 403 Forbidden jika user bukan admin
+ * @throws 500 Internal Server Error jika terjadi kesalahan
+ * 
+ * @example
+ * ```ts
+ * const response = await fetch('/api/admin/users')
+ * const { users } = await response.json()
+ * ```
+ */
 export async function GET() {
   try {
     const { user } = await ensureAdmin()
@@ -94,6 +123,28 @@ export async function GET() {
   }
 }
 
+/**
+ * PATCH /api/admin/users
+ * 
+ * Mengupdate role user dalam sistem.
+ * Hanya dapat diakses oleh admin.
+ * 
+ * @param request - Request object dengan body: { id: string, role: 'admin' | 'user' }
+ * @returns JSON response dengan updated user
+ * @throws 400 Bad Request jika id atau role tidak valid
+ * @throws 403 Forbidden jika user bukan admin atau mencoba mengubah role sendiri/admin lain
+ * @throws 404 Not Found jika user tidak ditemukan
+ * @throws 500 Internal Server Error jika terjadi kesalahan
+ * 
+ * @example
+ * ```ts
+ * const response = await fetch('/api/admin/users', {
+ *   method: 'PATCH',
+ *   headers: { 'Content-Type': 'application/json' },
+ *   body: JSON.stringify({ id: 'user-id', role: 'admin' })
+ * })
+ * ```
+ */
 export async function PATCH(request: Request) {
   try {
     const { user } = await ensureAdmin()

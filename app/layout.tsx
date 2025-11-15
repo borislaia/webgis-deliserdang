@@ -7,6 +7,7 @@ import { headers } from 'next/headers'
 import Script from 'next/script'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import { ErrorBoundaryWrapper } from '@/components/ErrorBoundaryWrapper'
+import { Providers } from './providers'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -26,9 +27,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className={inter.className}>
         <ErrorBoundaryWrapper>
-          {showVanta && <VantaFog />}
-          {children}
-          <SpeedInsights />
+          <Providers>
+            {showVanta && <VantaFog />}
+            {children}
+            <SpeedInsights />
         {/* Sync Supabase client events to server cookies */}
         <Script id="supabase-auth-sync" strategy="afterInteractive">
           {`
@@ -51,6 +53,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             })();
           `}
         </Script>
+          </Providers>
         </ErrorBoundaryWrapper>
       </body>
     </html>

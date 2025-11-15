@@ -1,17 +1,41 @@
 'use client'
 import { Component, ReactNode } from 'react'
 
+/**
+ * Props untuk ErrorBoundary component
+ */
 interface Props {
+  /** Children components yang akan di-wrap */
   children: ReactNode
+  /** Custom fallback UI jika terjadi error (opsional) */
   fallback?: ReactNode
+  /** Callback yang dipanggil saat error terjadi (opsional) */
   onError?: (error: Error, errorInfo: React.ErrorInfo) => void
 }
 
+/**
+ * State untuk ErrorBoundary component
+ */
 interface State {
+  /** Apakah error sudah terjadi */
   hasError: boolean
+  /** Error object yang terjadi */
   error: Error | null
 }
 
+/**
+ * Error Boundary component untuk menangani React errors.
+ * 
+ * Component ini menangkap error di component tree dan menampilkan fallback UI
+ * daripada crash seluruh aplikasi.
+ * 
+ * @example
+ * ```tsx
+ * <ErrorBoundary fallback={<ErrorPage />}>
+ *   <App />
+ * </ErrorBoundary>
+ * ```
+ */
 export class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props)

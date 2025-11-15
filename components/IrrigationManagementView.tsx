@@ -2,6 +2,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import * as XLSX from 'xlsx';
+import { usePagination } from '@/lib/hooks/usePagination';
+import Pagination from '@/components/Pagination';
 
 function classNames(...parts: Array<string | false | undefined>) {
   return parts.filter(Boolean).join(' ');
@@ -36,14 +38,19 @@ export default function IrrigationManagementView({ isAdmin }: IrrigationManageme
   const [ruasList, setRuasList] = useState<any[] | null>(null);
   const [bangunanList, setBangunanList] = useState<any[] | null>(null);
 
+  // Pagination hooks
+  const saluranPagination = usePagination(saluranList || [], 50);
+  const ruasPagination = usePagination(ruasList || [], 50);
+  const bangunanPagination = usePagination(bangunanList || [], 50);
+  const diPagination = usePagination(diList || [], 50);
+
   useEffect(() => {
     if (activeTab === 'overview') {
       (async () => {
         try {
           const { data, error } = await supabase
             .from('daerah_irigasi')
-            .select('id,k_di,n_di,luas_ha,kecamatan,desa_kel,sumber_air,tahun_data')
-            .limit(50);
+            .select('id,k_di,n_di,luas_ha,kecamatan,desa_kel,sumber_air,tahun_data');
           if (error) throw error;
           setDiList(data || []);
         } catch (e: any) {
@@ -57,8 +64,7 @@ export default function IrrigationManagementView({ isAdmin }: IrrigationManageme
           const { data, error } = await supabase
             .from('saluran')
             .select('id,no_saluran,nama,jenis,panjang_total,luas_layanan,urutan')
-            .order('urutan', { ascending: true })
-            .limit(100);
+            .order('urutan', { ascending: true });
           if (error) throw error;
           setSaluranList(data || []);
         } catch {
@@ -72,8 +78,7 @@ export default function IrrigationManagementView({ isAdmin }: IrrigationManageme
           const { data, error } = await supabase
             .from('ruas')
             .select('id,no_ruas,urutan,panjang')
-            .order('urutan', { ascending: true })
-            .limit(100);
+            .order('urutan', { ascending: true });
           if (error) throw error;
           setRuasList(data || []);
         } catch {
@@ -87,8 +92,7 @@ export default function IrrigationManagementView({ isAdmin }: IrrigationManageme
           const { data, error } = await supabase
             .from('bangunan')
             .select('id,nama,tipe,latitude,longitude,urutan_di_saluran')
-            .order('urutan_di_saluran', { ascending: true })
-            .limit(100);
+            .order('urutan_di_saluran', { ascending: true });
           if (error) throw error;
           setBangunanList(data || []);
         } catch {
@@ -210,32 +214,39 @@ export default function IrrigationManagementView({ isAdmin }: IrrigationManageme
           <h3>Daerah Irigasi</h3>
           {!diList && <div className="loading">Loading...</div>}
           {diList && (
-            <table className="data-table">
-              <thead>
-                  <tr>
-                    <th>KODE DI</th>
-                    <th>NAMA</th>
-                    <th>LUAS (HA)</th>
-                    <th>KECAMATAN</th>
-                    <th>DESA/KEL</th>
-                    <th>SUMBER AIR</th>
-                    <th>TAHUN DATA</th>
-                  </tr>
-              </thead>
-              <tbody>
-                {diList.map((row) => (
-                  <tr key={row.id}>
-                    <td>{row.k_di}</td>
-                    <td>{row.n_di}</td>
-                    <td>{row.luas_ha}</td>
-                    <td>{row.kecamatan}</td>
-                    <td>{row.desa_kel}</td>
-                    <td>{row.sumber_air}</td>
-                    <td>{row.tahun_data}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <>
+              <table className="data-table">
+                <thead>
+                    <tr>
+                      <th>KODE DI</th>
+                      <th>NAMA</th>
+                      <th>LUAS (HA)</th>
+                      <th>KECAMATAN</th>
+                      <th>DESA/KEL</th>
+                      <th>SUMBER AIR</th>
+                      <th>TAHUN DATA</th>
+                    </tr>
+                </thead>
+                <tbody>
+                  {diPagination.currentItems.map((row) => (
+                    <tr key={row.id}>
+                      <td>{row.k_di}</td>
+                      <td>{row.n_di}</td>
+                      <td>{row.luas_ha}</td>
+                      <td>{row.kecamatan}</td>
+                      <td>{row.desa_kel}</td>
+                      <td>{row.sumber_air}</td>
+                      <td>{row.tahun_data}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <Pagination
+                currentPage={diPagination.currentPage}
+                totalPages={diPagination.totalPages}
+                onPageChange={diPagination.goToPage}
+              />
+            </>
           )}
         </section>
       )}
@@ -300,28 +311,35 @@ export default function IrrigationManagementView({ isAdmin }: IrrigationManageme
           <h3>Daftar Saluran</h3>
           {!saluranList && <div className="loading">Loading...</div>}
           {saluranList && (
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>No</th>
-                  <th>Nama</th>
-                  <th>Jenis</th>
-                  <th>Panjang (m)</th>
-                  <th>Luas Layanan</th>
-                </tr>
-              </thead>
-              <tbody>
-                {saluranList.map((row) => (
-                  <tr key={row.id}>
-                    <td>{row.no_saluran}</td>
-                    <td>{row.nama}</td>
-                    <td>{row.jenis}</td>
-                    <td>{row.panjang_total}</td>
-                    <td>{row.luas_layanan}</td>
+            <>
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>No</th>
+                    <th>Nama</th>
+                    <th>Jenis</th>
+                    <th>Panjang (m)</th>
+                    <th>Luas Layanan</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {saluranPagination.currentItems.map((row) => (
+                    <tr key={row.id}>
+                      <td>{row.no_saluran}</td>
+                      <td>{row.nama}</td>
+                      <td>{row.jenis}</td>
+                      <td>{row.panjang_total}</td>
+                      <td>{row.luas_layanan}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <Pagination
+                currentPage={saluranPagination.currentPage}
+                totalPages={saluranPagination.totalPages}
+                onPageChange={saluranPagination.goToPage}
+              />
+            </>
           )}
         </section>
       )}
@@ -331,24 +349,31 @@ export default function IrrigationManagementView({ isAdmin }: IrrigationManageme
           <h3>Daftar Ruas</h3>
           {!ruasList && <div className="loading">Loading...</div>}
           {ruasList && (
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>No Ruas</th>
-                  <th>Urutan</th>
-                  <th>Panjang (m)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {ruasList.map((row) => (
-                  <tr key={row.id}>
-                    <td>{row.no_ruas}</td>
-                    <td>{row.urutan}</td>
-                    <td>{row.panjang}</td>
+            <>
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>No Ruas</th>
+                    <th>Urutan</th>
+                    <th>Panjang (m)</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {ruasPagination.currentItems.map((row) => (
+                    <tr key={row.id}>
+                      <td>{row.no_ruas}</td>
+                      <td>{row.urutan}</td>
+                      <td>{row.panjang}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <Pagination
+                currentPage={ruasPagination.currentPage}
+                totalPages={ruasPagination.totalPages}
+                onPageChange={ruasPagination.goToPage}
+              />
+            </>
           )}
         </section>
       )}
@@ -358,28 +383,35 @@ export default function IrrigationManagementView({ isAdmin }: IrrigationManageme
           <h3>Daftar Bangunan</h3>
           {!bangunanList && <div className="loading">Loading...</div>}
           {bangunanList && (
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Nama</th>
-                  <th>Tipe</th>
-                  <th>Latitude</th>
-                  <th>Longitude</th>
-                  <th>Urutan</th>
-                </tr>
-              </thead>
-              <tbody>
-                {bangunanList.map((row) => (
-                  <tr key={row.id}>
-                    <td>{row.nama}</td>
-                    <td>{row.tipe}</td>
-                    <td>{row.latitude}</td>
-                    <td>{row.longitude}</td>
-                    <td>{row.urutan_di_saluran}</td>
+            <>
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Nama</th>
+                    <th>Tipe</th>
+                    <th>Latitude</th>
+                    <th>Longitude</th>
+                    <th>Urutan</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {bangunanPagination.currentItems.map((row) => (
+                    <tr key={row.id}>
+                      <td>{row.nama}</td>
+                      <td>{row.tipe}</td>
+                      <td>{row.latitude}</td>
+                      <td>{row.longitude}</td>
+                      <td>{row.urutan_di_saluran}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <Pagination
+                currentPage={bangunanPagination.currentPage}
+                totalPages={bangunanPagination.totalPages}
+                onPageChange={bangunanPagination.goToPage}
+              />
+            </>
           )}
         </section>
       )}

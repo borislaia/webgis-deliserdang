@@ -1,9 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-// Manifest shape
-// { updatedAt: string, total: number, files: string[] }
+/**
+ * Manifest shape untuk GeoJSON files
+ */
+interface GeoJSONManifest {
+  updatedAt: string
+  total: number
+  files: string[]
+}
 
+/**
+ * GET /api/geojson/manifest
+ * 
+ * Mengambil manifest (daftar) semua file GeoJSON yang tersedia di storage.
+ * Manifest ini digunakan untuk mengetahui file-file GeoJSON yang dapat di-load.
+ * 
+ * @param _req - Request object (tidak digunakan)
+ * @returns JSON response dengan manifest: { updatedAt: string, total: number, files: string[] }
+ * @throws 500 Internal Server Error jika environment variables tidak dikonfigurasi atau terjadi kesalahan
+ * 
+ * @example
+ * ```ts
+ * const response = await fetch('/api/geojson/manifest')
+ * const manifest = await response.json()
+ * // { updatedAt: '2024-01-01T00:00:00.000Z', total: 10, files: ['file1.json', 'file2.json'] }
+ * ```
+ */
 export async function GET(_req: NextRequest) {
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL

@@ -1,5 +1,14 @@
 /**
- * Logger utility - only logs in development
+ * Logger utility untuk logging yang aman di production.
+ * Hanya menampilkan log di development mode untuk menghindari eksposisi informasi sensitif.
+ * Error selalu di-log karena penting untuk debugging.
+ * 
+ * @example
+ * ```ts
+ * logger.log('Debug info') // Hanya di development
+ * logger.error('Critical error') // Selalu di-log
+ * logger.warn('Warning') // Hanya di development
+ * ```
  */
 const isDevelopment = process.env.NODE_ENV === 'development'
 

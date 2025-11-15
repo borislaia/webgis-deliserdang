@@ -1,5 +1,6 @@
 /**
- * User-friendly error messages
+ * User-friendly error messages untuk ditampilkan ke user.
+ * Semua pesan error dalam bahasa Indonesia untuk konsistensi UX.
  */
 export const ERROR_MESSAGES = {
   NETWORK_ERROR: 'Koneksi internet bermasalah. Silakan coba lagi.',
@@ -13,7 +14,21 @@ export const ERROR_MESSAGES = {
 } as const
 
 /**
- * Get user-friendly error message
+ * Mengkonversi error object menjadi pesan error yang user-friendly.
+ * 
+ * @param error - Error object (bisa Error instance, string, atau object lainnya)
+ * @param fallback - Pesan fallback jika error tidak dapat di-parse (opsional)
+ * @returns Pesan error yang user-friendly dalam bahasa Indonesia
+ * 
+ * @example
+ * ```ts
+ * try {
+ *   await someOperation()
+ * } catch (error) {
+ *   const message = getErrorMessage(error, 'Terjadi kesalahan')
+ *   showToast(message)
+ * }
+ * ```
  */
 export function getErrorMessage(error: unknown, fallback?: string): string {
   if (error instanceof Error) {

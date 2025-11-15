@@ -1,5 +1,15 @@
 /**
- * Standard API response format
+ * Standard API response format untuk konsistensi di seluruh aplikasi.
+ * 
+ * @template T - Type dari data yang dikembalikan
+ * 
+ * @example
+ * ```ts
+ * const response: ApiResponse<User[]> = {
+ *   ok: true,
+ *   data: [user1, user2]
+ * }
+ * ```
  */
 export interface ApiResponse<T> {
   data?: T
@@ -8,7 +18,8 @@ export interface ApiResponse<T> {
 }
 
 /**
- * User response from API
+ * User response dari API /api/admin/users.
+ * Berisi informasi user yang dikembalikan dari endpoint admin.
  */
 export interface UserResponse {
   id: string

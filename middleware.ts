@@ -3,6 +3,21 @@ import type { NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { resolveSafeRedirect } from '@/lib/utils/redirect'
 
+/**
+ * Next.js Middleware untuk authentication dan authorization.
+ * 
+ * Menangani:
+ * - Session refresh untuk Supabase auth
+ * - Redirect ke login jika user tidak authenticated
+ * - Redirect dari login page jika sudah authenticated
+ * - Bypass auth untuk preview deployments (dengan secret token)
+ * 
+ * Protected routes: /map/*, /dashboard/*
+ * Public routes: /login (redirect jika sudah login)
+ * 
+ * @param req - Next.js request object
+ * @returns NextResponse dengan session cookies atau redirect
+ */
 export async function middleware(req: NextRequest) {
   let response = NextResponse.next({
     request: {
