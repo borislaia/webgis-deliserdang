@@ -131,6 +131,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
   const [randomPhotos, setRandomPhotos] = useState<string[]>([]);
   const [photosLoading, setPhotosLoading] = useState(false);
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+  const [modalPhotoIndex, setModalPhotoIndex] = useState(0);
   const panelRef = useRef<HTMLDivElement | null>(null);
   const [panelHeight, setPanelHeight] = useState(0);
 
@@ -157,6 +158,30 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
       return () => window.removeEventListener('resize', handleResize);
     }
   }, [isPanelCollapsed, diInfo, diInfoLoading, storageCounts, activeKdi]);
+
+  // Keyboard navigation for modal
+  useEffect(() => {
+    if (!isModalOpen || randomPhotos.length <= 1) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        const prevIndex = (modalPhotoIndex - 1 + randomPhotos.length) % randomPhotos.length;
+        setModalPhotoIndex(prevIndex);
+        setModalImgSrc(randomPhotos[prevIndex]);
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        const nextIndex = (modalPhotoIndex + 1) % randomPhotos.length;
+        setModalPhotoIndex(nextIndex);
+        setModalImgSrc(randomPhotos[nextIndex]);
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        setIsModalOpen(false);
+        setModalImgSrc(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isModalOpen, modalPhotoIndex, randomPhotos]);
 
   const searchParams = useSearchParams();
   // Terima baik ?di= maupun ?k_di= untuk fleksibilitas dari dashboard
@@ -1399,9 +1424,24 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
     if (randomPhotos.length === 0) return;
     setCurrentPhotoIndex((prev) => (prev - 1 + randomPhotos.length) % randomPhotos.length);
   };
-  const openPhotoModal = (url: string) => {
-    setModalImgSrc(url);
-    setIsModalOpen(true);
+  const nextModalPhoto = () => {
+    if (randomPhotos.length === 0) return;
+    const nextIndex = (modalPhotoIndex + 1) % randomPhotos.length;
+    setModalPhotoIndex(nextIndex);
+    setModalImgSrc(randomPhotos[nextIndex]);
+  };
+  const prevModalPhoto = () => {
+    if (randomPhotos.length === 0) return;
+    const prevIndex = (modalPhotoIndex - 1 + randomPhotos.length) % randomPhotos.length;
+    setModalPhotoIndex(prevIndex);
+    setModalImgSrc(randomPhotos[prevIndex]);
+  };
+  const openPhotoModal = (index: number) => {
+    if (index >= 0 && index < randomPhotos.length) {
+      setModalPhotoIndex(index);
+      setModalImgSrc(randomPhotos[index]);
+      setIsModalOpen(true);
+    }
   };
 
   return (
@@ -1552,7 +1592,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
                     cursor: 'pointer',
                     display: 'block'
                   }}
-                  onClick={() => openPhotoModal(randomPhotos[currentPhotoIndex])}
+                  onClick={() => openPhotoModal(currentPhotoIndex)}
                   onError={(e) => {
                     (e.target as HTMLImageElement).style.display = 'none';
                   }}
@@ -1665,13 +1705,176 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
         onClick={closeModal}
         style={{ cursor: 'pointer' }}
       >
-        {isModalOpen && modalImgSrc ? (
-          <img
-            src={modalImgSrc}
-            alt="photo"
+        {isModalOpen && modalImgSrc && randomPhotos.length > 0 ? (
+          <div
+            style={{
+              position: 'relative',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '100%',
+              height: '100%',
+              maxWidth: '90vw',
+              maxHeight: '90vh'
+            }}
             onClick={(e) => e.stopPropagation()}
-            style={{ cursor: 'default' }}
-          />
+          >
+            <img
+              src={modalImgSrc}
+              alt={`Foto irigasi ${modalPhotoIndex + 1}`}
+              style={{
+                maxWidth: '90vw',
+                maxHeight: '90vh',
+                borderRadius: 12,
+                boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+                cursor: 'default',
+                objectFit: 'contain'
+              }}
+            />
+            {randomPhotos.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    prevModalPhoto();
+                  }}
+                  style={{
+                    position: 'absolute',
+                    left: 20,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    width: 48,
+                    height: 48,
+                    borderRadius: '50%',
+                    border: '2px solid rgba(255, 255, 255, 0.9)',
+                    background: 'rgba(0, 0, 0, 0.5)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    fontSize: 24,
+                    fontWeight: 600,
+                    color: '#ffffff',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                    zIndex: 10,
+                    transition: 'background 0.2s ease, transform 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(0, 0, 0, 0.7)';
+                    e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'rgba(0, 0, 0, 0.5)';
+                    e.currentTarget.style.transform = 'translateY(-50%)';
+                  }}
+                  aria-label="Foto sebelumnya"
+                  title="Foto sebelumnya (←)"
+                >
+                  ‹
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    nextModalPhoto();
+                  }}
+                  style={{
+                    position: 'absolute',
+                    right: 20,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    width: 48,
+                    height: 48,
+                    borderRadius: '50%',
+                    border: '2px solid rgba(255, 255, 255, 0.9)',
+                    background: 'rgba(0, 0, 0, 0.5)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    fontSize: 24,
+                    fontWeight: 600,
+                    color: '#ffffff',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                    zIndex: 10,
+                    transition: 'background 0.2s ease, transform 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(0, 0, 0, 0.7)';
+                    e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'rgba(0, 0, 0, 0.5)';
+                    e.currentTarget.style.transform = 'translateY(-50%)';
+                  }}
+                  aria-label="Foto berikutnya"
+                  title="Foto berikutnya (→)"
+                >
+                  ›
+                </button>
+                <div
+                  style={{
+                    position: 'absolute',
+                    bottom: 20,
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '8px 16px',
+                    borderRadius: 20,
+                    background: 'rgba(0, 0, 0, 0.6)',
+                    backdropFilter: 'blur(8px)',
+                    zIndex: 10
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {randomPhotos.map((_, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setModalPhotoIndex(idx);
+                        setModalImgSrc(randomPhotos[idx]);
+                      }}
+                      style={{
+                        width: idx === modalPhotoIndex ? 24 : 8,
+                        height: 8,
+                        borderRadius: 4,
+                        border: 'none',
+                        background: idx === modalPhotoIndex ? '#ffffff' : 'rgba(255, 255, 255, 0.5)',
+                        cursor: 'pointer',
+                        padding: 0,
+                        transition: 'width 0.2s ease, background 0.2s ease'
+                      }}
+                      aria-label={`Foto ${idx + 1}`}
+                    />
+                  ))}
+                </div>
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 20,
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    padding: '6px 12px',
+                    borderRadius: 16,
+                    background: 'rgba(0, 0, 0, 0.6)',
+                    backdropFilter: 'blur(8px)',
+                    color: '#ffffff',
+                    fontSize: 14,
+                    fontWeight: 500,
+                    zIndex: 10
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {modalPhotoIndex + 1} / {randomPhotos.length}
+                </div>
+              </>
+            )}
+          </div>
         ) : null}
       </div>
     </main>
