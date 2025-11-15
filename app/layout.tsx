@@ -7,7 +7,7 @@ import { headers } from 'next/headers'
 import Script from 'next/script'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import { ErrorBoundaryWrapper } from '@/components/ErrorBoundaryWrapper'
-import { Providers } from './providers'
+import { Providers } from '@/app/providers'
 
 const inter = Inter({ subsets: ['latin'] })
 
