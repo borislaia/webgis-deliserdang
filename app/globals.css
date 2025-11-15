@@ -21,8 +21,14 @@
 .form-row{ display:flex; flex-direction:column; gap:8px; }
 .error-message{ color:#dc2626; margin-top:10px; padding:12px; background:#fef2f2; border:1px solid #fecaca; border-radius:8px; font-size:14px; }
 .map-container{ position:fixed; inset:0; }
-.float-panel{ position:absolute; right:16px; top:16px; width:280px; max-height:calc(100vh - 32px); overflow:auto; padding:14px; scrollbar-width:none; -ms-overflow-style:none; z-index:2; }
+.float-panel{ width:100%; max-height:100%; overflow:auto; padding:14px; scrollbar-width:none; -ms-overflow-style:none; flex:1 1 auto; min-height:0; }
 .float-panel::-webkit-scrollbar{ display:none; }
+.map-side-column{ position:absolute; right:16px; top:16px; bottom:16px; width:min(280px,calc(100vw - 32px)); display:flex; flex-direction:column; gap:16px; z-index:2; }
+.photo-slider-card{ width:100%; }
+.map-side-column .photo-slider-card{ flex-shrink:0; }
+@media (max-width:640px){
+  .map-side-column{ left:16px; width:calc(100vw - 32px); }
+}
 .float-controls{ position:absolute; left:16px; top:16px; display:flex; flex-direction:column; gap:8px; }
 .float-card{ padding:12px; }
 .badge{ font-size:12px; padding:4px 8px; border-radius:999px; background:rgba(10,132,255,0.15); color:#0a84ff; border:1px solid rgba(10,132,255,0.25); }
