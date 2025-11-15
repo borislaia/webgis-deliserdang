@@ -134,6 +134,24 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [modalPhotoIndex, setModalPhotoIndex] = useState(0);
   const [failedPhotoUrls, setFailedPhotoUrls] = useState<Set<string>>(new Set());
+
+  // Ensure currentPhotoIndex points to a valid photo
+  useEffect(() => {
+    if (randomPhotos.length === 0) {
+      setCurrentPhotoIndex(0);
+      return;
+    }
+    // If current photo is failed, find next valid one
+    if (randomPhotos[currentPhotoIndex] && failedPhotoUrls.has(randomPhotos[currentPhotoIndex])) {
+      const validPhotos = randomPhotos.filter((url) => !failedPhotoUrls.has(url));
+      if (validPhotos.length > 0) {
+        const firstValidIndex = randomPhotos.indexOf(validPhotos[0]);
+        if (firstValidIndex !== -1 && firstValidIndex !== currentPhotoIndex) {
+          setCurrentPhotoIndex(firstValidIndex);
+        }
+      }
+    }
+  }, [randomPhotos, failedPhotoUrls, currentPhotoIndex]);
   const panelRef = useRef<HTMLDivElement | null>(null);
   const [panelHeight, setPanelHeight] = useState(0);
 
@@ -265,6 +283,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
     }
     setPhotosLoading(true);
     setRandomPhotos([]);
+    setFailedPhotoUrls(new Set()); // Reset failed photos when loading new set
     (async () => {
       try {
         const diCode = activeKdi.trim();
@@ -355,7 +374,9 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
 
         // Shuffle and limit to reasonable number
         const shuffled = photoUrls.sort(() => Math.random() - 0.5);
-        setRandomPhotos(shuffled.slice(0, 20)); // Limit to 20 photos max
+        const limitedPhotos = shuffled.slice(0, 20); // Limit to 20 photos max
+        setRandomPhotos(limitedPhotos);
+        setCurrentPhotoIndex(0); // Reset to first photo when loading new set
       } catch (err: any) {
         if (cancelled) return;
         console.warn('Error loading photos:', err);
@@ -1245,15 +1266,26 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
           img.style.borderRadius = '10px';
           img.style.border = '1px solid #ddd';
           img.style.pointerEvents = 'auto';
+          img.style.cursor = 'pointer';
 
           img.onerror = () => {
             img.style.display = 'none';
+            const placeholder = document.createElement('div');
+            placeholder.style.width = '100%';
+            placeholder.style.padding = '40px 20px';
+            placeholder.style.textAlign = 'center';
+            placeholder.style.color = '#6b7280';
+            placeholder.style.fontSize = '13px';
+            placeholder.textContent = 'Foto tidak dapat dimuat';
+            imgWrapper.appendChild(placeholder);
           };
 
-          const handleClick = (e: MouseEvent) => {
+          const handleClick = (e: MouseEvent | Event) => {
             e.preventDefault();
             e.stopPropagation();
-            e.stopImmediatePropagation();
+            if (e instanceof MouseEvent) {
+              e.stopImmediatePropagation();
+            }
             // Use setTimeout to ensure React state update works from DOM event handler
             setTimeout(() => {
               setModalImgSrc(url);
@@ -1261,18 +1293,25 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
             }, 0);
           };
 
-          img.addEventListener('click', handleClick, { capture: true });
-          imgWrapper.addEventListener('click', handleClick, { capture: true });
+          // Add click handlers with proper event handling
+          img.addEventListener('click', handleClick, true);
+          imgWrapper.addEventListener('click', handleClick, true);
           
-          // Also add mousedown to prevent map interaction
-          img.addEventListener('mousedown', (e) => {
+          // Prevent map interaction on mousedown
+          const handleMouseDown = (e: MouseEvent) => {
             e.stopPropagation();
             e.stopImmediatePropagation();
-          }, { capture: true });
-          imgWrapper.addEventListener('mousedown', (e) => {
+          };
+          img.addEventListener('mousedown', handleMouseDown, true);
+          imgWrapper.addEventListener('mousedown', handleMouseDown, true);
+          
+          // Also prevent touch events for mobile
+          const handleTouchStart = (e: TouchEvent) => {
             e.stopPropagation();
             e.stopImmediatePropagation();
-          }, { capture: true });
+          };
+          img.addEventListener('touchstart', handleTouchStart, true);
+          imgWrapper.addEventListener('touchstart', handleTouchStart, true);
 
           imgWrapper.appendChild(img);
           gallery.appendChild(imgWrapper);
@@ -1501,7 +1540,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
   const goHome = () => { window.location.href = '/'; };
   const goDashboard = () => { window.location.href = '/dashboard'; };
   const openPhotoModal = (index: number) => {
-    if (randomPhotos.length > 0 && index >= 0 && index < randomPhotos.length) {
+    if (randomPhotos.length > 0 && index >= 0 && index < randomPhotos.length && !failedPhotoUrls.has(randomPhotos[index])) {
       setModalPhotoIndex(index);
       setModalImgSrc(randomPhotos[index]);
       setIsModalOpen(true);
@@ -1509,12 +1548,30 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
   };
   const prevPhoto = () => {
     if (randomPhotos.length > 1) {
-      setCurrentPhotoIndex((prev) => (prev - 1 + randomPhotos.length) % randomPhotos.length);
+      setCurrentPhotoIndex((prev) => {
+        let newIndex = (prev - 1 + randomPhotos.length) % randomPhotos.length;
+        // Skip failed photos
+        let attempts = 0;
+        while (failedPhotoUrls.has(randomPhotos[newIndex]) && attempts < randomPhotos.length) {
+          newIndex = (newIndex - 1 + randomPhotos.length) % randomPhotos.length;
+          attempts++;
+        }
+        return newIndex;
+      });
     }
   };
   const nextPhoto = () => {
     if (randomPhotos.length > 1) {
-      setCurrentPhotoIndex((prev) => (prev + 1) % randomPhotos.length);
+      setCurrentPhotoIndex((prev) => {
+        let newIndex = (prev + 1) % randomPhotos.length;
+        // Skip failed photos
+        let attempts = 0;
+        while (failedPhotoUrls.has(randomPhotos[newIndex]) && attempts < randomPhotos.length) {
+          newIndex = (newIndex + 1) % randomPhotos.length;
+          attempts++;
+        }
+        return newIndex;
+      });
     }
   };
   const prevModalPhoto = () => {
@@ -1663,45 +1720,92 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
             <div style={{ fontSize: 13, color: '#6b7280', textAlign: 'center', padding: '20px 0' }}>
               Memuat foto...
             </div>
-          ) : randomPhotos.length === 0 ? (
-            <div style={{ fontSize: 13, color: '#6b7280', textAlign: 'center', padding: '20px 0' }}>
-              Tidak ada foto tersedia
-            </div>
-          ) : (
-            <>
-              <div style={{ position: 'relative', width: '100%', aspectRatio: '16/9', borderRadius: 8, overflow: 'hidden', backgroundColor: '#f3f4f6' }}>
-                <Image
-                  src={randomPhotos[currentPhotoIndex]}
-                  alt={`Foto irigasi ${currentPhotoIndex + 1}`}
-                  width={400}
-                  height={225}
-                  unoptimized
-                  style={{
+          ) : (() => {
+            const validPhotos = randomPhotos.filter((url) => !failedPhotoUrls.has(url));
+            if (randomPhotos.length === 0 || validPhotos.length === 0) {
+              return (
+                <div style={{ fontSize: 13, color: '#6b7280', textAlign: 'center', padding: '20px 0' }}>
+                  Tidak ada foto tersedia
+                </div>
+              );
+            }
+            return (
+              <>
+                <div 
+                  style={{ 
+                    position: 'relative', 
+                    width: '100%', 
+                    aspectRatio: '16/9', 
+                    borderRadius: 8, 
+                    overflow: 'hidden', 
+                    backgroundColor: '#f3f4f6',
+                    cursor: 'pointer'
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (randomPhotos.length > 0 && currentPhotoIndex >= 0 && currentPhotoIndex < randomPhotos.length && !failedPhotoUrls.has(randomPhotos[currentPhotoIndex])) {
+                      openPhotoModal(currentPhotoIndex);
+                    }
+                  }}
+                >
+                  {randomPhotos[currentPhotoIndex] && !failedPhotoUrls.has(randomPhotos[currentPhotoIndex]) ? (
+                  <Image
+                    src={randomPhotos[currentPhotoIndex]}
+                    alt={`Foto irigasi ${currentPhotoIndex + 1}`}
+                    width={400}
+                    height={225}
+                    unoptimized
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      cursor: 'pointer',
+                      display: 'block',
+                      pointerEvents: 'auto'
+                    }}
+                    onError={(e) => {
+                      const img = e.target as HTMLImageElement;
+                      const failedUrl = img.src;
+                      setFailedPhotoUrls((prev) => {
+                        const newSet = new Set(prev);
+                        newSet.add(failedUrl);
+                        return newSet;
+                      });
+                      // Try next photo if current one fails
+                      if (randomPhotos.length > 1) {
+                        const availablePhotos = randomPhotos.filter((url) => !failedPhotoUrls.has(url));
+                        if (availablePhotos.length > 0) {
+                          const currentUrl = randomPhotos[currentPhotoIndex];
+                          const currentFailedIndex = randomPhotos.indexOf(currentUrl);
+                          let nextIndex = (currentFailedIndex + 1) % randomPhotos.length;
+                          // Find next non-failed photo
+                          let attempts = 0;
+                          while (failedPhotoUrls.has(randomPhotos[nextIndex]) && attempts < randomPhotos.length) {
+                            nextIndex = (nextIndex + 1) % randomPhotos.length;
+                            attempts++;
+                          }
+                          if (!failedPhotoUrls.has(randomPhotos[nextIndex])) {
+                            setTimeout(() => setCurrentPhotoIndex(nextIndex), 100);
+                          }
+                        }
+                      }
+                    }}
+                  />
+                ) : (
+                  <div style={{
                     width: '100%',
                     height: '100%',
-                    objectFit: 'cover',
-                    cursor: 'pointer',
-                    display: 'block'
-                  }}
-                  onClick={() => openPhotoModal(currentPhotoIndex)}
-                  onError={(e) => {
-                    const img = e.target as HTMLImageElement;
-                    const failedUrl = img.src;
-                    setFailedPhotoUrls((prev) => {
-                      const newSet = new Set(prev);
-                      newSet.add(failedUrl);
-                      return newSet;
-                    });
-                    // Try next photo if current one fails
-                    if (randomPhotos.length > 1) {
-                      const nextIndex = (currentPhotoIndex + 1) % randomPhotos.length;
-                      if (nextIndex !== currentPhotoIndex) {
-                        setTimeout(() => setCurrentPhotoIndex(nextIndex), 100);
-                      }
-                    }
-                    img.style.display = 'none';
-                  }}
-                />
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#6b7280',
+                    fontSize: 13,
+                    textAlign: 'center',
+                    padding: '20px'
+                  }}>
+                    Tidak ada foto tersedia
+                  </div>
+                )}
                 {randomPhotos.length > 1 && (
                   <>
                     <button
@@ -1798,8 +1902,9 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
                   ))}
                 </div>
               )}
-            </>
-          )}
+              </>
+            );
+          })()}
         </div>
       )}
 
