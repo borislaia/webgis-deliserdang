@@ -158,37 +158,6 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
   const rawKdi = (searchParams.get('di') || searchParams.get('k_di') || '').trim();
   const activeKdi = useMemo(() => (variant === 'map' ? rawKdi : ''), [variant, rawKdi]);
 
-  // Keyboard navigation for modal
-  useEffect(() => {
-    if (!isModalOpen || modalPhotos.length <= 1) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowLeft') {
-        e.preventDefault();
-        e.stopPropagation();
-        setModalPhotoIndex((prev) => {
-          const newIndex = (prev - 1 + modalPhotos.length) % modalPhotos.length;
-          setModalImgSrc(modalPhotos[newIndex]);
-          return newIndex;
-        });
-      } else if (e.key === 'ArrowRight') {
-        e.preventDefault();
-        e.stopPropagation();
-        setModalPhotoIndex((prev) => {
-          const newIndex = (prev + 1) % modalPhotos.length;
-          setModalImgSrc(modalPhotos[newIndex]);
-          return newIndex;
-        });
-      } else if (e.key === 'Escape') {
-        e.preventDefault();
-        e.stopPropagation();
-        setIsModalOpen(false);
-        setModalImgSrc(null);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown, true);
-    return () => window.removeEventListener('keydown', handleKeyDown, true);
-  }, [isModalOpen, modalPhotos]);
-
   // Jika varian MAP memuat DI spesifik (activeKdi ada), layer kecamatan default disembunyikan
   const [kecamatanVisible, setKecamatanVisible] = useState<boolean>(!(activeKdi && activeKdi.length > 0));
 
@@ -1673,7 +1642,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
               onClick={(e) => {
                 e.stopPropagation();
                 if (randomPhotos.length > 0 && currentPhotoIndex >= 0 && currentPhotoIndex < randomPhotos.length && !failedPhotoUrls.has(randomPhotos[currentPhotoIndex])) {
-                  openPhotoModal(currentPhotoIndex);
+                  openPhotoModalFromCard(currentPhotoIndex);
                 }
               }}
             >
@@ -1698,7 +1667,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
                   e.stopPropagation();
                   e.preventDefault();
                   if (randomPhotos.length > 0 && currentPhotoIndex >= 0 && currentPhotoIndex < randomPhotos.length && !failedPhotoUrls.has(randomPhotos[currentPhotoIndex])) {
-                    openPhotoModal(currentPhotoIndex);
+                    openPhotoModalFromCard(currentPhotoIndex);
                   }
                 }}
                 onKeyDown={(e) => {
@@ -1706,7 +1675,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
                     e.stopPropagation();
                     e.preventDefault();
                     if (randomPhotos.length > 0 && currentPhotoIndex >= 0 && currentPhotoIndex < randomPhotos.length && !failedPhotoUrls.has(randomPhotos[currentPhotoIndex])) {
-                      openPhotoModal(currentPhotoIndex);
+                      openPhotoModalFromCard(currentPhotoIndex);
                     }
                   }
                 }}
