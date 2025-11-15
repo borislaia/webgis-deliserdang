@@ -1374,60 +1374,16 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
 
           img.onerror = () => {
             img.style.display = 'none';
-            const placeholder = document.createElement('div');
-            placeholder.style.width = '100%';
-            placeholder.style.padding = '40px 20px';
-            placeholder.style.textAlign = 'center';
-            placeholder.style.color = '#6b7280';
-            placeholder.style.fontSize = '13px';
-            placeholder.textContent = 'Foto tidak dapat dimuat';
-            imgWrapper.appendChild(placeholder);
           };
 
-          const handleClick = (e: Event) => {
-            e.preventDefault();
+          img.onclick = (e) => {
             e.stopPropagation();
-            if (e instanceof MouseEvent) {
-              e.stopImmediatePropagation();
-            }
-            // Find the index of this photo in popup photos array
             const photoIndex = allPhotos.indexOf(url);
-            // Use setTimeout to ensure React state update works from DOM event handler
-            setTimeout(() => {
-              setModalPhotos(allPhotos); // Set modal photos to popup photos
-              setModalPhotoIndex(photoIndex >= 0 ? photoIndex : 0);
-              setModalImgSrc(url);
-              setIsModalOpen(true);
-            }, 0);
+            setModalPhotos(allPhotos);
+            setModalPhotoIndex(photoIndex >= 0 ? photoIndex : 0);
+            setModalImgSrc(url);
+            setIsModalOpen(true);
           };
-
-          // Add click handlers with proper event handling and capture phase
-          img.addEventListener('click', handleClick, { capture: true, passive: false });
-          imgWrapper.addEventListener('click', handleClick, { capture: true, passive: false });
-          
-          // Prevent map interaction on mousedown
-          const handleMouseDown = (e: MouseEvent) => {
-            e.stopPropagation();
-            e.stopImmediatePropagation();
-            e.preventDefault();
-          };
-          img.addEventListener('mousedown', handleMouseDown, { capture: true });
-          imgWrapper.addEventListener('mousedown', handleMouseDown, { capture: true });
-          
-          // Also prevent touch events for mobile
-          const handleTouchStart = (e: TouchEvent) => {
-            e.stopPropagation();
-            e.stopImmediatePropagation();
-          };
-          img.addEventListener('touchstart', handleTouchStart, { capture: true });
-          imgWrapper.addEventListener('touchstart', handleTouchStart, { capture: true });
-          
-          // Prevent double-click zoom on mobile
-          const handleTouchEnd = (e: TouchEvent) => {
-            e.stopPropagation();
-          };
-          img.addEventListener('touchend', handleTouchEnd, { capture: true });
-          imgWrapper.addEventListener('touchend', handleTouchEnd, { capture: true });
 
           imgWrapper.appendChild(img);
           gallery.appendChild(imgWrapper);
