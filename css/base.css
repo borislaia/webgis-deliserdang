@@ -49,7 +49,7 @@ body{
 .form-row{ display:flex; flex-direction:column; gap:8px; }
 .error-message{ color: #dc2626; margin-top: 10px; padding: 12px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; font-size: 14px; }
 .ol-tooltip{ position: absolute; background-color: rgba(0, 0, 0, 0.8); color: white; padding: 8px 12px; border-radius: 4px; font-size: 14px; font-weight: 500; pointer-events: none; white-space: nowrap; z-index: 9999; }
-.ol-popup{ position: absolute; background: var(--card); padding: 12px; border-radius: 12px; border: 1px solid var(--stroke); width: clamp(260px, 40vw, 360px); }
+.ol-popup{ position: absolute; background: var(--card); padding: 12px; border-radius: 12px; border: 1px solid var(--stroke); width: clamp(260px, 40vw, 360px); pointer-events: auto; z-index: 1000; }
 .ol-popup .title{ font-weight: 600; margin-bottom: 4px; }
 .ol-popup .subtitle{ margin-top: 6px; font-weight: 600; font-size: 13px; }
 .ol-popup .popup-table,
@@ -63,7 +63,7 @@ body{
 .ol-popup .popup-table td.value,
 .detail-table td.value{ color:var(--text); font-weight:600; text-align:left; word-break:break-word; }
 .ol-popup .empty-state{ font-size:13px; color:var(--muted); font-style:italic; margin-top:4px; }
-.ol-popup img{ width: 100%; height: auto; max-height: 320px; border-radius: 10px; cursor: pointer; object-fit: contain; }
+.ol-popup img{ width: 100%; height: auto; max-height: 320px; border-radius: 10px; cursor: pointer; object-fit: contain; pointer-events: auto; user-select: none; }
 /* Ensure PNG images with transparency display correctly */
 img[src$=".png"], img[src*=".png"], 
 .brand-icon img, 
@@ -127,9 +127,9 @@ img[src$=".png"], img[src*=".png"],
 .error{ background:#ffebee; color:#c62828; padding:12px; border-radius:4px; margin-bottom:16px; }
 .success{ background:#e8f5e9; color:#2e7d32; padding:12px; border-radius:4px; margin-bottom:16px; }
 
-.modal{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,0.6); z-index:9999; }
+.modal{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,0.85); z-index:9999; padding:20px; }
 .modal.open{ display:flex; }
-.modal img{ max-width:90vw; max-height:90vh; border-radius:12px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
+.modal img{ max-width:calc(100vw - 160px); max-height:calc(100vh - 160px); width:auto; height:auto; border-radius:12px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); object-fit:contain; }
 
 #vanta-bg{ position: fixed; inset:-1px; pointer-events:none; z-index:-1; }
 

@@ -1356,6 +1356,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
           imgWrapper.style.cursor = 'pointer';
           imgWrapper.style.width = '100%';
           imgWrapper.style.pointerEvents = 'auto';
+          imgWrapper.style.zIndex = '10';
 
           const img = document.createElement('img');
           img.src = url;
@@ -1368,6 +1369,8 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
           img.style.border = '1px solid #ddd';
           img.style.pointerEvents = 'auto';
           img.style.cursor = 'pointer';
+          img.style.userSelect = 'none';
+          img.draggable = false;
 
           img.onerror = () => {
             img.style.display = 'none';
@@ -1381,7 +1384,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
             imgWrapper.appendChild(placeholder);
           };
 
-          const handleClick = (e: MouseEvent | Event) => {
+          const handleClick = (e: Event) => {
             e.preventDefault();
             e.stopPropagation();
             if (e instanceof MouseEvent) {
@@ -1399,8 +1402,8 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
           };
 
           // Add click handlers with proper event handling and capture phase
-          img.addEventListener('click', handleClick, { capture: true });
-          imgWrapper.addEventListener('click', handleClick, { capture: true });
+          img.addEventListener('click', handleClick, { capture: true, passive: false });
+          imgWrapper.addEventListener('click', handleClick, { capture: true, passive: false });
           
           // Prevent map interaction on mousedown
           const handleMouseDown = (e: MouseEvent) => {
@@ -2045,7 +2048,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
         className={`modal ${isModalOpen ? 'open' : ''}`}
         aria-hidden={!isModalOpen}
         onClick={closeModal}
-        style={{ cursor: 'pointer', position: 'relative' }}
+        style={{ cursor: 'pointer', position: 'fixed', inset: 0, display: isModalOpen ? 'flex' : 'none', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.85)', zIndex: 9999, padding: '20px' }}
       >
         {isModalOpen && modalImgSrc ? (
           <div
@@ -2053,8 +2056,6 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
               position: 'relative',
               width: '100%',
               height: '100%',
-              maxWidth: '90vw',
-              maxHeight: '90vh',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center'
@@ -2101,14 +2102,14 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
             <Image
               src={modalImgSrc}
               alt={`Foto irigasi ${modalPhotoIndex + 1}`}
-              width={1200}
-              height={900}
+              width={1920}
+              height={1080}
               unoptimized
               style={{
+                maxWidth: 'calc(100vw - 160px)',
+                maxHeight: 'calc(100vh - 160px)',
                 width: 'auto',
                 height: 'auto',
-                maxWidth: '90vw',
-                maxHeight: '90vh',
                 borderRadius: 12,
                 boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
                 cursor: 'default',
