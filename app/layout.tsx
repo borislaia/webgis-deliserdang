@@ -12,6 +12,9 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'WebGIS Deli Serdang',
   description: 'WebGIS Deli Serdang - Next.js + Supabase',
+  icons: {
+    icon: '/assets/icons/logo-deliserdang.jpg',
+  },
 }
 
 const VantaFog = dynamic(() => import('@/components/VantaFog'), { ssr: false })

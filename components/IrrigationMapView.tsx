@@ -1316,14 +1316,8 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
           title="Buka panel layer"
         >
           <span className="float-panel-toggle__logo" aria-hidden="true">
-            <svg viewBox="0 0 40 40">
-              <circle cx="20" cy="20" r="18" fill="rgba(255,255,255,0.25)" />
-              <circle cx="20" cy="20" r="13" fill="none" stroke="#ecfeff" strokeWidth="2.2" opacity="0.75" />
-              <circle cx="18" cy="18" r="7" fill="rgba(255,255,255,0.9)" opacity="0.65" />
-              <path d="M12 22c2.3 4.4 7 7 12 7 4.1 0 7.7-1.9 10-5" stroke="#ffffff" strokeWidth="2" opacity="0.9" fill="none" strokeLinecap="round" />
-            </svg>
+            <img src="/assets/icons/openlayers.png" alt="OpenLayers" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
           </span>
-          <span className="float-panel-toggle__text">OpenLayers</span>
         </button>
       ) : (
         <div className="float-panel card float-card scroll-silent" style={{ zIndex: 2 }}>
