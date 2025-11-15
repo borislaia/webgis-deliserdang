@@ -73,7 +73,9 @@ export async function GET(_req: NextRequest) {
     } catch (e) {
       // Non-fatal: still return manifest
       // Log error but don't expose to client
+      // Note: logger tidak tersedia di server route, gunakan conditional console
       if (process.env.NODE_ENV === 'development') {
+        // eslint-disable-next-line no-console
         console.warn('Failed to upload manifest.json:', e)
       }
     }

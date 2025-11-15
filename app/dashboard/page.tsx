@@ -13,17 +13,6 @@ import { useDaerahIrigasi } from '@/lib/hooks/useDaerahIrigasi';
 import { useUsers } from '@/lib/hooks/useUsers';
 
 type Panel = 'di' | 'management' | 'reports' | 'users' | 'settings';
-type UserRow = { id: string; email: string; role: string; created_at: string | null; last_sign_in_at: string | null };
-type DaerahIrigasiRow = {
-  id: string;
-  k_di: string;
-  n_di: string | null;
-  luas_ha: number | null;
-  kecamatan: string | null;
-  desa_kel: string | null;
-  sumber_air: string | null;
-  tahun_data: string | null;
-};
 
 export default function DashboardPage() {
   const [activePanel, setActivePanel] = useState<Panel>('di');

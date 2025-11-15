@@ -1,5 +1,5 @@
 "use client";
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import * as XLSX from 'xlsx';
 import { usePagination } from '@/lib/hooks/usePagination';
@@ -23,9 +23,11 @@ export default function IrrigationManagementView({ isAdmin }: IrrigationManageme
   const [activeTab, setActiveTab] = useState<'overview' | 'import' | 'import-excel' | 'saluran' | 'ruas' | 'bangunan'>('overview');
 
   // Reset tab ke overview jika bukan admin dan sedang di tab import
-  if (!isAdmin && (activeTab === 'import' || activeTab === 'import-excel')) {
-    setActiveTab('overview');
-  }
+  useEffect(() => {
+    if (!isAdmin && (activeTab === 'import' || activeTab === 'import-excel')) {
+      setActiveTab('overview');
+    }
+  }, [isAdmin, activeTab]);
 
   const [kodeDI, setKodeDI] = useState('');
   const [bangunanFile, setBangunanFile] = useState<File | null>(null);
@@ -50,8 +52,8 @@ export default function IrrigationManagementView({ isAdmin }: IrrigationManageme
   // Data sudah di-fetch dengan SWR, tidak perlu useEffect lagi
   // SWR akan handle caching dan revalidation otomatis
 
-  const readJsonFile = async (file: File | null) => {
-    if (!file) return null as any;
+  const readJsonFile = async (file: File | null): Promise<any> => {
+    if (!file) return null;
     const text = await file.text();
     return JSON.parse(text);
   };
