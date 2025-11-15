@@ -80,7 +80,7 @@ export default function LoginPage() {
       <section className="auth-card card">
         <header className="auth-header">
           <div className="auth-logo">
-            <Image src="/assets/icons/logo-deliserdang.jpg" alt="Logo Deli Serdang" width={56} height={56} />
+            <Image src="/assets/icons/logo-deliserdang.png" alt="Logo Deli Serdang" width={56} height={56} className="auth-logo-img" />
           </div>
           <h2>Masuk</h2>
           {/* <p className="auth-subtitle">Silakan login untuk melanjutkan</p> */}

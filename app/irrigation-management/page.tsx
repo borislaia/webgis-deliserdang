@@ -28,7 +28,7 @@ export default function IrrigationManagementPage() {
     <main>
       <header className="app-header blur">
         <div className="brand">
-          <Image src="/assets/icons/logo-deliserdang.jpg" alt="Logo" width={24} height={24} className="brand-icon" />
+          <Image src="/assets/icons/logo-deliserdang.png" alt="Logo" width={24} height={24} className="brand-icon" />
           <span className="brand-text">WebGIS Deli Serdang - Manajemen Irigasi</span>
         </div>
         <nav>

@@ -196,7 +196,6 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
     window.addEventListener('keydown', handleKeyDown, true);
     return () => window.removeEventListener('keydown', handleKeyDown, true);
   }, [isModalOpen, randomPhotos]);
->>>>>>> cursor/tambahkan-kartu-foto-irigasi-acak-02e5
 
   // Jika varian MAP memuat DI spesifik (activeKdi ada), layer kecamatan default disembunyikan
   const [kecamatanVisible, setKecamatanVisible] = useState<boolean>(!(activeKdi && activeKdi.length > 0));
@@ -1370,6 +1369,41 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
 
   const goHome = () => { window.location.href = '/'; };
   const goDashboard = () => { window.location.href = '/dashboard'; };
+  const openPhotoModal = (index: number) => {
+    if (randomPhotos.length > 0 && index >= 0 && index < randomPhotos.length) {
+      setModalPhotoIndex(index);
+      setModalImgSrc(randomPhotos[index]);
+      setIsModalOpen(true);
+    }
+  };
+  const prevPhoto = () => {
+    if (randomPhotos.length > 1) {
+      setCurrentPhotoIndex((prev) => (prev - 1 + randomPhotos.length) % randomPhotos.length);
+    }
+  };
+  const nextPhoto = () => {
+    if (randomPhotos.length > 1) {
+      setCurrentPhotoIndex((prev) => (prev + 1) % randomPhotos.length);
+    }
+  };
+  const prevModalPhoto = () => {
+    if (randomPhotos.length > 1) {
+      setModalPhotoIndex((prev) => {
+        const newIndex = (prev - 1 + randomPhotos.length) % randomPhotos.length;
+        setModalImgSrc(randomPhotos[newIndex]);
+        return newIndex;
+      });
+    }
+  };
+  const nextModalPhoto = () => {
+    if (randomPhotos.length > 1) {
+      setModalPhotoIndex((prev) => {
+        const newIndex = (prev + 1) % randomPhotos.length;
+        setModalImgSrc(randomPhotos[newIndex]);
+        return newIndex;
+      });
+    }
+  };
   const closeModal = () => { setIsModalOpen(false); setModalImgSrc(null); };
 
   return (
@@ -1639,7 +1673,6 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
         </div>
       )}
 
->>>>>>> cursor/tambahkan-kartu-foto-irigasi-acak-02e5
       {/* Image modal */}
       <div
         className={`modal ${isModalOpen ? 'open' : ''}`}
