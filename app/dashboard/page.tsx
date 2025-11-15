@@ -271,16 +271,16 @@ export default function DashboardPage() {
                 <div style={{ overflowX: 'auto' }}>
                   <table className="data-table">
                     <thead>
-                      <tr>
-                        <th>Kode DI</th>
-                        <th>Nama</th>
-                        <th>Luas (Ha)</th>
-                        <th>Kecamatan</th>
-                        <th>Desa/Kel</th>
-                        <th>Sumber Air</th>
-                        <th>Tahun Data</th>
-                        <th>MAP</th>
-                      </tr>
+                        <tr>
+                          <th>KODE DI</th>
+                          <th>NAMA</th>
+                          <th>LUAS (HA)</th>
+                          <th>KECAMATAN</th>
+                          <th>DESA/KEL</th>
+                          <th>SUMBER AIR</th>
+                          <th>TAHUN DATA</th>
+                          <th>MAP</th>
+                        </tr>
                     </thead>
                     <tbody>
                       {diRows.map((row) => (
