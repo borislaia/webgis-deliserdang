@@ -160,10 +160,12 @@ export default function DashboardPage() {
             }}
           >
             {avatarUrl ? (
-              <img
+              <Image
                 src={avatarUrl}
                 alt={userName || userEmail || 'User'}
-                style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(255,255,255,0.6)' }}
+                width={36}
+                height={36}
+                style={{ borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(255,255,255,0.6)' }}
               />
             ) : (
               <div

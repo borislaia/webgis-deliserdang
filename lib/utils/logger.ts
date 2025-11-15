@@ -15,20 +15,24 @@ const isDevelopment = process.env.NODE_ENV === 'development'
 export const logger = {
   log: (...args: unknown[]) => {
     if (isDevelopment) {
+      // eslint-disable-next-line no-console
       console.log('[LOG]', ...args)
     }
   },
   error: (...args: unknown[]) => {
     // Always log errors, but format them
+    // eslint-disable-next-line no-console
     console.error('[ERROR]', ...args)
   },
   warn: (...args: unknown[]) => {
     if (isDevelopment) {
+      // eslint-disable-next-line no-console
       console.warn('[WARN]', ...args)
     }
   },
   info: (...args: unknown[]) => {
     if (isDevelopment) {
+      // eslint-disable-next-line no-console
       console.info('[INFO]', ...args)
     }
   },

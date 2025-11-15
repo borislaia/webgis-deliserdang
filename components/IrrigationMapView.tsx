@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
 import 'ol/ol.css';
 import Map from 'ol/Map';
@@ -1412,14 +1413,16 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
         className={`modal ${isModalOpen ? 'open' : ''}`}
         aria-hidden={!isModalOpen}
         onClick={closeModal}
-        style={{ cursor: 'pointer' }}
+        style={{ cursor: 'pointer', position: 'relative' }}
       >
         {isModalOpen && modalImgSrc ? (
-          <img
+          <Image
             src={modalImgSrc}
             alt="photo"
+            fill
+            unoptimized
             onClick={(e) => e.stopPropagation()}
-            style={{ cursor: 'default' }}
+            style={{ cursor: 'default', objectFit: 'contain' }}
           />
         ) : null}
       </div>

@@ -109,7 +109,7 @@ export async function GET() {
         email: u.email || '',
         role: appMetadata?.role || userMetadata?.role || ROLES.USER,
         created_at: u.created_at,
-        last_sign_in_at: u.last_sign_in_at,
+        last_sign_in_at: u.last_sign_in_at ?? null,
       }
     })
 
