@@ -14,7 +14,7 @@ app/                       # Next.js App Router
 components/                # Komponen UI
 lib/supabase/              # Client & server helpers
 public/                    # Static assets
-  assets/icons/logo-deliserdang.jpg
+  assets/icons/logo-deliserdang.png
   data/batas_kecamatan.json
 ```
 

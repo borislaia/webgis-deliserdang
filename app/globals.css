@@ -50,12 +50,14 @@
 /* Ensure PNG images with transparency display correctly */
 img[src$=".png"], img[src*=".png"], 
 .brand-icon img, 
+.auth-logo-img,
 .float-panel-toggle__logo img,
 .next-image-wrapper img[src$=".png"],
 .next-image-wrapper img[src*=".png"]{ 
   background: transparent !important; 
   mix-blend-mode: normal;
 }
+.auth-logo img{ background: transparent !important; }
 #vanta-bg{ position:fixed; inset:0; pointer-events:none; z-index:-1; }
 .app-header{ position:sticky; top:0; z-index:50; }
 

@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   title: 'WebGIS Deli Serdang',
   description: 'WebGIS Deli Serdang - Next.js + Supabase',
   icons: {
-    icon: '/assets/icons/logo-deliserdang.jpg',
+    icon: '/assets/icons/logo-deliserdang.png',
   },
 }
 

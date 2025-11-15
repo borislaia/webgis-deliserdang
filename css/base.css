@@ -67,12 +67,14 @@ body{
 /* Ensure PNG images with transparency display correctly */
 img[src$=".png"], img[src*=".png"], 
 .brand-icon img, 
+.auth-logo-img,
 .float-panel-toggle__logo img,
 .next-image-wrapper img[src$=".png"],
 .next-image-wrapper img[src*=".png"]{ 
   background: transparent !important; 
   mix-blend-mode: normal;
 }
+.auth-logo img{ background: transparent !important; }
 .layout{ display:grid; grid-template-columns: minmax(220px, 260px) minmax(0, 1fr); gap:16px; align-items:start; min-height: calc(100vh - 100px); }
 .sidebar{ padding:20px; position:sticky; top:calc(var(--app-header-height, 64px) + 4px); align-self:start; height:max-content; max-height:calc(100vh - (var(--app-header-height, 64px) + 28px)); overflow-y:auto; }
 @media (max-width: 960px){
