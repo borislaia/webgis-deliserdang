@@ -2003,24 +2003,36 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
         className={`modal ${isModalOpen ? 'open' : ''}`}
         aria-hidden={!isModalOpen}
         onClick={closeModal}
-        style={{ cursor: 'pointer', position: 'fixed', inset: 0, display: isModalOpen ? 'flex' : 'none', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.85)', zIndex: 9999, padding: '20px' }}
+        style={{ 
+          cursor: 'pointer', 
+          position: 'fixed', 
+          inset: 0, 
+          display: isModalOpen ? 'flex' : 'none', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          background: 'rgba(0,0,0,0.85)', 
+          zIndex: 9999, 
+          padding: '20px',
+          pointerEvents: 'auto'
+        }}
       >
         {isModalOpen && modalImgSrc ? (
           <div
             style={{
               position: 'relative',
-              width: '100%',
-              height: '100%',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center'
+              justifyContent: 'center',
+              pointerEvents: 'none'
             }}
-            onClick={(e) => e.stopPropagation()}
           >
             {/* Close button */}
             <button
               type="button"
-              onClick={closeModal}
+              onClick={(e) => {
+                e.stopPropagation();
+                closeModal();
+              }}
               style={{
                 position: 'fixed',
                 top: 20,
@@ -2039,7 +2051,8 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
                 color: '#ffffff',
                 boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
                 zIndex: 10000,
-                transition: 'background 0.2s ease, transform 0.2s ease'
+                transition: 'background 0.2s ease, transform 0.2s ease',
+                pointerEvents: 'auto'
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = 'rgba(0, 0, 0, 0.8)';
@@ -2069,7 +2082,8 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
                 boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
                 cursor: 'default',
                 objectFit: 'contain',
-                display: 'block'
+                display: 'block',
+                pointerEvents: 'none'
               }}
               onError={(e) => {
                 const img = e.target as HTMLImageElement;
@@ -2118,7 +2132,8 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
                     color: '#ffffff',
                     boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
                     zIndex: 10,
-                    transition: 'background 0.2s ease, transform 0.2s ease'
+                    transition: 'background 0.2s ease, transform 0.2s ease',
+                    pointerEvents: 'auto'
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.background = 'rgba(0, 0, 0, 0.7)';
@@ -2158,7 +2173,8 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
                     color: '#ffffff',
                     boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
                     zIndex: 10,
-                    transition: 'background 0.2s ease, transform 0.2s ease'
+                    transition: 'background 0.2s ease, transform 0.2s ease',
+                    pointerEvents: 'auto'
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.background = 'rgba(0, 0, 0, 0.7)';
@@ -2186,7 +2202,8 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
                     borderRadius: 20,
                     background: 'rgba(0, 0, 0, 0.6)',
                     backdropFilter: 'blur(8px)',
-                    zIndex: 10
+                    zIndex: 10,
+                    pointerEvents: 'auto'
                   }}
                   onClick={(e) => e.stopPropagation()}
                 >
@@ -2226,7 +2243,8 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
                     color: '#ffffff',
                     fontSize: 14,
                     fontWeight: 500,
-                    zIndex: 10
+                    zIndex: 10,
+                    pointerEvents: 'auto'
                   }}
                   onClick={(e) => e.stopPropagation()}
                 >
