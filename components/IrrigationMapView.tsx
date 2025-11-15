@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
 import 'ol/ol.css';
 import Map from 'ol/Map';
@@ -137,6 +138,11 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
   const [panelHeight, setPanelHeight] = useState(0);
 
   // Measure panel height for photo card positioning
+  const searchParams = useSearchParams();
+  // Terima baik ?di= maupun ?k_di= untuk fleksibilitas dari dashboard
+  const rawKdi = (searchParams.get('di') || searchParams.get('k_di') || '').trim();
+  const activeKdi = useMemo(() => (variant === 'map' ? rawKdi : ''), [variant, rawKdi]);
+
   useEffect(() => {
     if (!panelRef.current || isPanelCollapsed) {
       setPanelHeight(0);
@@ -190,11 +196,6 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
     window.addEventListener('keydown', handleKeyDown, true);
     return () => window.removeEventListener('keydown', handleKeyDown, true);
   }, [isModalOpen, randomPhotos]);
-
-  const searchParams = useSearchParams();
-  // Terima baik ?di= maupun ?k_di= untuk fleksibilitas dari dashboard
-  const rawKdi = (searchParams.get('di') || searchParams.get('k_di') || '').trim();
-  const activeKdi = useMemo(() => (variant === 'map' ? rawKdi : ''), [variant, rawKdi]);
 
   // Jika varian MAP memuat DI spesifik (activeKdi ada), layer kecamatan default disembunyikan
   const [kecamatanVisible, setKecamatanVisible] = useState<boolean>(!(activeKdi && activeKdi.length > 0));
@@ -1532,7 +1533,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
           title="Buka panel layer"
         >
           <span className="float-panel-toggle__logo" aria-hidden="true">
-            <img src="/assets/icons/openlayers.png" alt="OpenLayers" />
+            <Image src="/assets/icons/openlayers.png" alt="OpenLayers" width={24} height={24} />
           </span>
         </button>
       ) : (
@@ -1646,9 +1647,12 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
           ) : (
             <>
               <div style={{ position: 'relative', width: '100%', aspectRatio: '16/9', borderRadius: 8, overflow: 'hidden', backgroundColor: '#f3f4f6' }}>
-                <img
+                <Image
                   src={randomPhotos[currentPhotoIndex]}
                   alt={`Foto irigasi ${currentPhotoIndex + 1}`}
+                  width={400}
+                  height={225}
+                  unoptimized
                   style={{
                     width: '100%',
                     height: '100%',
@@ -1797,9 +1801,12 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <img
+            <Image
               src={modalImgSrc}
               alt={`Foto irigasi ${modalPhotoIndex + 1}`}
+              width={800}
+              height={600}
+              unoptimized
               style={{
                 maxWidth: '90vw',
                 maxHeight: '90vh',
