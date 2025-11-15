@@ -122,6 +122,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
   const storagePointsLayerRef = useRef<VectorLayer<any> | null>(null);
   const storageLinesLayerRef = useRef<VectorLayer<any> | null>(null);
   const storagePolygonsLayerRef = useRef<VectorLayer<any> | null>(null);
+  const allFeaturesRef = useRef<any[]>([]); // Store all loaded features for photo extraction
   const [pointsVisible, setPointsVisible] = useState(true);
   const [linesVisible, setLinesVisible] = useState(true);
   const [polygonsVisible, setPolygonsVisible] = useState(true);
@@ -277,6 +278,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
     if (!activeKdi) {
       setRandomPhotos([]);
       setPhotosLoading(false);
+      allFeaturesRef.current = []; // Reset features
       return () => {
         cancelled = true;
       };
@@ -284,6 +286,91 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
     setPhotosLoading(true);
     setRandomPhotos([]);
     setFailedPhotoUrls(new Set()); // Reset failed photos when loading new set
+    
+    // Helper function to resolve URL (similar to popup logic)
+    const resolveUrl = (raw: string, diCode: string, folder?: string): string | null => {
+      if (!raw) return null;
+      // If already absolute URL, return as is
+      if (/^https?:\/\//i.test(raw)) return raw;
+
+      if (!diCode) return null;
+
+      let folderPath = folder || '';
+      folderPath = folderPath.replace(/^\/+|\/+$|\s+$/g, '');
+      if (/^SAL\d+$/i.test(folderPath)) {
+        folderPath = folderPath.slice(3);
+      }
+
+      const fileName = raw.replace(/^\/+/, '').trim();
+      if (!fileName) return null;
+
+      const pathParts = [diCode];
+      if (folderPath) pathParts.push(folderPath);
+      pathParts.push(fileName);
+      const storagePath = pathParts.join('/');
+
+      const { data: publicData } = supabase.storage.from('images').getPublicUrl(storagePath);
+      if (publicData?.publicUrl) return publicData.publicUrl;
+
+      if (supabaseUrl) {
+        const encodedPath = pathParts.map((part) => encodeURIComponent(part)).join('/');
+        return `${supabaseUrl}/storage/v1/object/public/images/${encodedPath}`;
+      }
+
+      return null;
+    };
+
+    // Helper function to collect img_urls from features
+    const collectPhotosFromFeatures = (features: any[], diCode: string): string[] => {
+      const photoUrls: string[] = [];
+      const collectCandidates = (...inputs: any[]): string[] => {
+        const results: string[] = [];
+        for (const input of inputs) {
+          if (!input) continue;
+          if (Array.isArray(input)) {
+            for (const entry of input) {
+              if (entry == null) continue;
+              const value = String(entry).trim();
+              if (value) results.push(value);
+            }
+          } else if (typeof input === 'string') {
+            const parts = input.split(/[;,\n]/);
+            for (const part of parts) {
+              const value = part.trim();
+              if (value) results.push(value);
+            }
+          }
+        }
+        return results;
+      };
+
+      for (const feature of features) {
+        if (!feature) continue;
+        const props = typeof feature.getProperties === 'function' ? feature.getProperties() : {};
+        const metadata = props && typeof props.metadata === 'object' ? props.metadata : {};
+        
+        const candidatePhotos = collectCandidates(
+          feature.get?.('img_urls'),
+          feature.get?.('url_imgs'),
+          props.img_urls,
+          props.url_imgs,
+          props.URL_IMGS,
+          metadata?.img_urls,
+          metadata?.url_imgs
+        );
+
+        for (const rawUrl of candidatePhotos) {
+          const folder = props.no_saluran || props.NO_SALURAN || props.noSaluran || metadata?.no_saluran || metadata?.NO_SALURAN || metadata?.noSaluran || metadata?.saluran_folder || '';
+          const resolvedUrl = resolveUrl(rawUrl, diCode, folder);
+          if (resolvedUrl) {
+            photoUrls.push(resolvedUrl);
+          }
+        }
+      }
+
+      return photoUrls;
+    };
+
     (async () => {
       try {
         const diCode = activeKdi.trim();
@@ -292,7 +379,15 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
           return;
         }
 
-        // List all files in the images/{k_di}/ directory
+        const photoUrls: string[] = [];
+
+        // 1. Collect photos from GeoJSON features
+        if (allFeaturesRef.current.length > 0) {
+          const geojsonPhotos = collectPhotosFromFeatures(allFeaturesRef.current, diCode);
+          photoUrls.push(...geojsonPhotos);
+        }
+
+        // 2. List all files in the images/{k_di}/ directory (storage bucket)
         const { data: files, error } = await supabase.storage
           .from('images')
           .list(diCode, {
@@ -303,40 +398,26 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
         if (cancelled) return;
         if (error) {
           console.warn('Error loading images:', error);
-          setRandomPhotos([]);
-          return;
-        }
+          // Continue with GeoJSON photos if available
+        } else if (files && files.length > 0) {
+          // Filter image files and build URLs
+          const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'];
+          const imageFiles = files.filter((file) => {
+            const name = (file.name || '').toLowerCase();
+            return imageExtensions.some((ext) => name.endsWith(ext));
+          });
 
-        if (!files || files.length === 0) {
-          setRandomPhotos([]);
-          return;
-        }
-
-        // Filter image files and build URLs
-        const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'];
-        const imageFiles = files.filter((file) => {
-          const name = (file.name || '').toLowerCase();
-          return imageExtensions.some((ext) => name.endsWith(ext));
-        });
-
-        if (imageFiles.length === 0) {
-          setRandomPhotos([]);
-          return;
-        }
-
-        // Build public URLs for images
-        const photoUrls: string[] = [];
-        for (const file of imageFiles) {
-          const path = `${diCode}/${file.name}`;
-          const { data: publicData } = supabase.storage.from('images').getPublicUrl(path);
-          if (publicData?.publicUrl) {
-            photoUrls.push(publicData.publicUrl);
+          // Build public URLs for images
+          for (const file of imageFiles) {
+            const path = `${diCode}/${file.name}`;
+            const { data: publicData } = supabase.storage.from('images').getPublicUrl(path);
+            if (publicData?.publicUrl) {
+              photoUrls.push(publicData.publicUrl);
+            }
           }
-        }
 
-        // Also check subdirectories (e.g., saluran folders)
-        // Re-list to get folders (items without file extensions)
-        if (files) {
+          // Also check subdirectories (e.g., saluran folders)
+          // Re-list to get folders (items without file extensions)
           for (const item of files) {
             const itemName = (item.name || '').toLowerCase();
             const isImageFile = imageExtensions.some((ext) => itemName.endsWith(ext));
@@ -372,8 +453,11 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
 
         if (cancelled) return;
 
+        // Remove duplicates
+        const uniquePhotos = Array.from(new Set(photoUrls));
+
         // Shuffle and limit to reasonable number
-        const shuffled = photoUrls.sort(() => Math.random() - 0.5);
+        const shuffled = uniquePhotos.sort(() => Math.random() - 0.5);
         const limitedPhotos = shuffled.slice(0, 20); // Limit to 20 photos max
         setRandomPhotos(limitedPhotos);
         setCurrentPhotoIndex(0); // Reset to first photo when loading new set
@@ -390,10 +474,12 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
     return () => {
       cancelled = true;
     };
-  }, [activeKdi, supabase]);
+  }, [activeKdi, supabase, supabaseUrl, loadingStorage]); // Reload when features are loaded (loadingStorage changes)
 
     useEffect(() => {
       if (!mapDivRef.current) return;
+      // Reset features ref when map reloads
+      allFeaturesRef.current = [];
       if (typeof document !== 'undefined') {
         if (!tooltipRef.current) {
           const tooltipEl = document.createElement('div');
@@ -675,6 +761,8 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
                       if (t === 'Point' || t === 'MultiPoint') { pointsSrc.addFeature(f); cPoints++; }
                       else if (t === 'LineString' || t === 'MultiLineString') { linesSrc.addFeature(f); cLines++; }
                       else if (t === 'Polygon' || t === 'MultiPolygon') { polygonsSrc.addFeature(f); cPolys++; }
+                      // Store feature for photo extraction
+                      allFeaturesRef.current.push(f);
                     }
                     return { points: cPoints, lines: cLines, polygons: cPolys, files: 1 };
                   }
@@ -703,6 +791,8 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
               if (t === 'Point' || t === 'MultiPoint') { pointsSrc.addFeature(f); cPoints++; }
               else if (t === 'LineString' || t === 'MultiLineString') { linesSrc.addFeature(f); cLines++; }
               else if (t === 'Polygon' || t === 'MultiPolygon') { polygonsSrc.addFeature(f); cPolys++; }
+              // Store feature for photo extraction
+              allFeaturesRef.current.push(f);
             }
             return { points: cPoints, lines: cLines, polygons: cPolys, files: 1 };
           };
@@ -732,6 +822,10 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
           } else {
             setStorageCounts({ points: 0, lines: 0, polygons: 0, files: 0 });
           }
+          
+          // Trigger photo reload after features are loaded
+          // This will be handled by the photo loading useEffect which watches activeKdi
+          
           // Update extent dari storage layers
           const combined = createEmptyExtent();
           const pExt = polygonsSrc.getExtent();
@@ -770,6 +864,8 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
                 if (!b.geojson) continue;
                 const feat = fmt.readFeature(b.geojson, { dataProjection: 'EPSG:4326', featureProjection: map.getView().getProjection() });
                 src.addFeature(feat);
+                // Store feature for photo extraction
+                allFeaturesRef.current.push(feat);
               }
               const layer = new VectorLayer({ source: src, zIndex: 30 });
               map.addLayer(layer);
@@ -790,6 +886,8 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
                 const fc = f.geojson.type === 'FeatureCollection' ? f.geojson : { type: 'FeatureCollection', features: [f.geojson] };
                 const fs = fmt.readFeatures(fc, { dataProjection: 'EPSG:4326', featureProjection: map.getView().getProjection() });
                 src.addFeatures(fs);
+                // Store features for photo extraction
+                allFeaturesRef.current.push(...fs);
               }
               const layer = new VectorLayer({ source: src, zIndex: 5, style: new Style({ stroke: new Stroke({ color: '#2ca02c', width: 2 }), fill: new Fill({ color: 'rgba(44,160,44,0.2)' }) }) });
               map.addLayer(layer);
@@ -828,6 +926,8 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
                     featureProjection: map.getView().getProjection(),
                   });
                   ruasFeatures.push(f);
+                  // Store feature for photo extraction
+                  allFeaturesRef.current.push(f);
                 }
               }
             }
