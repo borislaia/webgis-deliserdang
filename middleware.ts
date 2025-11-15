@@ -1,28 +1,52 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
-
-function resolveSafeRedirect(raw: string | null | undefined, fallback = '/dashboard') {
-  if (!raw) return fallback
-  let decoded = raw
-  try {
-    decoded = decodeURIComponent(raw)
-  } catch {}
-  if (!decoded.startsWith('/') || decoded.startsWith('//')) return fallback
-  return decoded
-}
+import { createServerClient } from '@supabase/ssr'
+import { resolveSafeRedirect } from '@/lib/utils/redirect'
 
 export async function middleware(req: NextRequest) {
-  const res = NextResponse.next()
+  let response = NextResponse.next({
+    request: {
+      headers: req.headers,
+    },
+  })
+
   const { pathname } = req.nextUrl
 
-  // Bypass auth saat Preview (Vercel) atau ketika flag eksplisit diaktifkan
-  if (process.env.VERCEL_ENV === 'preview' || process.env.NEXT_PUBLIC_BYPASS_AUTH === 'true') {
-    return res
+  // Bypass auth hanya untuk preview dengan secret token (server-only, tidak diekspos ke client)
+  // Hapus NEXT_PUBLIC_BYPASS_AUTH dari environment variables karena dapat diekspos ke client
+  const bypassAuth = process.env.BYPASS_AUTH === 'true' // Server-only variable
+  if (process.env.VERCEL_ENV === 'preview' && bypassAuth) {
+    const previewToken = req.nextUrl.searchParams.get('preview_token')
+    if (previewToken === process.env.PREVIEW_SECRET_TOKEN) {
+      return response
+    }
   }
 
+  // Create Supabase client with SSR support
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return req.cookies.getAll()
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => req.cookies.set(name, value))
+          response = NextResponse.next({
+            request: {
+              headers: req.headers,
+            },
+          })
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          )
+        },
+      },
+    }
+  )
+
   // Refresh session if needed and get it
-  const supabase = createMiddlewareClient({ req, res })
   const {
     data: { session },
   } = await supabase.auth.getSession()

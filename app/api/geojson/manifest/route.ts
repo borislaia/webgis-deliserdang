@@ -49,11 +49,15 @@ export async function GET(_req: NextRequest) {
         .upload('manifest.json', body, { upsert: true, cacheControl: '3600', contentType: 'application/json' })
     } catch (e) {
       // Non-fatal: still return manifest
-      console.warn('Failed to upload manifest.json:', e)
+      // Log error but don't expose to client
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Failed to upload manifest.json:', e)
+      }
     }
 
     return NextResponse.json(manifest)
-  } catch (error: any) {
-    return NextResponse.json({ error: error?.message || 'Internal error' }, { status: 500 })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Internal error'
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }

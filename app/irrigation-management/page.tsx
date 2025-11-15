@@ -3,6 +3,8 @@ import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
 import IrrigationManagementView from '@/components/IrrigationManagementView';
+import { ROLES } from '@/lib/constants/roles';
+import type { AppMetadata, UserMetadata } from '@/lib/types/user';
 
 export default function IrrigationManagementPage() {
   const supabase = useMemo(() => createClient(), []);
@@ -12,7 +14,15 @@ export default function IrrigationManagementPage() {
     (async () => {
       try {
         const { data } = await supabase.auth.getUser();
-        setIsAdmin(((data.user?.app_metadata as any)?.role) === 'admin');
+        if (!data.user) {
+          setIsAdmin(false);
+          return;
+        }
+        
+        const appMetadata = data.user.app_metadata as AppMetadata;
+        const userMetadata = data.user.user_metadata as UserMetadata;
+        const role = appMetadata?.role || userMetadata?.role;
+        setIsAdmin(role === ROLES.ADMIN);
       } catch {
         setIsAdmin(false);
       }

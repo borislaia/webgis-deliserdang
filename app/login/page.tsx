@@ -4,6 +4,8 @@ import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { resolveSafeRedirect } from '@/lib/utils/redirect';
+import { getErrorMessage, ERROR_MESSAGES } from '@/lib/utils/errors';
 
 export default function LoginPage() {
   const supabase = createClient();
@@ -14,14 +16,6 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  function resolveSafeRedirect(raw: string | null | undefined, fallback = '/dashboard') {
-    if (!raw) return fallback;
-    let decoded = raw;
-    try { decoded = decodeURIComponent(raw); } catch {}
-    if (!decoded.startsWith('/') || decoded.startsWith('//')) return fallback;
-    return decoded;
-  }
-
   const redirectTo = resolveSafeRedirect(searchParams.get('redirect'));
 
   async function onLogin(e: React.FormEvent) {
@@ -31,7 +25,7 @@ export default function LoginPage() {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
       setLoading(false);
-      setError('Email atau kata sandi salah.');
+      setError(getErrorMessage(error, ERROR_MESSAGES.INVALID_CREDENTIALS));
       return;
     }
     try {
@@ -50,7 +44,7 @@ export default function LoginPage() {
       }
     } catch (e) {
       setLoading(false);
-      setError('Gagal menyimpan sesi. Silakan coba lagi.');
+      setError(getErrorMessage(e, 'Gagal menyimpan sesi. Silakan coba lagi.'));
       return;
     }
     setLoading(false);
@@ -64,7 +58,7 @@ export default function LoginPage() {
       options: { redirectTo: `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirectTo)}` }
     });
     setLoading(false);
-    if (error) setError('Gagal masuk dengan Google. Silakan coba lagi.');
+    if (error) setError(getErrorMessage(error, 'Gagal masuk dengan Google. Silakan coba lagi.'));
   }
 
   useEffect(() => {

@@ -1,4 +1,18 @@
 /** @type {import('next').NextConfig} */
+// Extract hostname from Supabase URL or use fallback
+const getSupabaseHostname = () => {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  if (supabaseUrl) {
+    try {
+      return new URL(supabaseUrl).hostname
+    } catch {
+      // Invalid URL, use fallback
+    }
+  }
+  // Fallback for backward compatibility
+  return 'yyagythhwzdncantoszf.supabase.co'
+}
+
 const nextConfig = {
   experimental: {
     serverActions: { bodySizeLimit: '10mb' }
@@ -7,7 +21,7 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'yyagythhwzdncantoszf.supabase.co'
+        hostname: getSupabaseHostname()
       }
     ]
   },

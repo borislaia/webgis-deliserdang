@@ -91,10 +91,26 @@ function ensureUpstreamFirst(lineCoords: number[][], anchorPoints: number[][]): 
   return lineCoords;
 }
 
+// Get allowed origin from environment or use fallback
+const getAllowedOrigin = (): string => {
+  const origin = Deno.env.get('ALLOWED_ORIGIN');
+  if (origin) return origin;
+  
+  // Fallback untuk development
+  const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+  if (supabaseUrl.includes('localhost') || supabaseUrl.includes('127.0.0.1')) {
+    return 'http://localhost:3000';
+  }
+  
+  // Production: extract dari referer atau gunakan env
+  return Deno.env.get('PRODUCTION_URL') || 'https://yourdomain.com';
+};
+
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': getAllowedOrigin(),
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
+  'Access-Control-Allow-Credentials': 'true',
 };
 
 interface BangunanFeature {
@@ -638,10 +654,16 @@ Deno.serve(async (req: Request) => {
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('Error:', error);
+    // Log error for debugging (only in development or with proper logging service)
+    const errorMessage = error instanceof Error ? error.message : 'Internal server error'
+    
+    // In production, don't expose internal error details
+    const isDevelopment = Deno.env.get('ENVIRONMENT') === 'development'
+    const responseMessage = isDevelopment ? errorMessage : 'Internal server error'
+    
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: responseMessage }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    )
   }
 });

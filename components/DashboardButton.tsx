@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { logger } from '@/lib/utils/logger'
 
 export default function DashboardButton() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
@@ -14,7 +15,7 @@ export default function DashboardButton() {
         const { data } = await supabase.auth.getUser()
         setIsAuthenticated(!!data.user)
       } catch (error) {
-        console.error('Gagal memeriksa status login', error)
+        logger.error('Gagal memeriksa status login', error)
         setIsAuthenticated(false)
       }
     }

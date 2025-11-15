@@ -3,6 +3,9 @@ import { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
 import IrrigationManagementView from '@/components/IrrigationManagementView';
+import { ROLES } from '@/lib/constants/roles';
+import type { UserMetadata, AppMetadata } from '@/lib/types/user';
+import { getErrorMessage } from '@/lib/utils/errors';
 
 type Panel = 'di' | 'management' | 'reports' | 'users' | 'settings';
 type UserRow = { id: string; email: string; role: string; created_at: string | null; last_sign_in_at: string | null };
@@ -26,7 +29,7 @@ export default function DashboardPage() {
   const [userId, setUserId] = useState<string>('');
   const [userRole, setUserRole] = useState<string>('');
 
-  const isAdmin = userRole === 'admin';
+  const isAdmin = userRole === ROLES.ADMIN;
 
   // Data Daerah Irigasi panel (dulu via CSV, kini langsung dari tabel)
   const [diRows, setDiRows] = useState<DaerahIrigasiRow[] | null>(null);
@@ -45,23 +48,34 @@ export default function DashboardPage() {
         const supabase = createClient();
         const { data } = await supabase.auth.getUser();
         const user = data.user;
-        setUserId(user?.id || '');
-        setUserEmail(user?.email || '');
+        if (!user) return;
+        
+        setUserId(user.id || '');
+        setUserEmail(user.email || '');
+        
+        const userMetadata = user.user_metadata as UserMetadata;
+        const appMetadata = user.app_metadata as AppMetadata;
+        
         const displayName =
-          (user?.user_metadata as any)?.full_name ||
-          (user?.user_metadata as any)?.name ||
-          (user?.user_metadata as any)?.username ||
-          user?.email ||
+          userMetadata?.full_name ||
+          userMetadata?.name ||
+          userMetadata?.username ||
+          user.email ||
           '';
         setUserName(displayName);
+        
         const avatar =
-          (user?.user_metadata as any)?.avatar_url ||
-          (user?.user_metadata as any)?.picture ||
+          userMetadata?.avatar_url ||
+          userMetadata?.picture ||
           '';
         setAvatarUrl(avatar);
-        const role = (user?.app_metadata as any)?.role || (user?.user_metadata as any)?.role || 'user';
+        
+        const role = appMetadata?.role || userMetadata?.role || ROLES.USER;
         setUserRole(role);
-      } catch {}
+      } catch (error) {
+        // Silently fail - user will see default state
+        console.error('Failed to load user data:', error);
+      }
     })();
   }, []);
 
@@ -92,10 +106,10 @@ export default function DashboardPage() {
           .order('k_di', { ascending: true });
         if (error) throw error;
         if (!cancelled) setDiRows(data || []);
-      } catch (e: any) {
+      } catch (e) {
         if (!cancelled) {
           setDiRows([]);
-          setDiError(e?.message || 'Gagal memuat data DI');
+          setDiError(getErrorMessage(e, 'Gagal memuat data DI'));
         }
       } finally {
         if (!cancelled) setDiLoading(false);
@@ -119,9 +133,9 @@ export default function DashboardPage() {
       }
       const json = await res.json();
       setUsers(Array.isArray(json.users) ? json.users : []);
-    } catch (e: any) {
-      if (e?.name === 'AbortError') return;
-      setUsersError(e?.message || 'Gagal memuat data pengguna');
+    } catch (e) {
+      if (e instanceof Error && e.name === 'AbortError') return;
+      setUsersError(getErrorMessage(e, 'Gagal memuat data pengguna'));
       setUsers([]);
     } finally {
       setUsersLoading(false);
@@ -147,12 +161,12 @@ export default function DashboardPage() {
         const err = await res.json().catch(() => null);
         throw new Error(err?.error || 'Gagal memperbarui role');
       }
-      setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, role } : u)));
+        setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, role } : u)));
       if (userId === id) {
         setUserRole(role);
       }
-    } catch (e: any) {
-      alert(e?.message || 'Gagal memperbarui role');
+    } catch (e) {
+      alert(getErrorMessage(e, 'Gagal memperbarui role'));
     } finally {
       setUpdatingUserId(null);
     }
@@ -351,7 +365,7 @@ export default function DashboardPage() {
                           <tbody>
                             {users.map((user) => {
                               const isSelf = user.id === userId;
-                              const isOtherAdmin = user.role === 'admin' && !isSelf;
+                              const isOtherAdmin = user.role === ROLES.ADMIN && !isSelf;
                               const rowHighlight = isSelf
                                 ? { background: 'rgba(10,132,255,0.05)' }
                                 : isOtherAdmin
@@ -377,8 +391,8 @@ export default function DashboardPage() {
                                       disabled={isSelf || isOtherAdmin || updatingUserId === user.id}
                                       title={lockMessage || undefined}
                                     >
-                                      <option value="user">user</option>
-                                      <option value="admin">admin</option>
+                                      <option value={ROLES.USER}>{ROLES.USER}</option>
+                                      <option value={ROLES.ADMIN}>{ROLES.ADMIN}</option>
                                     </select>
                                     {lockMessage && (
                                       <div style={{ marginTop: 6, fontSize: 12, color: 'var(--muted)' }}>{lockMessage}</div>

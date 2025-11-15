@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { createServerClient } from '@supabase/ssr'
+import { resolveSafeRedirect } from '@/lib/utils/redirect'
 
 // Handles OAuth redirect from Supabase and sets auth cookies
 export async function GET(request: Request) {
@@ -8,18 +9,32 @@ export async function GET(request: Request) {
   const code = searchParams.get('code')
   const rawRedirect = searchParams.get('redirect')
 
-  function resolveSafeRedirect(raw: string | null | undefined, fallback = '/dashboard') {
-    if (!raw) return fallback
-    let decoded = raw
-    try { decoded = decodeURIComponent(raw) } catch {}
-    if (!decoded.startsWith('/') || decoded.startsWith('//')) return fallback
-    return decoded
-  }
-
   const redirect = resolveSafeRedirect(rawRedirect)
 
   if (code) {
-    const supabase = createRouteHandlerClient({ cookies })
+    const cookieStore = cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll()
+          },
+          setAll(cookiesToSet) {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) =>
+                cookieStore.set(name, value, options)
+              )
+            } catch {
+              // The `setAll` method was called from a Server Component.
+              // This can be ignored if you have middleware refreshing
+              // user sessions.
+            }
+          },
+        },
+      }
+    )
     await supabase.auth.exchangeCodeForSession(code)
   }
 
@@ -28,7 +43,29 @@ export async function GET(request: Request) {
 
 // Allows client-side password logins to persist session in httpOnly cookies
 export async function POST(request: Request) {
-  const supabase = createRouteHandlerClient({ cookies })
+  const cookieStore = cookies()
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll()
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            )
+          } catch {
+            // The `setAll` method was called from a Server Component.
+            // This can be ignored if you have middleware refreshing
+            // user sessions.
+          }
+        },
+      },
+    }
+  )
   const { event, session } = await request.json().catch(() => ({ event: null, session: null }))
 
   if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
