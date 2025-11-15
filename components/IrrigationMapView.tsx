@@ -1736,7 +1736,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
           </span>
         </button>
       ) : (
-        <div className="float-panel card float-card scroll-silent" style={{ zIndex: 2 }}>
+        <div ref={panelRef} className="float-panel card float-card scroll-silent" style={{ zIndex: 2, maxHeight: activeKdi ? 'calc(100vh - 420px)' : 'calc(100vh - 32px)' }}>
             <div className="panel-header">
               <button
                 type="button"
@@ -1761,9 +1761,9 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
             <label><input type="radio" name="basemap" defaultChecked onChange={() => setBasemap('carto')} /> CartoDB Light</label><br />
             <label><input type="radio" name="basemap" onChange={() => setBasemap('sat')} /> ESRI Satellite</label>
           </div>
-          <div style={{ fontWeight: 600, margin: '12px 0 6px' }}>Operational Layers</div>
           {!activeKdi && (
             <>
+              <div style={{ fontWeight: 600, margin: '12px 0 6px' }}>Batas Wilayah</div>
               <label><input type="checkbox" checked={kecamatanVisible} onChange={(e) => toggleKecamatan((e.target as HTMLInputElement).checked)} /> Kecamatan Boundaries</label><br />
             </>
           )}
@@ -1771,7 +1771,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
             <span>Daerah Irigasi</span>
             <span className="badge" title="Jumlah file yang dimuat">{storageCounts.files}</span>
           </div>
-          <div className="layer-scroll scroll-silent">
+          <div className="layer-scroll scroll-silent" style={{ maxHeight: activeKdi ? '120px' : 'calc(100vh - 380px)' }}>
             {loadingStorage ? <div>Memuat GeoJSON…</div> : null}
             {storageError ? <div style={{ color: 'crimson' }}>{storageError}</div> : null}
             {!loadingStorage && !storageError && storageCounts.files === 0 ? (
@@ -1821,10 +1821,10 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
         <div className="float-card card photo-slider-card" style={{ 
           position: 'absolute', 
           right: 16, 
-          top: panelHeight > 0 ? `${16 + panelHeight + 16}px` : 'auto',
+          top: panelHeight > 0 ? `${16 + panelHeight + 24}px` : 'auto',
           bottom: panelHeight === 0 ? 16 : 'auto',
           width: 280,
-          maxHeight: '300px',
+          maxHeight: '350px',
           zIndex: 2,
           display: 'flex',
           flexDirection: 'column',
