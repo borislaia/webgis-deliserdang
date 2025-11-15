@@ -212,6 +212,7 @@ export default function DashboardPage() {
                 alt={userName || userEmail || 'User'}
                 width={36}
                 height={36}
+                unoptimized
                 style={{ borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(255,255,255,0.6)' }}
               />
             ) : (

@@ -129,11 +129,74 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
   const [diInfoLoading, setDiInfoLoading] = useState(false);
   const [diInfoError, setDiInfoError] = useState<string | null>(null);
   const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
+  const [randomPhotos, setRandomPhotos] = useState<string[]>([]);
+  const [photosLoading, setPhotosLoading] = useState(false);
+  const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+  const [modalPhotoIndex, setModalPhotoIndex] = useState(0);
+  const [failedPhotoUrls, setFailedPhotoUrls] = useState<Set<string>>(new Set());
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const [panelHeight, setPanelHeight] = useState(0);
 
+  // Measure panel height for photo card positioning
   const searchParams = useSearchParams();
   // Terima baik ?di= maupun ?k_di= untuk fleksibilitas dari dashboard
   const rawKdi = (searchParams.get('di') || searchParams.get('k_di') || '').trim();
   const activeKdi = useMemo(() => (variant === 'map' ? rawKdi : ''), [variant, rawKdi]);
+
+  useEffect(() => {
+    if (!panelRef.current || isPanelCollapsed) {
+      setPanelHeight(0);
+      return;
+    }
+    const updateHeight = () => {
+      if (panelRef.current) {
+        setPanelHeight(panelRef.current.offsetHeight);
+      }
+    };
+    updateHeight();
+    if (typeof ResizeObserver !== 'undefined') {
+      const resizeObserver = new ResizeObserver(updateHeight);
+      resizeObserver.observe(panelRef.current);
+      return () => resizeObserver.disconnect();
+    } else {
+      // Fallback: update on window resize
+      const handleResize = () => updateHeight();
+      window.addEventListener('resize', handleResize);
+      return () => window.removeEventListener('resize', handleResize);
+    }
+  }, [isPanelCollapsed, diInfo, diInfoLoading, storageCounts, activeKdi]);
+
+  // Keyboard navigation for modal
+  useEffect(() => {
+    if (!isModalOpen || randomPhotos.length <= 1) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        e.stopPropagation();
+        setModalPhotoIndex((prev) => {
+          const newIndex = (prev - 1 + randomPhotos.length) % randomPhotos.length;
+          setModalImgSrc(randomPhotos[newIndex]);
+          return newIndex;
+        });
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        e.stopPropagation();
+        setModalPhotoIndex((prev) => {
+          const newIndex = (prev + 1) % randomPhotos.length;
+          setModalImgSrc(randomPhotos[newIndex]);
+          return newIndex;
+        });
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsModalOpen(false);
+        setModalImgSrc(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => window.removeEventListener('keydown', handleKeyDown, true);
+  }, [isModalOpen, randomPhotos]);
+>>>>>>> cursor/tambahkan-kartu-foto-irigasi-acak-02e5
 
   // Jika varian MAP memuat DI spesifik (activeKdi ada), layer kecamatan default disembunyikan
   const [kecamatanVisible, setKecamatanVisible] = useState<boolean>(!(activeKdi && activeKdi.length > 0));
@@ -202,6 +265,14 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
         if (!popupRef.current) {
           const popupEl = document.createElement('div');
           popupEl.className = 'ol-popup card';
+          popupEl.style.pointerEvents = 'auto';
+          // Prevent map click events when clicking inside popup
+          popupEl.addEventListener('click', (e) => {
+            e.stopPropagation();
+          }, true);
+          popupEl.addEventListener('mousedown', (e) => {
+            e.stopPropagation();
+          }, true);
           popupRef.current = popupEl;
         }
       }
@@ -786,6 +857,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
       if (!popupOverlayRef.current || !popupRef.current) return;
       const el = popupRef.current;
       el.textContent = '';
+      el.style.pointerEvents = 'auto';
 
       const propsRaw = (selected.getProperties ? (selected.getProperties() as Record<string, any>) : {}) || {};
       const props = { ...propsRaw } as Record<string, any>;
@@ -1044,6 +1116,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
           imgWrapper.style.position = 'relative';
           imgWrapper.style.cursor = 'pointer';
           imgWrapper.style.width = '100%';
+          imgWrapper.style.pointerEvents = 'auto';
 
           const img = document.createElement('img');
           img.src = url;
@@ -1054,16 +1127,22 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
           img.style.maxHeight = '320px';
           img.style.borderRadius = '10px';
           img.style.border = '1px solid #ddd';
+          img.style.pointerEvents = 'auto';
 
           img.onerror = () => {
             img.style.display = 'none';
           };
 
-          img.onclick = (e) => {
+          const handleClick = (e: MouseEvent) => {
+            e.preventDefault();
             e.stopPropagation();
+            e.stopImmediatePropagation();
             setModalImgSrc(url);
             setIsModalOpen(true);
           };
+
+          img.addEventListener('click', handleClick, true);
+          imgWrapper.addEventListener('click', handleClick, true);
 
           imgWrapper.appendChild(img);
           gallery.appendChild(imgWrapper);
@@ -1401,6 +1480,166 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
         </div>
       )}
 
+      {/* Photo slider card */}
+      {activeKdi && !isPanelCollapsed && (
+        <div className="float-card card photo-slider-card" style={{ 
+          position: 'absolute', 
+          right: 16, 
+          top: panelHeight > 0 ? `${16 + panelHeight + 16}px` : 'auto',
+          bottom: panelHeight === 0 ? 16 : 'auto',
+          width: 280,
+          maxHeight: '300px',
+          zIndex: 2,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 8
+        }}>
+          <div style={{ fontWeight: 600, marginBottom: 4, fontSize: 14 }}>Foto Irigasi</div>
+          {photosLoading ? (
+            <div style={{ fontSize: 13, color: '#6b7280', textAlign: 'center', padding: '20px 0' }}>
+              Memuat foto...
+            </div>
+          ) : randomPhotos.length === 0 ? (
+            <div style={{ fontSize: 13, color: '#6b7280', textAlign: 'center', padding: '20px 0' }}>
+              Tidak ada foto tersedia
+            </div>
+          ) : (
+            <>
+              <div style={{ position: 'relative', width: '100%', aspectRatio: '16/9', borderRadius: 8, overflow: 'hidden', backgroundColor: '#f3f4f6' }}>
+                <Image
+                  src={randomPhotos[currentPhotoIndex]}
+                  alt={`Foto irigasi ${currentPhotoIndex + 1}`}
+                  width={400}
+                  height={225}
+                  unoptimized
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    cursor: 'pointer',
+                    display: 'block'
+                  }}
+                  onClick={() => openPhotoModal(currentPhotoIndex)}
+                  onError={(e) => {
+                    const img = e.target as HTMLImageElement;
+                    const failedUrl = img.src;
+                    setFailedPhotoUrls((prev) => {
+                      const newSet = new Set(prev);
+                      newSet.add(failedUrl);
+                      return newSet;
+                    });
+                    // Try next photo if current one fails
+                    if (randomPhotos.length > 1) {
+                      const nextIndex = (currentPhotoIndex + 1) % randomPhotos.length;
+                      if (nextIndex !== currentPhotoIndex) {
+                        setTimeout(() => setCurrentPhotoIndex(nextIndex), 100);
+                      }
+                    }
+                    img.style.display = 'none';
+                  }}
+                />
+                {randomPhotos.length > 1 && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        prevPhoto();
+                      }}
+                      style={{
+                        position: 'absolute',
+                        left: 8,
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        width: 32,
+                        height: 32,
+                        borderRadius: '50%',
+                        border: '1px solid var(--stroke)',
+                        background: 'rgba(255, 255, 255, 0.9)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        fontSize: 18,
+                        fontWeight: 600,
+                        color: 'var(--text)',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                        zIndex: 10
+                      }}
+                      aria-label="Foto sebelumnya"
+                      title="Foto sebelumnya"
+                    >
+                      ‹
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        nextPhoto();
+                      }}
+                      style={{
+                        position: 'absolute',
+                        right: 8,
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        width: 32,
+                        height: 32,
+                        borderRadius: '50%',
+                        border: '1px solid var(--stroke)',
+                        background: 'rgba(255, 255, 255, 0.9)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        fontSize: 18,
+                        fontWeight: 600,
+                        color: 'var(--text)',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                        zIndex: 10
+                      }}
+                      aria-label="Foto berikutnya"
+                      title="Foto berikutnya"
+                    >
+                      ›
+                    </button>
+                  </>
+                )}
+              </div>
+              {randomPhotos.length > 1 && (
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  gap: 4,
+                  fontSize: 12,
+                  color: '#6b7280'
+                }}>
+                  {randomPhotos.map((_, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setCurrentPhotoIndex(idx)}
+                      style={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: '50%',
+                        border: 'none',
+                        background: idx === currentPhotoIndex ? '#0a84ff' : '#d1d5db',
+                        cursor: 'pointer',
+                        padding: 0,
+                        transition: 'background 0.2s ease'
+                      }}
+                      aria-label={`Foto ${idx + 1}`}
+                    />
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+>>>>>>> cursor/tambahkan-kartu-foto-irigasi-acak-02e5
       {/* Image modal */}
       <div
         className={`modal ${isModalOpen ? 'open' : ''}`}
@@ -1409,14 +1648,195 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
         style={{ cursor: 'pointer', position: 'relative' }}
       >
         {isModalOpen && modalImgSrc ? (
-          <Image
-            src={modalImgSrc}
-            alt="photo"
-            fill
-            unoptimized
+          <div
+            style={{
+              position: 'relative',
+              width: '100%',
+              height: '100%',
+              maxWidth: '90vw',
+              maxHeight: '90vh'
+            }}
             onClick={(e) => e.stopPropagation()}
-            style={{ cursor: 'default', objectFit: 'contain' }}
-          />
+          >
+            <Image
+              src={modalImgSrc}
+              alt={`Foto irigasi ${modalPhotoIndex + 1}`}
+              width={800}
+              height={600}
+              unoptimized
+              style={{
+                maxWidth: '90vw',
+                maxHeight: '90vh',
+                borderRadius: 12,
+                boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+                cursor: 'default',
+                objectFit: 'contain'
+              }}
+              onError={(e) => {
+                const img = e.target as HTMLImageElement;
+                const failedUrl = img.src;
+                setFailedPhotoUrls((prev) => {
+                  const newSet = new Set(prev);
+                  newSet.add(failedUrl);
+                  return newSet;
+                });
+                // Try next photo if current one fails
+                if (randomPhotos.length > 1) {
+                  const nextIndex = (modalPhotoIndex + 1) % randomPhotos.length;
+                  if (nextIndex !== modalPhotoIndex && !failedPhotoUrls.has(randomPhotos[nextIndex])) {
+                    setTimeout(() => {
+                      setModalPhotoIndex(nextIndex);
+                      setModalImgSrc(randomPhotos[nextIndex]);
+                    }, 100);
+                  }
+                }
+              }}
+            />
+            {randomPhotos.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    prevModalPhoto();
+                  }}
+                  style={{
+                    position: 'absolute',
+                    left: 20,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    width: 48,
+                    height: 48,
+                    borderRadius: '50%',
+                    border: '2px solid rgba(255, 255, 255, 0.9)',
+                    background: 'rgba(0, 0, 0, 0.5)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    fontSize: 24,
+                    fontWeight: 600,
+                    color: '#ffffff',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                    zIndex: 10,
+                    transition: 'background 0.2s ease, transform 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(0, 0, 0, 0.7)';
+                    e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'rgba(0, 0, 0, 0.5)';
+                    e.currentTarget.style.transform = 'translateY(-50%)';
+                  }}
+                  aria-label="Foto sebelumnya"
+                  title="Foto sebelumnya (←)"
+                >
+                  ‹
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    nextModalPhoto();
+                  }}
+                  style={{
+                    position: 'absolute',
+                    right: 20,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    width: 48,
+                    height: 48,
+                    borderRadius: '50%',
+                    border: '2px solid rgba(255, 255, 255, 0.9)',
+                    background: 'rgba(0, 0, 0, 0.5)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    fontSize: 24,
+                    fontWeight: 600,
+                    color: '#ffffff',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                    zIndex: 10,
+                    transition: 'background 0.2s ease, transform 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(0, 0, 0, 0.7)';
+                    e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'rgba(0, 0, 0, 0.5)';
+                    e.currentTarget.style.transform = 'translateY(-50%)';
+                  }}
+                  aria-label="Foto berikutnya"
+                  title="Foto berikutnya (→)"
+                >
+                  ›
+                </button>
+                <div
+                  style={{
+                    position: 'absolute',
+                    bottom: 20,
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '8px 16px',
+                    borderRadius: 20,
+                    background: 'rgba(0, 0, 0, 0.6)',
+                    backdropFilter: 'blur(8px)',
+                    zIndex: 10
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {randomPhotos.map((_, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setModalPhotoIndex(idx);
+                        setModalImgSrc(randomPhotos[idx]);
+                      }}
+                      style={{
+                        width: idx === modalPhotoIndex ? 24 : 8,
+                        height: 8,
+                        borderRadius: 4,
+                        border: 'none',
+                        background: idx === modalPhotoIndex ? '#ffffff' : 'rgba(255, 255, 255, 0.5)',
+                        cursor: 'pointer',
+                        padding: 0,
+                        transition: 'width 0.2s ease, background 0.2s ease'
+                      }}
+                      aria-label={`Foto ${idx + 1}`}
+                    />
+                  ))}
+                </div>
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 20,
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    padding: '6px 12px',
+                    borderRadius: 16,
+                    background: 'rgba(0, 0, 0, 0.6)',
+                    backdropFilter: 'blur(8px)',
+                    color: '#ffffff',
+                    fontSize: 14,
+                    fontWeight: 500,
+                    zIndex: 10
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {modalPhotoIndex + 1} / {randomPhotos.length}
+                </div>
+              </>
+            )}
+          </div>
+>>>>>>> cursor/tambahkan-kartu-foto-irigasi-acak-02e5
         ) : null}
       </div>
     </main>
