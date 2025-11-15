@@ -57,7 +57,7 @@ export async function middleware(req: NextRequest) {
       const redirectUrl = new URL(redirectTarget, req.nextUrl.origin)
       return NextResponse.redirect(redirectUrl)
     }
-    return res
+    return response
   }
 
   if (pathname.startsWith('/map') || pathname.startsWith('/dashboard')) {
@@ -71,7 +71,7 @@ export async function middleware(req: NextRequest) {
     }
   }
 
-  return res
+  return response
 }
 
 export const config = {

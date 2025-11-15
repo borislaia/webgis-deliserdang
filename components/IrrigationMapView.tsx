@@ -374,7 +374,8 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
           // detect admin role
           try {
             const { data } = await supabase.auth.getUser();
-            setIsAdmin(((data.user?.app_metadata as any)?.role) === 'admin');
+            const appMetadata = data.user?.app_metadata as { role?: string }
+            setIsAdmin(appMetadata?.role === 'admin');
           } catch {}
 
         // 1) Load GeoJSON paths via manifest (CDN) dengan fallback

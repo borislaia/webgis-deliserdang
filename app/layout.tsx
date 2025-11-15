@@ -51,7 +51,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             })();
           `}
         </Script>
-        </ErrorBoundary>
+        </ErrorBoundaryWrapper>
       </body>
     </html>
   )
