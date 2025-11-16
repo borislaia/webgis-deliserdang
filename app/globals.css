@@ -27,7 +27,8 @@
 .float-panel{ width:100%; flex:1 1 0%; min-height:0; overflow-y:auto; overflow-x:hidden; padding:14px; scrollbar-width:none; -ms-overflow-style:none; position:relative; }
 .float-panel::-webkit-scrollbar{ display:none; }
 /* Photo slider card - card foto dengan fixed height, tidak grow/shrink di map-side-column */
-.map-side-column .photo-slider-card{ width:100%; flex:0 0 350px; height:350px; min-height:350px; max-height:350px; overflow:hidden; position:relative; flex-shrink:0; }
+.map-side-column .photo-slider-card{ width:100%; flex:0 0 auto; height:fit-content; min-height:auto; max-height:none; overflow:visible; position:relative; flex-shrink:0; box-sizing:border-box; display:flex; flex-direction:column; }
+.map-side-column .photo-slider-card > *{ flex-shrink:0; }
 /* Photo slider card generic (jika digunakan di luar map-side-column) */
 .photo-slider-card{ width:100%; max-height:350px; overflow:hidden; position:relative; }
 @media (max-width:640px){
@@ -35,6 +36,7 @@
 }
 .float-controls{ position:absolute; left:16px; top:16px; display:flex; flex-direction:column; gap:8px; }
 .float-card{ padding:12px; }
+.map-side-column .photo-slider-card.float-card{ padding:12px; }
 .badge{ font-size:12px; padding:4px 8px; border-radius:999px; background:rgba(10,132,255,0.15); color:#0a84ff; border:1px solid rgba(10,132,255,0.25); }
 .badge--right{ margin-left:auto; }
 .legend{ display:flex; flex-direction:column; gap:8px; }
