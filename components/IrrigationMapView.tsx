@@ -1718,7 +1718,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
   };
 
   const photoSliderCard = !activeKdi ? null : (
-    <div className="float-card card photo-slider-card" style={{ width: '100%', maxHeight: '350px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+    <div className="float-card card photo-slider-card" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       {photosLoading ? (
         <div style={{ fontSize: 13, color: '#6b7280', textAlign: 'center', padding: '20px 0' }}>
           Memuat foto...
