@@ -21,15 +21,15 @@
 .form-row{ display:flex; flex-direction:column; gap:8px; }
 .error-message{ color:#dc2626; margin-top:10px; padding:12px; background:#fef2f2; border:1px solid #fecaca; border-radius:8px; font-size:14px; }
 .map-container{ position:fixed; inset:0; }
-.map-side-column{ position:absolute; right:16px; top:16px; bottom:16px; width:min(280px,calc(100vw - 32px)); display:flex; flex-direction:column; gap:16px; z-index:2; pointer-events:none; }
-.map-side-column > *{ pointer-events:auto; }
+.map-side-column{ position:absolute; right:16px; top:16px; bottom:16px; width:min(280px,calc(100vw - 32px)); display:flex; flex-direction:column; gap:16px; z-index:2; pointer-events:none; align-items:stretch; }
+.map-side-column > *{ pointer-events:auto; position:relative; flex-shrink:0; }
 /* Float panel - panel yang bisa scroll, mengisi ruang tersisa di map-side-column */
-.float-panel{ width:100%; flex:1 1 0%; min-height:0; overflow-y:auto; overflow-x:hidden; padding:14px; scrollbar-width:none; -ms-overflow-style:none; }
+.float-panel{ width:100%; flex:1 1 0%; min-height:0; overflow-y:auto; overflow-x:hidden; padding:14px; scrollbar-width:none; -ms-overflow-style:none; position:relative; }
 .float-panel::-webkit-scrollbar{ display:none; }
 /* Photo slider card - card foto dengan fixed height, tidak grow/shrink di map-side-column */
-.map-side-column .photo-slider-card{ width:100%; flex:0 0 350px; height:350px; min-height:350px; max-height:350px; overflow:hidden; }
+.map-side-column .photo-slider-card{ width:100%; flex:0 0 350px; height:350px; min-height:350px; max-height:350px; overflow:hidden; position:relative; flex-shrink:0; }
 /* Photo slider card generic (jika digunakan di luar map-side-column) */
-.photo-slider-card{ width:100%; max-height:350px; overflow:hidden; }
+.photo-slider-card{ width:100%; max-height:350px; overflow:hidden; position:relative; }
 @media (max-width:640px){
   .map-side-column{ left:16px; width:calc(100vw - 32px); }
 }
