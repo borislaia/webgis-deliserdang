@@ -1354,7 +1354,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
         gallery.style.width = '100%';
         
         // Store handlers for cleanup
-        const photoHandlers: Array<{ element: HTMLElement; handler: (e: Event) => void }> = [];
+        const photoHandlers: Array<{ element: HTMLElement; handler: (e: Event) => void; type: string }> = [];
         
         allPhotos.slice(0, 6).forEach((url, index) => {
           const imgWrapper = document.createElement('div');
