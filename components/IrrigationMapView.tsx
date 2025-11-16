@@ -1954,7 +1954,13 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
           title="Buka panel layer"
         >
           <span className="float-panel-toggle__logo" aria-hidden="true">
-            <Image src="/assets/icons/openlayers.png" alt="OpenLayers" width={24} height={24} />
+            <Image 
+              src="/assets/icons/openlayers.png" 
+              alt="OpenLayers" 
+              width={36} 
+              height={36}
+              style={{ background: 'transparent' }}
+            />
           </span>
         </button>
         ) : (
