@@ -1718,7 +1718,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
   };
 
   const photoSliderCard = !activeKdi ? null : (
-    <div className="float-card card photo-slider-card" style={{ display: 'flex', flexDirection: 'column', gap: 0, height: 'fit-content' }}>
+    <div className="float-card card photo-slider-card" style={{ display: 'flex', flexDirection: 'column', gap: 0, height: 'fit-content', zIndex: 3, order: 2 }}>
       {photosLoading ? (
         <div style={{ fontSize: 13, color: '#6b7280', textAlign: 'center', padding: '20px 0' }}>
           Memuat foto...
@@ -1959,7 +1959,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
         </button>
         ) : (
           <div className="map-side-column">
-            <div className="float-panel card float-card scroll-silent" style={{ zIndex: 2 }}>
+            <div className="float-panel card float-card scroll-silent" style={{ zIndex: 1 }}>
               <div className="panel-header">
                 <button
                   type="button"
