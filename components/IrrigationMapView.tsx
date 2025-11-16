@@ -441,7 +441,15 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
           const popupClickHandler = (e: Event) => {
             // Allow clicks on images and their wrappers to propagate to their handlers
             const target = e.target as HTMLElement;
-            if (target.tagName === 'IMG' || target.closest('img') || target.closest('[data-photo-wrapper]')) {
+            // Check for photo-related elements more thoroughly
+            if (
+              target.tagName === 'IMG' || 
+              target.closest('img') || 
+              target.closest('[data-photo-wrapper]') ||
+              target.closest('[data-photo-gallery]') ||
+              target.hasAttribute('data-photo-wrapper') ||
+              target.hasAttribute('data-photo-gallery')
+            ) {
               return; // Don't stop propagation for images and photo wrappers
             }
             e.stopPropagation();
@@ -450,15 +458,24 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
           const popupMousedownHandler = (e: Event) => {
             // Allow mousedown on images and their wrappers to propagate to their handlers
             const target = e.target as HTMLElement;
-            if (target.tagName === 'IMG' || target.closest('img') || target.closest('[data-photo-wrapper]')) {
+            // Check for photo-related elements more thoroughly
+            if (
+              target.tagName === 'IMG' || 
+              target.closest('img') || 
+              target.closest('[data-photo-wrapper]') ||
+              target.closest('[data-photo-gallery]') ||
+              target.hasAttribute('data-photo-wrapper') ||
+              target.hasAttribute('data-photo-gallery')
+            ) {
               return; // Don't stop propagation for images and photo wrappers
             }
             e.stopPropagation();
           };
           
           // Prevent map click events when clicking inside popup (except for images)
-          popupEl.addEventListener('click', popupClickHandler, false);
-          popupEl.addEventListener('mousedown', popupMousedownHandler, false);
+          // Use capture phase to check early, but don't stop propagation for photos
+          popupEl.addEventListener('click', popupClickHandler, { capture: false });
+          popupEl.addEventListener('mousedown', popupMousedownHandler, { capture: false });
           
           // Store handlers on element for cleanup
           (popupEl as any)._popupClickHandler = popupClickHandler;
@@ -1316,8 +1333,13 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
         if (existingGallery) {
           const existingHandlers = (existingGallery as any)._photoHandlers || [];
           existingHandlers.forEach((handler: any) => {
-            if (handler.element && handler.handler) {
-              handler.element.removeEventListener('click', handler.handler);
+            if (handler.element && handler.handler && handler.type) {
+              // Remove handler with correct event type and options
+              handler.element.removeEventListener(handler.type, handler.handler, { capture: true });
+              // Also clear onclick handler if it's an img or wrapper element
+              if (handler.type === 'click' && (handler.element.tagName === 'IMG' || handler.element.hasAttribute('data-photo-wrapper'))) {
+                handler.element.onclick = null;
+              }
             }
           });
           existingGallery.remove();
@@ -1332,7 +1354,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
         gallery.style.width = '100%';
         
         // Store handlers for cleanup
-        const photoHandlers: Array<{ element: HTMLElement; handler: (e: Event) => void }> = [];
+        const photoHandlers: Array<{ element: HTMLElement; handler: (e: Event) => void; type: string }> = [];
         
         allPhotos.slice(0, 6).forEach((url, index) => {
           const imgWrapper = document.createElement('div');
@@ -1367,19 +1389,34 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
             e.preventDefault();
             e.stopImmediatePropagation(); // Prevent other handlers from interfering
             // Use index directly instead of indexOf to avoid closure issues
-            setTimeout(() => {
-              photoModalRef.current.openModal(allPhotos, index, 'popup');
-            }, 0);
+            // Call directly without setTimeout to ensure it runs immediately
+            const currentPhotoModal = photoModalRef.current;
+            if (currentPhotoModal && allPhotos.length > 0 && index >= 0 && index < allPhotos.length) {
+              currentPhotoModal.openModal(allPhotos, index, 'popup');
+            }
           };
 
-          // Add handler once with capture phase
-          img.addEventListener('click', openModalHandler, { capture: true });
-          imgWrapper.addEventListener('click', openModalHandler, { capture: true });
+          // Also set onclick directly as fallback to ensure handler always works
+          img.onclick = openModalHandler;
+          imgWrapper.onclick = openModalHandler;
+
+          // Add handler with capture phase to ensure it runs before popup handlers
+          img.addEventListener('click', openModalHandler, { capture: true, once: false });
+          imgWrapper.addEventListener('click', openModalHandler, { capture: true, once: false });
           
-          // Store handlers for cleanup
+          // Also add mousedown handler as fallback to prevent popup handler from interfering
+          const mousedownHandler = (e: Event) => {
+            e.stopPropagation();
+          };
+          img.addEventListener('mousedown', mousedownHandler, { capture: true });
+          imgWrapper.addEventListener('mousedown', mousedownHandler, { capture: true });
+          
+          // Store handlers for cleanup with event type info
           photoHandlers.push(
-            { element: img, handler: openModalHandler },
-            { element: imgWrapper, handler: openModalHandler }
+            { element: img, handler: openModalHandler, type: 'click' },
+            { element: imgWrapper, handler: openModalHandler, type: 'click' },
+            { element: img, handler: mousedownHandler, type: 'mousedown' },
+            { element: imgWrapper, handler: mousedownHandler, type: 'mousedown' }
           );
 
           imgWrapper.appendChild(img);
@@ -1416,8 +1453,13 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
           if (existingGallery) {
             const existingHandlers = (existingGallery as any)._photoHandlers || [];
             existingHandlers.forEach((handler: any) => {
-              if (handler.element && handler.handler) {
-                handler.element.removeEventListener('click', handler.handler);
+              if (handler.element && handler.handler && handler.type) {
+                // Remove handler with correct event type and options
+                handler.element.removeEventListener(handler.type, handler.handler, { capture: true });
+                // Also clear onclick handler if it's an img or wrapper element
+                if (handler.type === 'click' && (handler.element.tagName === 'IMG' || handler.element.hasAttribute('data-photo-wrapper'))) {
+                  handler.element.onclick = null;
+                }
               }
             });
           }
