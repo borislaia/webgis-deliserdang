@@ -1,13 +1,12 @@
 import { NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { createClient } from '@supabase/supabase-js'
+import { createServerSupabase } from '@/lib/supabase/server'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
 async function ensureAdmin() {
-  const supabase = createRouteHandlerClient({ cookies })
+  const supabase = createServerSupabase()
   const {
     data: { user },
     error,
