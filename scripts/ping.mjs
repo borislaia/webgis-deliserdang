@@ -1,5 +1,23 @@
 
 import { createClient } from '@supabase/supabase-js'
+import fs from 'fs'
+import path from 'path'
+
+// Load env from .env.local if available (for local testing)
+try {
+    const envPath = path.resolve(process.cwd(), '.env.local')
+    if (fs.existsSync(envPath)) {
+        const envContent = fs.readFileSync(envPath, 'utf-8')
+        envContent.split('\n').forEach(line => {
+            const [key, value] = line.split('=')
+            if (key && value) {
+                process.env[key.trim()] = value.trim()
+            }
+        })
+    }
+} catch (e) {
+    // Ignore error if .env.local doesn't exist or fails (e.g. in CI)
+}
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
 const SUPABASE_KEY = process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
