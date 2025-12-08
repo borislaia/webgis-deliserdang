@@ -1,0 +1,27 @@
+name: Keep Supabase Active
+
+on:
+  schedule:
+    - cron: '0 9 * * *' # Runs at 09:00 UTC every day
+  workflow_dispatch:
+
+jobs:
+  ping:
+    name: Ping Supabase Database
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Ping Script
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: node scripts/ping.mjs
