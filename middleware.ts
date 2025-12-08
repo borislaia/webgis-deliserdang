@@ -1,53 +1,74 @@
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
-import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
+import { createServerClient } from '@supabase/ssr'
+import { NextResponse, type NextRequest } from 'next/server'
 
-function resolveSafeRedirect(raw: string | null | undefined, fallback = '/dashboard') {
-  if (!raw) return fallback
-  let decoded = raw
-  try {
-    decoded = decodeURIComponent(raw)
-  } catch {}
-  if (!decoded.startsWith('/') || decoded.startsWith('//')) return fallback
-  return decoded
-}
-
-export async function middleware(req: NextRequest) {
-  const res = NextResponse.next()
-  const { pathname } = req.nextUrl
+export async function middleware(request: NextRequest) {
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  })
 
   // Bypass auth saat Preview (Vercel) atau ketika flag eksplisit diaktifkan
   if (process.env.VERCEL_ENV === 'preview' || process.env.NEXT_PUBLIC_BYPASS_AUTH === 'true') {
-    return res
+    return response
   }
 
-  // Refresh session if needed and get it
-  const supabase = createMiddlewareClient({ req, res })
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
-
-  if (pathname === '/login') {
-    if (session) {
-      const redirectTarget = resolveSafeRedirect(req.nextUrl.searchParams.get('redirect'), '/dashboard')
-      const redirectUrl = new URL(redirectTarget, req.nextUrl.origin)
-      return NextResponse.redirect(redirectUrl)
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll()
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
+          response = NextResponse.next({
+            request: {
+              headers: request.headers,
+            },
+          })
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          )
+        },
+      },
     }
-    return res
+  )
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  const { pathname } = request.nextUrl
+
+  // AUTH LOGIC
+  if (pathname === '/login') {
+    if (user) {
+      const redirectTarget = request.nextUrl.searchParams.get('redirect')
+      if (redirectTarget) {
+        // Basic safety check: ensure redirect starts with / but not //
+        const decoded = decodeURIComponent(redirectTarget)
+        if (decoded.startsWith('/') && !decoded.startsWith('//')) {
+          return NextResponse.redirect(new URL(decoded, request.url))
+        }
+      }
+      return NextResponse.redirect(new URL('/dashboard', request.url))
+    }
+    return response
   }
 
   if (pathname.startsWith('/map') || pathname.startsWith('/dashboard')) {
-    if (!session) {
-      const url = req.nextUrl.clone()
+    if (!user) {
+      const url = request.nextUrl.clone()
       url.pathname = '/login'
-      // Preserve full path + query so we can return to the exact map view after login
-      const fullPathWithQuery = `${req.nextUrl.pathname}${req.nextUrl.search}`
+      const fullPathWithQuery = `${request.nextUrl.pathname}${request.nextUrl.search}`
       url.searchParams.set('redirect', encodeURIComponent(fullPathWithQuery))
       return NextResponse.redirect(url)
     }
   }
 
-  return res
+  return response
 }
 
 export const config = {
