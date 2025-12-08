@@ -24,8 +24,20 @@ async function checkContent() {
     if (geojsonError) {
         console.error('Error listing "geojson":', geojsonError.message)
     } else {
-        console.log(`"geojson" bucket contains ${geojsonFiles.length} items.`)
-        if (geojsonFiles.length > 0) console.log('Sample:', geojsonFiles[0].name)
+        console.log(`"geojson" bucket root items: ${geojsonFiles.length}`)
+        geojsonFiles.forEach(item => {
+            console.log(` - ${item.name} (${item.metadata ? 'File' : 'Folder?'})`)
+            // If it looks like a folder (no extension, integer-like), try to list inside
+            if (!item.name.includes('.')) {
+                supabase.storage.from('geojson').list(item.name).then(({ data }) => {
+                    if (data && data.length > 0) {
+                        console.log(`   Inside ${item.name}:`, data.map(f => f.name).join(', '))
+                    } else {
+                        console.log(`   Inside ${item.name}: [Empty or Error]`)
+                    }
+                })
+            }
+        })
     }
 
     console.log('Checking "images" bucket content...')
