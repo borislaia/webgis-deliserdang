@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   },
 }
 
-const VantaFog = dynamic(() => import('@/components/VantaFog'), { ssr: false })
+const BackgroundManager = dynamic(() => import('@/components/backgrounds/BackgroundManager'), { ssr: false })
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   // Apply Vanta on all pages except /map
@@ -27,7 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body className={inter.className}>
-        {showVanta && <VantaFog />}
+        {showVanta && <BackgroundManager defaultBackground="gradient" allowSwitch={true} />}
         {children}
         <SpeedInsights />
         {/* Sync Supabase client events to server cookies */}

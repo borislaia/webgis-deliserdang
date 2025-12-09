@@ -82,8 +82,18 @@ export default function IrrigationManagementView({ isAdmin }: IrrigationManageme
       return;
     }
 
+    console.log('=== DEBUG UPDATE ===');
     console.log('Saving data:', formData);
     console.log('Selected DI ID:', selectedDI.id);
+    console.log('isAdmin:', isAdmin);
+
+    // Check session and user
+    const { data: sessionData } = await supabase.auth.getSession();
+    const user = sessionData?.session?.user;
+    console.log('User:', user);
+    console.log('User app_metadata:', user?.app_metadata);
+    console.log('User user_metadata:', user?.user_metadata);
+    console.log('Session:', sessionData?.session);
 
     try {
       const { data, error } = await supabase
@@ -98,12 +108,19 @@ export default function IrrigationManagementView({ isAdmin }: IrrigationManageme
       }
 
       console.log('Update result:', data);
-      alert('Data berhasil disimpan');
+      console.log('Update result length:', data?.length);
+
+      if (!data || data.length === 0) {
+        alert('⚠️ Update gagal: Tidak ada data yang ter-update.\n\nKemungkinan penyebab:\n1. RLS Policy di Supabase memblokir UPDATE\n2. User tidak punya permission\n\nSilakan cek Supabase Dashboard > Authentication > Policies');
+        return;
+      }
+
+      alert('✅ Data berhasil disimpan');
       await fetchDIList();
       setSelectedDI({ ...selectedDI, ...formData } as DaerahIrigasi);
     } catch (e: any) {
       console.error('Save error:', e);
-      alert(`Gagal menyimpan: ${e.message}`);
+      alert(`❌ Gagal menyimpan: ${e.message}`);
     }
   };
 

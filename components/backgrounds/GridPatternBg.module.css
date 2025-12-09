@@ -1,0 +1,86 @@
+.container {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: -1;
+    overflow: hidden;
+    background: linear-gradient(to bottom, #f8fafc, #e2e8f0);
+}
+
+.gridPattern {
+    position: absolute;
+    inset: 0;
+    background-image:
+        linear-gradient(to right, rgba(148, 163, 184, 0.1) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(148, 163, 184, 0.1) 1px, transparent 1px);
+    background-size: 40px 40px;
+    mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 0%, transparent 100%);
+    -webkit-mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 0%, transparent 100%);
+}
+
+.gradientOverlay {
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(circle at 30% 20%, rgba(99, 102, 241, 0.12) 0%, transparent 40%),
+        radial-gradient(circle at 70% 60%, rgba(168, 85, 247, 0.1) 0%, transparent 40%),
+        radial-gradient(circle at 50% 80%, rgba(59, 130, 246, 0.08) 0%, transparent 40%);
+}
+
+.spotlights {
+    position: absolute;
+    inset: 0;
+}
+
+.spotlight {
+    position: absolute;
+    width: 600px;
+    height: 600px;
+    border-radius: 50%;
+    background: radial-gradient(circle,
+            rgba(99, 102, 241, 0.15) 0%,
+            rgba(168, 85, 247, 0.1) 30%,
+            transparent 70%);
+    filter: blur(40px);
+    animation: float 20s ease-in-out infinite;
+    transform: translate(-50%, -50%);
+}
+
+.spotlight:nth-child(1) {
+    animation-delay: 0s;
+    animation-duration: 18s;
+}
+
+.spotlight:nth-child(2) {
+    animation-delay: 5s;
+    animation-duration: 22s;
+}
+
+.spotlight:nth-child(3) {
+    animation-delay: 10s;
+    animation-duration: 20s;
+}
+
+@keyframes float {
+
+    0%,
+    100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 0.8;
+    }
+
+    25% {
+        transform: translate(-45%, -55%) scale(1.1);
+        opacity: 1;
+    }
+
+    50% {
+        transform: translate(-55%, -50%) scale(0.95);
+        opacity: 0.7;
+    }
+
+    75% {
+        transform: translate(-50%, -45%) scale(1.05);
+        opacity: 0.9;
+    }
+}
