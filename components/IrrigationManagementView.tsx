@@ -65,7 +65,11 @@ export default function IrrigationManagementView({ isAdmin }: IrrigationManageme
 
   // Handle Form Change (Edit)
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value, type } = e.target;
+    setFormData({
+      ...formData,
+      [name]: type === 'number' ? (value === '' ? 0 : parseFloat(value)) : value
+    });
   };
 
   // Handle Save (Edit)
@@ -78,17 +82,27 @@ export default function IrrigationManagementView({ isAdmin }: IrrigationManageme
       return;
     }
 
+    console.log('Saving data:', formData);
+    console.log('Selected DI ID:', selectedDI.id);
+
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('daerah_irigasi')
         .update(formData)
-        .eq('id', selectedDI.id);
+        .eq('id', selectedDI.id)
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
+
+      console.log('Update result:', data);
       alert('Data berhasil disimpan');
-      fetchDIList();
+      await fetchDIList();
       setSelectedDI({ ...selectedDI, ...formData } as DaerahIrigasi);
     } catch (e: any) {
+      console.error('Save error:', e);
       alert(`Gagal menyimpan: ${e.message}`);
     }
   };
