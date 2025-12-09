@@ -1,388 +1,386 @@
 "use client";
 import { useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import * as XLSX from 'xlsx';
-
-function classNames(...parts: Array<string | false | undefined>) {
-  return parts.filter(Boolean).join(' ');
-}
+import styles from './IrrigationManagementView.module.css';
+import StorageManager from './StorageManager';
 
 type IrrigationManagementViewProps = {
   isAdmin: boolean;
 };
 
+// Define DI Type
+interface DaerahIrigasi {
+  id: string;
+  k_di: string;
+  n_di: string;
+  luas_ha: number;
+  kecamatan: string;
+  desa_kel: string;
+  sumber_air: string;
+  tahun_data: string;
+}
+
 export default function IrrigationManagementView({ isAdmin }: IrrigationManagementViewProps) {
   const supabase = useMemo(() => createClient(), []);
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'import' | 'import-excel' | 'saluran' | 'ruas' | 'bangunan'>('overview');
+  // State
+  const [diList, setDiList] = useState<DaerahIrigasi[]>([]);
+  const [selectedDI, setSelectedDI] = useState<DaerahIrigasi | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState<'data' | 'images' | 'pdf' | 'geojson'>('data');
+  const [loading, setLoading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
-  // Reset tab ke overview jika bukan admin dan sedang di tab import
-  useEffect(() => {
-    if (!isAdmin && (activeTab === 'import' || activeTab === 'import-excel')) {
-      setActiveTab('overview');
-    }
-  }, [isAdmin, activeTab]);
+  // Form State
+  const [formData, setFormData] = useState<Partial<DaerahIrigasi>>({});
 
-  const [kodeDI, setKodeDI] = useState('');
-  const [bangunanFile, setBangunanFile] = useState<File | null>(null);
-  const [saluranFile, setSaluranFile] = useState<File | null>(null);
-  const [fungsionalFile, setFungsionalFile] = useState<File | null>(null);
+  // Create Modal State
+  const [isCreating, setIsCreating] = useState(false);
+  const [createForm, setCreateForm] = useState<Partial<DaerahIrigasi>>({
+    k_di: '', n_di: '', kecamatan: '', desa_kel: '' // Defaults
+  });
 
-  const [message, setMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
-  const [importing, setImporting] = useState(false);
-
-  const [diList, setDiList] = useState<any[] | null>(null);
-  const [saluranList, setSaluranList] = useState<any[] | null>(null);
-  const [ruasList, setRuasList] = useState<any[] | null>(null);
-  const [bangunanList, setBangunanList] = useState<any[] | null>(null);
-
-  useEffect(() => {
-    if (activeTab === 'overview') {
-      (async () => {
-        try {
-          const { data, error } = await supabase
-            .from('daerah_irigasi')
-            .select('id,k_di,n_di,luas_ha,kecamatan,desa_kel,sumber_air,tahun_data')
-            .limit(50);
-          if (error) throw error;
-          setDiList(data || []);
-        } catch (e: any) {
-          setDiList([]);
-        }
-      })();
-    }
-    if (activeTab === 'saluran') {
-      (async () => {
-        try {
-          const { data, error } = await supabase
-            .from('saluran')
-            .select('id,no_saluran,nama,jenis,panjang_total,luas_layanan,urutan')
-            .order('urutan', { ascending: true })
-            .limit(100);
-          if (error) throw error;
-          setSaluranList(data || []);
-        } catch {
-          setSaluranList([]);
-        }
-      })();
-    }
-    if (activeTab === 'ruas') {
-      (async () => {
-        try {
-          const { data, error } = await supabase
-            .from('ruas')
-            .select('id,no_ruas,urutan,panjang')
-            .order('urutan', { ascending: true })
-            .limit(100);
-          if (error) throw error;
-          setRuasList(data || []);
-        } catch {
-          setRuasList([]);
-        }
-      })();
-    }
-    if (activeTab === 'bangunan') {
-      (async () => {
-        try {
-          const { data, error } = await supabase
-            .from('bangunan')
-            .select('id,nama,tipe,latitude,longitude,urutan_di_saluran')
-            .order('urutan_di_saluran', { ascending: true })
-            .limit(100);
-          if (error) throw error;
-          setBangunanList(data || []);
-        } catch {
-          setBangunanList([]);
-        }
-      })();
-    }
-  }, [activeTab, supabase]);
-
-  const readJsonFile = async (file: File | null) => {
-    if (!file) return null as any;
-    const text = await file.text();
-    return JSON.parse(text);
+  // Fetch List
+  const fetchDIList = async () => {
+    setLoading(true);
+    const { data } = await supabase
+      .from('daerah_irigasi')
+      .select('id,k_di,n_di,luas_ha,kecamatan,desa_kel,sumber_air,tahun_data')
+      .order('n_di');
+    setDiList(data || []);
+    setLoading(false);
   };
 
-  const importGeoJson = async () => {
-    if (importing) return;
-    setMessage(null);
-    setImporting(true);
+  useEffect(() => {
+    fetchDIList();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Handle Selection
+  const handleSelect = (di: DaerahIrigasi) => {
+    setSelectedDI(di);
+    setFormData(di);
+    setActiveTab('data');
+  };
+
+  // Handle Form Change (Edit)
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  // Handle Save (Edit)
+  const handleSave = async () => {
+    if (!selectedDI || !isAdmin) return;
+
+    // Validation
+    if (!formData.n_di || !formData.kecamatan || !formData.desa_kel) {
+      alert("Nama, Kecamatan, dan Desa/Kelurahan tidak boleh kosong.");
+      return;
+    }
+
     try {
-      if (!isAdmin) {
-        setMessage({ type: 'error', text: 'Hanya admin yang dapat melakukan import.' });
-        return;
-      }
-      const trimmedKode = kodeDI.trim();
-      if (!trimmedKode) {
-        setMessage({ type: 'error', text: 'Kode DI wajib diisi' });
-        return;
-      }
+      const { error } = await supabase
+        .from('daerah_irigasi')
+        .update(formData)
+        .eq('id', selectedDI.id);
 
-      const folderName = trimmedKode.replace(/[^0-9a-zA-Z_-]/g, '_');
-      if (!folderName) {
-        setMessage({ type: 'error', text: 'Kode DI tidak valid untuk nama folder' });
-        return;
-      }
+      if (error) throw error;
+      alert('Data berhasil disimpan');
+      fetchDIList();
+      setSelectedDI({ ...selectedDI, ...formData } as DaerahIrigasi);
+    } catch (e: any) {
+      alert(`Gagal menyimpan: ${e.message}`);
+    }
+  };
 
-      const uploadIfProvided = async (label: string, file: File | null) => {
-        if (!file) return;
-        const fileName = (file.name || '').trim() || `${label.toLowerCase()}.json`;
-        const path = `${folderName}/${fileName}`;
-        const { error } = await supabase.storage
-          .from('geojson')
-          .upload(path, file, {
-            upsert: true,
-            cacheControl: '3600',
-            contentType: file.type || 'application/json',
-          });
-        if (error) throw new Error(`Gagal mengunggah ${label}: ${error.message}`);
-      };
+  // Handle Create New (Submit)
+  const submitCreate = async () => {
+    if (!createForm.k_di || !createForm.n_di || !createForm.kecamatan || !createForm.desa_kel) {
+      alert("Mohon lengkapi semua field yang bertanda * (KODE, NAMA, KECAMATAN, DESA/KEL)");
+      return;
+    }
 
-      await Promise.all([
-        uploadIfProvided('Bangunan', bangunanFile),
-        uploadIfProvided('Saluran', saluranFile),
-        uploadIfProvided('Fungsional', fungsionalFile),
-      ]);
+    try {
+      const { data, error } = await supabase
+        .from('daerah_irigasi')
+        .insert({
+          ...createForm,
+          // Defaults for optional fields
+          luas_ha: createForm.luas_ha || 0,
+          sumber_air: createForm.sumber_air || '-',
+          tahun_data: createForm.tahun_data || new Date().getFullYear().toString()
+        })
+        .select()
+        .single();
 
-      const [bangunanData, saluranData, fungsionalData] = await Promise.all([
-        readJsonFile(bangunanFile),
-        readJsonFile(saluranFile),
-        readJsonFile(fungsionalFile),
-      ]);
+      if (error) throw error;
 
-      const { data: invokeData, error: invokeError } = await supabase.functions.invoke('import-irrigation-data', {
-        body: { action: 'import', k_di: trimmedKode, bangunanData, saluranData, fungsionalData },
+      alert('Daerah Irigasi berhasil dibuat!');
+      setIsCreating(false);
+      setCreateForm({ k_di: '', n_di: '', kecamatan: '', desa_kel: '' }); // Reset
+      await fetchDIList();
+      handleSelect(data as DaerahIrigasi);
+    } catch (e: any) {
+      alert(`Gagal membuat DI: ${e.message}`);
+    }
+  };
+
+  const handleDeleteDI = async () => {
+    if (!selectedDI || !confirm(`Yakin hapus ${selectedDI.n_di}? Ini akan menghapus data di database, namun file di Storage mungkin tersisa.`)) return;
+
+    const { error } = await supabase.from('daerah_irigasi').delete().eq('id', selectedDI.id);
+    if (error) {
+      alert(`Gagal: ${error.message}`);
+    } else {
+      setSelectedDI(null);
+      fetchDIList();
+    }
+  };
+
+  // Handle Sync (GeoJSON Process)
+  const handleSyncGeoJSON = async () => {
+    if (!selectedDI) return;
+    if (!confirm("Proses ini akan membaca file GeoJSON di storage dan memperbarui data Saluran & Bangunan di database. Lanjutkan?")) return;
+
+    setSyncing(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/import-irrigation-data`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token || ''}`
+        },
+        body: JSON.stringify({
+          action: 'process_di',
+          k_di: selectedDI.k_di
+        })
       });
-      if (invokeError) throw new Error(invokeError.message || 'Gagal import');
-      setMessage({ type: 'success', text: 'Import berhasil' });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || 'Unknown error');
+      alert('Sinkronisasi Berhasil: ' + (result.message || 'Data terupdate.'));
     } catch (e: any) {
-      setMessage({ type: 'error', text: e?.message || 'Terjadi kesalahan' });
+      alert(`Sinkronisasi Gagal: ${e.message}`);
     } finally {
-      setImporting(false);
+      setSyncing(false);
     }
   };
 
-  const onExcelSelected = async (file: File | null) => {
-    if (!file) return;
-    try {
-      const data = new Uint8Array(await file.arrayBuffer());
-      const workbook = XLSX.read(data, { type: 'array' });
-      const sheet = workbook.SheetNames[0];
-      const json = XLSX.utils.sheet_to_json(workbook.Sheets[sheet], { header: 1 });
-      setMessage({ type: 'success', text: `Excel dimuat (${sheet}, ${json.length} baris). Import Excel belum diimplementasikan.` });
-    } catch (e: any) {
-      setMessage({ type: 'error', text: e?.message || 'Gagal membaca Excel' });
-    }
-  };
+  // Filter list
+  const filteredList = diList.filter(d =>
+    d.n_di?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    d.k_di?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
-    <div style={{ maxWidth: 1400, margin: '0 auto' }}>
-      <h2 style={{ marginTop: 0 }}>Manajemen Data Irigasi</h2>
+    <div className={styles.container}>
+      <header className={styles.header}>
+        <h2 className={styles.headerTitle}>Manajemen Data Irigasi</h2>
+        {isAdmin && <button className="btn primary" onClick={() => setIsCreating(true)}>+ Tambah DI</button>}
+      </header>
 
-      {!isAdmin && (
-        <div className="info" style={{ marginBottom: 16 }}>
-          Anda masuk sebagai pengguna biasa. Data dapat dilihat, tetapi perubahan hanya bisa dilakukan oleh admin.
+      {/* CREATE MODAL */}
+      {isCreating && (
+        <div className="modal open">
+          <div className="card" style={{ width: '100%', maxWidth: 500, padding: 24, background: '#fff' }}>
+            <h3 style={{ marginTop: 0 }}>Tambah Daerah Irigasi Baru</h3>
+            <p className={styles.label} style={{ marginBottom: 20 }}>Isi form berikut untuk membuat data baru. Semua field bertanda * wajib diisi.</p>
+
+            <div className={styles.formGrid} style={{ gridTemplateColumns: '1fr' }}>
+              <div className={styles.field}>
+                <label className={styles.label}>Kode DI *</label>
+                <input
+                  className="input"
+                  value={createForm.k_di}
+                  onChange={(e) => setCreateForm({ ...createForm, k_di: e.target.value })}
+                  placeholder="Contoh: 12120008"
+                />
+              </div>
+              <div className={styles.field}>
+                <label className={styles.label}>Nama Daerah Irigasi *</label>
+                <input
+                  className="input"
+                  value={createForm.n_di}
+                  onChange={(e) => setCreateForm({ ...createForm, n_di: e.target.value })}
+                  placeholder="Nama DI"
+                />
+              </div>
+              <div className={styles.field}>
+                <label className={styles.label}>Kecamatan *</label>
+                <input
+                  className="input"
+                  value={createForm.kecamatan}
+                  onChange={(e) => setCreateForm({ ...createForm, kecamatan: e.target.value })}
+                />
+              </div>
+              <div className={styles.field}>
+                <label className={styles.label}>Desa / Kelurahan *</label>
+                <input
+                  className="input"
+                  value={createForm.desa_kel}
+                  onChange={(e) => setCreateForm({ ...createForm, desa_kel: e.target.value })}
+                />
+              </div>
+              <div className={styles.field}>
+                <label className={styles.label}>Luas (Ha)</label>
+                <input className="input" type="number" value={createForm.luas_ha || ''} onChange={(e) => setCreateForm({ ...createForm, luas_ha: parseFloat(e.target.value) })} />
+              </div>
+              <div className={styles.field}>
+                <label className={styles.label}>Sumber Air</label>
+                <input className="input" value={createForm.sumber_air || ''} onChange={(e) => setCreateForm({ ...createForm, sumber_air: e.target.value })} />
+              </div>
+              <div className={styles.field}>
+                <label className={styles.label}>Tahun Data</label>
+                <input className="input" value={createForm.tahun_data || ''} onChange={(e) => setCreateForm({ ...createForm, tahun_data: e.target.value })} />
+              </div>
+            </div>
+
+            <div className={styles.actions}>
+              <button className="btn" onClick={() => setIsCreating(false)}>Batal</button>
+              <button className="btn primary" onClick={submitCreate}>Simpan & Buat</button>
+            </div>
+          </div>
         </div>
       )}
 
-      {message && (
-        <div className={classNames(message.type === 'error' ? 'error' : 'success')}>
-          {message.text}
-        </div>
-      )}
-
-      <div className="tabs">
-        <button className={classNames('tab', activeTab === 'overview' && 'active')} onClick={() => setActiveTab('overview')}>Overview</button>
-        {isAdmin && (
-          <>
-            <button className={classNames('tab', activeTab === 'import' && 'active')} onClick={() => setActiveTab('import')}>Import GeoJSON</button>
-            <button className={classNames('tab', activeTab === 'import-excel' && 'active')} onClick={() => setActiveTab('import-excel')}>Import Excel</button>
-          </>
-        )}
-        <button className={classNames('tab', activeTab === 'saluran' && 'active')} onClick={() => setActiveTab('saluran')}>Saluran</button>
-        <button className={classNames('tab', activeTab === 'ruas' && 'active')} onClick={() => setActiveTab('ruas')}>Ruas</button>
-        <button className={classNames('tab', activeTab === 'bangunan' && 'active')} onClick={() => setActiveTab('bangunan')}>Bangunan</button>
-      </div>
-
-      {activeTab === 'overview' && (
-        <section className="tab-content active card" style={{ padding: 24 }}>
-          <h3>Daerah Irigasi</h3>
-          {!diList && <div className="loading">Loading...</div>}
-          {diList && (
-            <table className="data-table">
-              <thead>
-                  <tr>
-                    <th>KODE DI</th>
-                    <th>NAMA</th>
-                    <th>LUAS (HA)</th>
-                    <th>KECAMATAN</th>
-                    <th>DESA/KEL</th>
-                    <th>SUMBER AIR</th>
-                    <th>TAHUN DATA</th>
-                  </tr>
-              </thead>
-              <tbody>
-                {diList.map((row) => (
-                  <tr key={row.id}>
-                    <td>{row.k_di}</td>
-                    <td>{row.n_di}</td>
-                    <td>{row.luas_ha}</td>
-                    <td>{row.kecamatan}</td>
-                    <td>{row.desa_kel}</td>
-                    <td>{row.sumber_air}</td>
-                    <td>{row.tahun_data}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </section>
-      )}
-
-      {activeTab === 'import' && isAdmin && (
-        <section className="tab-content active card" style={{ padding: 24 }}>
-          <h3>Import Data dari GeoJSON</h3>
-          <div className="import-section">
-            <div className="form-group">
-              <label htmlFor="kodeDI">Kode Daerah Irigasi</label>
-              <input id="kodeDI" type="text" value={kodeDI} onChange={(e) => setKodeDI(e.target.value)} placeholder="e.g., 12120008" />
-            </div>
-            <div className="form-group">
-              <label>File Bangunan (JSON)</label>
-              <input type="file" accept=".json" onChange={(e) => setBangunanFile(e.target.files?.[0] || null)} />
-            </div>
-            <div className="form-group">
-              <label>File Saluran (JSON)</label>
-              <input type="file" accept=".json" onChange={(e) => setSaluranFile(e.target.files?.[0] || null)} />
-            </div>
-            <div className="form-group">
-              <label>File Fungsional (JSON)</label>
-              <input type="file" accept=".json" onChange={(e) => setFungsionalFile(e.target.files?.[0] || null)} />
-            </div>
-            <div className="btn-group">
-              <button className="btn primary" onClick={importGeoJson} disabled={importing}>
-                {importing ? 'Memproses...' : 'Import Data'}
-              </button>
-              <button
-                className="btn"
-                onClick={() => {
-                  setKodeDI('');
-                  setBangunanFile(null);
-                  setSaluranFile(null);
-                  setFungsionalFile(null);
-                  setMessage(null);
-                }}
-                disabled={importing}
+      <div className={styles.grid}>
+        {/* LEFT PANEL: LIST */}
+        <aside className={styles.listPanel}>
+          <div className={styles.searchBox}>
+            <input
+              className="input"
+              placeholder="Cari Nama atau Kode DI..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <div className={styles.listContainer}>
+            {loading ? <div>Loading...</div> : filteredList.map(di => (
+              <div
+                key={di.id}
+                className={`${styles.listItem} ${selectedDI?.id === di.id ? styles.active : ''}`}
+                onClick={() => handleSelect(di)}
               >
-                Clear
-              </button>
-            </div>
+                <div className={styles.itemTitle}>{di.n_di}</div>
+                <div className={styles.itemSubtitle}>
+                  <span>{di.k_di}</span>
+                  <span>{di.kecamatan}</span>
+                </div>
+              </div>
+            ))}
+            {!loading && filteredList.length === 0 && <div style={{ padding: 20, textAlign: 'center', color: '#888' }}>Tidak ditemukan</div>}
           </div>
-        </section>
-      )}
+        </aside>
 
-      {activeTab === 'import-excel' && isAdmin && (
-        <section className="tab-content active card" style={{ padding: 24 }}>
-          <h3>Import Data dari Excel</h3>
-          <div className="import-section">
-            <p style={{ marginBottom: 16 }}>Upload file Excel yang berisi data daerah irigasi, saluran, atau bangunan.</p>
-            <div className="form-group">
-              <label>File Excel (.xlsx)</label>
-              <input type="file" accept=".xlsx,.xls" onChange={(e) => onExcelSelected(e.target.files?.[0] || null)} />
+        {/* RIGHT PANEL: DETAIL */}
+        <main className={styles.detailPanel}>
+          {!selectedDI ? (
+            <div className={styles.emptyState}>
+              <h3>Pilih Daerah Irigasi</h3>
+              <p>Pilih item dari daftar di sebelah kiri untuk melihat detail dan mengelola aset.</p>
             </div>
-          </div>
-        </section>
-      )}
+          ) : (
+            <div className="card" style={{ padding: 24, minHeight: 600 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                <h2 style={{ margin: 0 }}>{selectedDI.n_di} <small style={{ color: 'var(--muted)', fontSize: '0.6em' }}>{selectedDI.k_di}</small></h2>
+                {isAdmin && <button className="btn" style={{ color: 'red', borderColor: 'red' }} onClick={handleDeleteDI}>Hapus DI</button>}
+              </div>
 
-      {activeTab === 'saluran' && (
-        <section className="tab-content active card" style={{ padding: 24 }}>
-          <h3>Daftar Saluran</h3>
-          {!saluranList && <div className="loading">Loading...</div>}
-          {saluranList && (
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>No</th>
-                  <th>Nama</th>
-                  <th>Jenis</th>
-                  <th>Panjang (m)</th>
-                  <th>Luas Layanan</th>
-                </tr>
-              </thead>
-              <tbody>
-                {saluranList.map((row) => (
-                  <tr key={row.id}>
-                    <td>{row.no_saluran}</td>
-                    <td>{row.nama}</td>
-                    <td>{row.jenis}</td>
-                    <td>{row.panjang_total}</td>
-                    <td>{row.luas_layanan}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </section>
-      )}
+              <div className={styles.tabs}>
+                <button className={`${styles.tab} ${activeTab === 'data' ? styles.active : ''}`} onClick={() => setActiveTab('data')}>Data Utama</button>
+                <button className={`${styles.tab} ${activeTab === 'images' ? styles.active : ''}`} onClick={() => setActiveTab('images')}>Galeri Foto</button>
+                <button className={`${styles.tab} ${activeTab === 'pdf' ? styles.active : ''}`} onClick={() => setActiveTab('pdf')}>Dokumen / Skema</button>
+                <button className={`${styles.tab} ${activeTab === 'geojson' ? styles.active : ''}`} onClick={() => setActiveTab('geojson')}>Peta Digital (GeoJSON)</button>
+              </div>
 
-      {activeTab === 'ruas' && (
-        <section className="tab-content active card" style={{ padding: 24 }}>
-          <h3>Daftar Ruas</h3>
-          {!ruasList && <div className="loading">Loading...</div>}
-          {ruasList && (
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>No Ruas</th>
-                  <th>Urutan</th>
-                  <th>Panjang (m)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {ruasList.map((row) => (
-                  <tr key={row.id}>
-                    <td>{row.no_ruas}</td>
-                    <td>{row.urutan}</td>
-                    <td>{row.panjang}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </section>
-      )}
+              {activeTab === 'data' && (
+                <div className={styles.formGrid}>
+                  <div className={styles.field}>
+                    <label className={styles.label}>Kode DI</label>
+                    <input className="input" name="k_di" value={formData.k_di || ''} readOnly disabled title="Kode DI tidak dapat diubah" />
+                  </div>
+                  <div className={styles.field}>
+                    <label className={styles.label}>Nama Daerah Irigasi</label>
+                    <input className="input" name="n_di" value={formData.n_di || ''} onChange={handleChange} disabled={!isAdmin} />
+                  </div>
+                  <div className={styles.field}>
+                    <label className={styles.label}>Luas (Ha)</label>
+                    <input className="input" type="number" name="luas_ha" value={formData.luas_ha || ''} onChange={handleChange} disabled={!isAdmin} />
+                  </div>
+                  <div className={styles.field}>
+                    <label className={styles.label}>Kecamatan</label>
+                    <input className="input" name="kecamatan" value={formData.kecamatan || ''} onChange={handleChange} disabled={!isAdmin} />
+                  </div>
+                  <div className={styles.field}>
+                    <label className={styles.label}>Desa / Kelurahan</label>
+                    <input className="input" name="desa_kel" value={formData.desa_kel || ''} onChange={handleChange} disabled={!isAdmin} />
+                  </div>
+                  <div className={styles.field}>
+                    <label className={styles.label}>Sumber Air</label>
+                    <input className="input" name="sumber_air" value={formData.sumber_air || ''} onChange={handleChange} disabled={!isAdmin} />
+                  </div>
+                  <div className={styles.field}>
+                    <label className={styles.label}>Tahun Data</label>
+                    <input className="input" name="tahun_data" value={formData.tahun_data || ''} onChange={handleChange} disabled={!isAdmin} />
+                  </div>
 
-      {activeTab === 'bangunan' && (
-        <section className="tab-content active card" style={{ padding: 24 }}>
-          <h3>Daftar Bangunan</h3>
-          {!bangunanList && <div className="loading">Loading...</div>}
-          {bangunanList && (
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Nama</th>
-                  <th>Tipe</th>
-                  <th>Latitude</th>
-                  <th>Longitude</th>
-                  <th>Urutan</th>
-                </tr>
-              </thead>
-              <tbody>
-                {bangunanList.map((row) => (
-                  <tr key={row.id}>
-                    <td>{row.nama}</td>
-                    <td>{row.tipe}</td>
-                    <td>{row.latitude}</td>
-                    <td>{row.longitude}</td>
-                    <td>{row.urutan_di_saluran}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                  {isAdmin && (
+                    <div className={styles.actions} style={{ gridColumn: '1 / -1' }}>
+                      <button className="btn primary" onClick={handleSave}>Simpan Perubahan</button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {activeTab === 'images' && (
+                <StorageManager
+                  bucketName="images"
+                  folderPath={selectedDI.k_di}
+                  acceptedTypes="image/*"
+                />
+              )}
+
+              {activeTab === 'pdf' && (
+                <div className={styles.storageSection}>
+                  <div style={{ marginBottom: 16, fontSize: '0.9em', color: '#666' }}>
+                    Upload file skema, buku pintar, atau dokumen pendukung lainnya (PDF).
+                  </div>
+                  <StorageManager
+                    bucketName="pdf"
+                    folderPath={selectedDI.k_di}
+                    acceptedTypes=".pdf"
+                  />
+                </div>
+              )}
+
+              {activeTab === 'geojson' && (
+                <div>
+                  {isAdmin && (
+                    <div style={{ background: '#f0f9ff', padding: 16, borderRadius: 8, marginBottom: 20, border: '1px solid #bae6fd' }}>
+                      <h4 style={{ marginTop: 0, color: '#0369a1' }}>Sinkronisasi Data Spasial</h4>
+                      <p style={{ fontSize: '0.9rem', color: '#0c4a6e' }}>
+                        Setelah mengupload file GeoJSON baru (Bangunan, Saluran, Fungsional), klik tombol sinkronisasi di bawah ini
+                        untuk memperbarui tabel database.
+                      </p>
+                      <button className="btn primary" onClick={handleSyncGeoJSON} disabled={syncing}>
+                        {syncing ? 'Sedang Memproses...' : '🔄 Sinkronisasi ke Database'}
+                      </button>
+                    </div>
+                  )}
+
+                  <h4 style={{ marginBottom: 10 }}>File GeoJSON</h4>
+                  <StorageManager
+                    bucketName="geojson"
+                    folderPath={selectedDI.k_di}
+                    acceptedTypes=".json,.geojson"
+                  />
+                </div>
+              )}
+
+            </div>
           )}
-        </section>
-      )}
+        </main>
+      </div>
     </div>
   );
 }
