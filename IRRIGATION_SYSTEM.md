@@ -253,6 +253,139 @@ Hasil:
 - Export data GeoJSON original sebagai backup
 - Sistem menyimpan data dalam format yang dapat di-export kembali
 
+## Manajemen File (StorageManager)
+
+Sistem dilengkapi dengan **StorageManager** untuk mengelola file-file terkait daerah irigasi, termasuk GeoJSON dan foto bangunan.
+
+### Fitur StorageManager
+
+#### 1. Upload File
+- **Drag & Drop** atau klik area dropzone untuk memilih file
+- Support **multiple file upload** sekaligus
+- Otomatis **overwrite** file dengan nama yang sama (upsert mode)
+- Support berbagai tipe file: gambar (JPG, PNG, WebP, GIF), PDF, GeoJSON
+
+#### 2. Download File
+- Klik tombol **⬇️ Download** pada setiap file
+- File akan didownload dengan nama aslinya
+- Bisa dibuka di tab baru untuk preview
+
+#### 3. Rename File
+- Klik tombol **✏️ Rename** pada file yang ingin diganti namanya
+- Masukkan nama baru di dialog prompt
+- **Penting**: Pastikan extension file tetap sama (contoh: `.jpg`, `.json`)
+- Sistem akan memindahkan file ke nama baru menggunakan Supabase Storage `move()` API
+
+#### 4. Delete File
+- Klik tombol **× Delete** untuk menghapus file
+- Konfirmasi akan muncul sebelum penghapusan
+- File akan dihapus permanen dari storage
+
+### Penggunaan Storage Buckets
+
+Sistem menggunakan 2 bucket utama di Supabase Storage:
+
+#### 1. Bucket `geojson`
+**Tujuan**: Menyimpan file GeoJSON untuk setiap daerah irigasi
+
+**Struktur Folder**:
+```
+geojson/
+├── 12120008/           (Kode DI)
+│   ├── Bangunan.json
+│   ├── Saluran.json
+│   └── Fungsional.json
+├── 12120009/
+│   ├── Bangunan.json
+│   ├── Saluran.json
+│   └── Fungsional.json
+```
+
+**Cara Akses**:
+- Di halaman Manajemen Irigasi, pilih daerah irigasi
+- Klik tab "GeoJSON Files"
+- Upload/download/rename/delete file GeoJSON
+
+**Sinkronisasi**:
+- Setelah upload GeoJSON baru, klik tombol **"Sync GeoJSON to Database"**
+- Sistem akan membaca file dari storage dan import ke database
+- Data lama akan di-replace dengan data baru dari GeoJSON
+
+#### 2. Bucket `bangunan-photos`
+**Tujuan**: Menyimpan foto-foto bangunan irigasi
+
+**Struktur Folder**:
+```
+bangunan-photos/
+├── 12120008/           (Kode DI)
+│   ├── bendung-1.jpg
+│   ├── bagi-sadap-2.jpg
+│   └── pintu-air-3.jpg
+├── 12120009/
+│   ├── foto-bangunan-1.jpg
+│   └── foto-bangunan-2.jpg
+```
+
+**Cara Akses**:
+- Di halaman Manajemen Irigasi, pilih daerah irigasi
+- Klik tab "Foto Bangunan"
+- Upload foto dengan format JPG, PNG, atau WebP
+- Foto dapat di-rename untuk menyesuaikan dengan nama bangunan
+
+**Best Practice**:
+- Gunakan nama file yang deskriptif (contoh: `bendung-utama.jpg`)
+- Ukuran file maksimal: 5MB per foto
+- Format yang disarankan: JPG atau WebP untuk efisiensi storage
+
+### Workflow GeoJSON Synchronization
+
+Berikut adalah alur kerja lengkap untuk sinkronisasi GeoJSON:
+
+1. **Upload GeoJSON Files**
+   - Upload 3 file: Bangunan.json, Saluran.json, Fungsional.json
+   - File disimpan di bucket `geojson/{kode_di}/`
+
+2. **Trigger Sync**
+   - Klik tombol "Sync GeoJSON to Database"
+   - Sistem akan fetch file dari storage
+
+3. **Proses Import Otomatis**
+   - Baca dan parse file GeoJSON
+   - Validasi struktur data
+   - Import ke tabel database:
+     - `bangunan` ← dari Bangunan.json
+     - `saluran` ← dari Saluran.json
+     - `fungsional` ← dari Fungsional.json
+   - Generate ruas otomatis berdasarkan bangunan
+
+4. **Update Statistik**
+   - Hitung total saluran, bangunan, panjang
+   - Update tabel `daerah_irigasi`
+
+5. **Verifikasi**
+   - Cek tab "Saluran", "Ruas", "Bangunan" untuk memastikan data terimport
+   - Lihat peta untuk visualisasi
+
+### Tips Manajemen File
+
+1. **Naming Convention**
+   - GeoJSON: `Bangunan.json`, `Saluran.json`, `Fungsional.json` (case-sensitive)
+   - Foto: gunakan nama deskriptif seperti `bendung-utama.jpg`
+
+2. **Versioning**
+   - Sebelum upload GeoJSON baru, download file lama sebagai backup
+   - Simpan di folder lokal dengan timestamp (contoh: `Bangunan_2024-12-09.json`)
+
+3. **Rename dengan Hati-hati**
+   - Pastikan extension tetap sama
+   - Jangan gunakan karakter spesial (/, \, :, *, ?, ", <, >, |)
+   - Gunakan underscore atau dash untuk spasi
+
+4. **Storage Quota**
+   - Monitor penggunaan storage di Supabase Dashboard
+   - Hapus file yang tidak terpakai
+   - Compress foto sebelum upload jika ukuran terlalu besar
+
 ## Troubleshooting
 
 ### Import Gagal

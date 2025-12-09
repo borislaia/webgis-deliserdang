@@ -4,11 +4,11 @@ import { usePathname } from 'next/navigation';
 import VantaFog from '../VantaFog';
 import ModernGradientBg from './ModernGradientBg';
 import GridPatternBg from './GridPatternBg';
-import MeshGradientBg from './MeshGradientBg';
-import DotPatternBg from './DotPatternBg';
+import DarkGradientBg from './DarkGradientBg';
+import DarkGridBg from './DarkGridBg';
 import WavePatternBg from './WavePatternBg';
 
-export type BackgroundType = 'vanta' | 'gradient' | 'grid' | 'mesh' | 'dots' | 'wave' | 'none';
+export type BackgroundType = 'vanta' | 'gradient' | 'grid' | 'dark-gradient' | 'dark-grid' | 'wave' | 'none';
 
 interface BackgroundManagerProps {
     defaultBackground?: BackgroundType;
@@ -47,10 +47,10 @@ export default function BackgroundManager({
                 return <ModernGradientBg />;
             case 'grid':
                 return <GridPatternBg />;
-            case 'mesh':
-                return <MeshGradientBg />;
-            case 'dots':
-                return <DotPatternBg />;
+            case 'dark-gradient':
+                return <DarkGradientBg />;
+            case 'dark-grid':
+                return <DarkGridBg />;
             case 'wave':
                 return <WavePatternBg />;
             case 'none':
@@ -72,16 +72,16 @@ export default function BackgroundManager({
             {allowSwitch && (
                 <div style={{
                     position: 'fixed',
-                    bottom: 20,
-                    right: 20,
+                    bottom: 10,
+                    right: 10,
                     zIndex: 100,
                     display: 'flex',
-                    gap: 8,
-                    padding: 12,
+                    gap: 4,
+                    padding: 6,
                     background: 'var(--card)',
                     border: '1px solid var(--stroke)',
-                    borderRadius: 16,
-                    boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
+                    borderRadius: 8,
+                    boxShadow: '0 5px 15px rgba(0,0,0,0.1)',
                     backdropFilter: 'blur(10px)',
                 }}>
                     <BackgroundButton
@@ -97,16 +97,16 @@ export default function BackgroundManager({
                         emoji="⚡"
                     />
                     <BackgroundButton
-                        active={currentBg === 'mesh'}
-                        onClick={() => handleBackgroundChange('mesh')}
-                        title="Mesh"
-                        emoji="✨"
+                        active={currentBg === 'dark-gradient'}
+                        onClick={() => handleBackgroundChange('dark-gradient')}
+                        title="Dark Gradient"
+                        emoji="🌙"
                     />
                     <BackgroundButton
-                        active={currentBg === 'dots'}
-                        onClick={() => handleBackgroundChange('dots')}
-                        title="Dots"
-                        emoji="🔵"
+                        active={currentBg === 'dark-grid'}
+                        onClick={() => handleBackgroundChange('dark-grid')}
+                        title="Dark Grid"
+                        emoji="🌑"
                     />
                     <BackgroundButton
                         active={currentBg === 'wave'}
@@ -148,19 +148,19 @@ function BackgroundButton({
             onClick={onClick}
             title={title}
             style={{
-                width: 44,
-                height: 44,
-                borderRadius: 12,
-                border: active ? '2px solid var(--brand)' : '1px solid var(--stroke)',
+                width: 22,
+                height: 22,
+                borderRadius: 6,
+                border: active ? '1px solid var(--brand)' : '1px solid var(--stroke)',
                 background: active ? 'var(--brand)' : '#fff',
                 color: active ? '#fff' : 'var(--text)',
-                fontSize: 20,
+                fontSize: 10,
                 cursor: 'pointer',
                 transition: 'all 0.2s ease',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: active ? '0 4px 12px rgba(10,132,255,0.3)' : 'none',
+                boxShadow: active ? '0 2px 6px rgba(10,132,255,0.3)' : 'none',
             }}
             onMouseEnter={(e) => {
                 if (!active) {
