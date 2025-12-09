@@ -22,11 +22,6 @@ export default function BackgroundManager({
     const pathname = usePathname();
     const [currentBg, setCurrentBg] = useState<BackgroundType>(defaultBackground);
 
-    // Don't show background on map page
-    if (pathname?.startsWith('/map')) {
-        return null;
-    }
-
     // Load saved preference from localStorage
     useEffect(() => {
         if (typeof window !== 'undefined') {
@@ -64,6 +59,11 @@ export default function BackgroundManager({
                 return <ModernGradientBg />;
         }
     };
+
+    // Don't show background on map page - moved after hooks
+    if (pathname?.startsWith('/map')) {
+        return null;
+    }
 
     return (
         <>
