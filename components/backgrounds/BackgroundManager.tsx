@@ -60,16 +60,20 @@ export default function BackgroundManager({
         }
     };
 
-    // Don't show background on map page - moved after hooks
-    if (pathname?.startsWith('/map')) {
+    // Don't show background on map and register pages - moved after hooks
+    // Login page will show background for better aesthetics
+    if (pathname?.startsWith('/map') || pathname?.startsWith('/register')) {
         return null;
     }
+
+    // Show switcher on home and login pages
+    const showSwitcher = allowSwitch && (pathname === '/' || pathname === '/login');
 
     return (
         <>
             {renderBackground()}
 
-            {allowSwitch && (
+            {showSwitcher && (
                 <div style={{
                     position: 'fixed',
                     bottom: 10,

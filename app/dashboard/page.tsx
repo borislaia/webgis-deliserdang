@@ -61,7 +61,7 @@ export default function DashboardPage() {
         setAvatarUrl(avatar);
         const role = (user?.app_metadata as any)?.role || (user?.user_metadata as any)?.role || 'user';
         setUserRole(role);
-      } catch {}
+      } catch { }
     })();
   }, []);
 
@@ -251,16 +251,16 @@ export default function DashboardPage() {
               <strong>Menu</strong>
               <span className="badge">Dashboard</span>
             </div>
-              <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <button className="btn primary" onClick={() => (window.location.href = '/sebaran-irigasi')}>Sebaran Irigasi</button>
-                <button className="btn" onClick={() => setActivePanel('di')}>Daerah Irigasi</button>
-                <button className="btn" onClick={() => setActivePanel('management')}>Manajemen Irigasi</button>
-                <button className="btn" onClick={() => setActivePanel('reports')}>Laporan</button>
-                {isAdmin && (
-                  <button className="btn" onClick={() => setActivePanel('users')} id="usersBtn">Users</button>
-                )}
-                <button className="btn" onClick={() => setActivePanel('settings')}>Pengaturan</button>
-              </div>
+            <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <button className="btn primary" onClick={() => (window.location.href = '/sebaran-irigasi')}>Sebaran Irigasi</button>
+              <button className="btn" onClick={() => setActivePanel('di')}>Daerah Irigasi</button>
+              <button className="btn" onClick={() => setActivePanel('management')}>Manajemen Irigasi</button>
+              <button className="btn" onClick={() => setActivePanel('reports')}>Laporan</button>
+              {isAdmin && (
+                <button className="btn" onClick={() => setActivePanel('users')} id="usersBtn">Users</button>
+              )}
+              <button className="btn" onClick={() => setActivePanel('settings')}>Pengaturan</button>
+            </div>
           </div>
         </aside>
         <main className="content">
@@ -274,16 +274,16 @@ export default function DashboardPage() {
                 <div style={{ overflowX: 'auto' }}>
                   <table className="data-table">
                     <thead>
-                        <tr>
-                          <th>KODE DI</th>
-                          <th>NAMA</th>
-                          <th>LUAS (HA)</th>
-                          <th>KECAMATAN</th>
-                          <th>DESA/KEL</th>
-                          <th>SUMBER AIR</th>
-                          <th>TAHUN DATA</th>
-                          <th>MAP</th>
-                        </tr>
+                      <tr>
+                        <th>KODE DI</th>
+                        <th>NAMA</th>
+                        <th>LUAS (HA)</th>
+                        <th>KECAMATAN</th>
+                        <th>DESA/KEL</th>
+                        <th>SUMBER AIR</th>
+                        <th>TAHUN DATA</th>
+                        <th>MAP</th>
+                      </tr>
                     </thead>
                     <tbody>
                       {diRows.map((row) => (
@@ -330,69 +330,199 @@ export default function DashboardPage() {
           )}
 
           {activePanel === 'users' && (
-            <div className="card" style={{ padding: 18 }} id="usersPanel">
-              <h3>User Management</h3>
-              {!isAdmin && <p style={{ color: '#b91c1c' }}>Anda tidak memiliki akses untuk mengatur role. Hubungi admin.</p>}
+            <div className="card" style={{ padding: 0, overflow: 'hidden', border: '1px solid var(--stroke)', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)' }} id="usersPanel">
+              <div style={{
+                padding: '20px 24px',
+                borderBottom: '1px solid var(--stroke)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                background: 'linear-gradient(to bottom, #ffffff, #f9fafb)'
+              }}>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, color: 'var(--text)' }}>User Management</h3>
+                  <p style={{ margin: '4px 0 0', fontSize: '0.875rem', color: 'var(--muted)' }}>Manage user access roles and view activity.</p>
+                </div>
+                <button
+                  className="btn"
+                  onClick={() => loadUsers()}
+                  style={{
+                    background: 'white',
+                    border: '1px solid var(--stroke)',
+                    boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+                    fontSize: '0.875rem',
+                    padding: '8px 16px'
+                  }}
+                >
+                  <span style={{ fontSize: '1.1em', marginRight: 4 }}>↺</span> Refresh
+                </button>
+              </div>
+
+              {!isAdmin && (
+                <div style={{ padding: 32, textAlign: 'center' }}>
+                  <div style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 12,
+                    padding: '16px 24px',
+                    background: '#fef2f2',
+                    border: '1px solid #fecaca',
+                    borderRadius: 12,
+                    color: '#991b1b',
+                    fontWeight: 500
+                  }}>
+                    <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                    Anda tidak memiliki akses untuk mengatur role. Silakan hubungi admin.
+                  </div>
+                </div>
+              )}
+
               {isAdmin && (
                 <>
-                  {usersLoading && <div className="loading">Memuat data pengguna…</div>}
-                  {usersError && <div className="error-message">{usersError}</div>}
+                  {usersLoading && (
+                    <div style={{ padding: 48, textAlign: 'center', color: 'var(--muted)' }}>
+                      <div className="loading-spinner" style={{
+                        margin: '0 auto 16px',
+                        width: 32,
+                        height: 32,
+                        border: '3px solid #e5e7eb',
+                        borderTopColor: 'var(--brand)',
+                        borderRadius: '50%',
+                        animation: 'spin 1s linear infinite'
+                      }}></div>
+                      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+                      Memuat data pengguna...
+                    </div>
+                  )}
+                  {usersError && (
+                    <div style={{ padding: 24 }}>
+                      <div className="error-message" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+                        {usersError}
+                      </div>
+                    </div>
+                  )}
                   {!usersLoading && !usersError && (
                     <div style={{ overflowX: 'auto' }}>
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
-                        <button className="btn" onClick={() => loadUsers()}>Refresh</button>
-                      </div>
-                      <table className="data-table">
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
                         <thead>
-                          <tr>
-                            <th>Email</th>
-                            <th>Role</th>
-                            <th>Dibuat</th>
-                            <th>Login Terakhir</th>
+                          <tr style={{ background: '#f9fafb', borderBottom: '1px solid var(--stroke)' }}>
+                            <th style={{ padding: '12px 24px', textAlign: 'left', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', color: 'var(--muted)', letterSpacing: '0.05em' }}>User</th>
+                            <th style={{ padding: '12px 24px', textAlign: 'left', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', color: 'var(--muted)', letterSpacing: '0.05em' }}>Role Access</th>
+                            <th style={{ padding: '12px 24px', textAlign: 'left', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', color: 'var(--muted)', letterSpacing: '0.05em' }}>Member Since</th>
+                            <th style={{ padding: '12px 24px', textAlign: 'right', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', color: 'var(--muted)', letterSpacing: '0.05em' }}>Last Active</th>
                           </tr>
                         </thead>
-                          <tbody>
-                            {users.map((user) => {
-                              const isSelf = user.id === userId;
-                              const isOtherAdmin = user.role === 'admin' && !isSelf;
-                              const rowHighlight = isSelf
-                                ? { background: 'rgba(10,132,255,0.05)' }
-                                : isOtherAdmin
-                                ? { background: 'rgba(94,92,230,0.06)' }
-                                : undefined;
-                              const lockMessage = isSelf
-                                ? 'Role Anda dikunci'
-                                : isOtherAdmin
-                                ? 'Role admin lain dikunci'
-                                : '';
+                        <tbody style={{ background: 'white' }}>
+                          {users.map((user) => {
+                            const isSelf = user.id === userId;
+                            const isOtherAdmin = user.role === 'admin' && !isSelf;
 
-                              return (
-                                <tr key={user.id} style={rowHighlight}>
-                                  <td>{user.email || '—'}</td>
-                                  <td>
+                            // Generate initials/color
+                            const uEmail = user.email || '';
+                            const uName = (user as any).user_metadata?.full_name || uEmail.split('@')[0];
+                            const initials = uName.slice(0, 2).toUpperCase();
+                            const avatarColor = uEmail.length % 2 === 0 ? 'linear-gradient(135deg, #3b82f6, #2563eb)' : 'linear-gradient(135deg, #8b5cf6, #7c3aed)';
+
+                            return (
+                              <tr key={user.id} style={{ borderBottom: '1px solid rgba(0,0,0,0.04)', transition: 'background 0.15s ease' }} onMouseEnter={(e) => e.currentTarget.style.background = '#f9fafb'} onMouseLeave={(e) => e.currentTarget.style.background = 'white'}>
+                                <td style={{ padding: '16px 24px' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                                    <div style={{
+                                      width: 40,
+                                      height: 40,
+                                      borderRadius: '50%',
+                                      background: avatarColor,
+                                      color: 'white',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      fontWeight: 600,
+                                      fontSize: 14,
+                                      flexShrink: 0,
+                                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                                      textShadow: '0 1px 2px rgba(0,0,0,0.1)'
+                                    }}>
+                                      {initials}
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <span style={{ fontWeight: 600, color: 'var(--text)' }}>
+                                          {user.email}
+                                        </span>
+                                        {isSelf && (
+                                          <span style={{
+                                            fontSize: '0.7rem',
+                                            padding: '2px 8px',
+                                            background: '#eff6ff',
+                                            color: '#2563eb',
+                                            borderRadius: 999,
+                                            fontWeight: 600,
+                                            border: '1px solid #dbeafe'
+                                          }}>YOU</span>
+                                        )}
+                                      </div>
+                                      <span style={{ fontSize: '0.8rem', color: 'var(--muted)', marginTop: 2 }}>
+                                        ID: <span style={{ fontFamily: 'monospace' }}>{user.id.slice(0, 8)}...</span>
+                                      </span>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td style={{ padding: '16px 24px' }}>
+                                  <div style={{ position: 'relative', width: 140 }}>
                                     <select
-                                      className="role-select"
+                                      className="modern-select"
                                       value={user.role || 'user'}
                                       onChange={(e) => {
                                         if (isSelf || isOtherAdmin) return;
                                         updateUserRole(user.id, e.target.value);
                                       }}
                                       disabled={isSelf || isOtherAdmin || updatingUserId === user.id}
-                                      title={lockMessage || undefined}
+                                      style={{
+                                        cursor: isSelf || isOtherAdmin ? 'not-allowed' : 'pointer',
+                                      }}
                                     >
-                                      <option value="user">user</option>
-                                      <option value="admin">admin</option>
+                                      <option value="user">User</option>
+                                      <option value="admin">Admin</option>
                                     </select>
-                                    {lockMessage && (
-                                      <div style={{ marginTop: 6, fontSize: 12, color: 'var(--muted)' }}>{lockMessage}</div>
+                                    {/* Role Icon */}
+                                    <div style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', display: 'flex', color: 'var(--muted)' }}>
+                                      {user.role === 'admin' ? (
+                                        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                                      ) : (
+                                        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                                      )}
+                                    </div>
+                                    {/* Chevron */}
+                                    {!isSelf && !isOtherAdmin && (
+                                      <div style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--muted)' }}>
+                                        <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                                      </div>
                                     )}
-                                  </td>
-                                  <td>{user.created_at ? new Date(user.created_at).toLocaleString('id-ID') : '—'}</td>
-                                  <td>{user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleString('id-ID') : '—'}</td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
+                                  </div>
+                                </td>
+                                <td style={{ padding: '16px 24px', color: 'var(--text)', fontSize: '0.875rem' }}>
+                                  {user.created_at ? new Date(user.created_at).toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: 'numeric' }) : '—'}
+                                </td>
+                                <td style={{ padding: '16px 24px', textAlign: 'right' }}>
+                                  <span style={{
+                                    display: 'inline-block',
+                                    color: 'var(--muted)',
+                                    fontSize: '0.8rem',
+                                    fontFamily: 'monospace',
+                                    background: '#f3f4f6',
+                                    padding: '2px 8px',
+                                    borderRadius: 4
+                                  }}>
+                                    {user.last_sign_in_at
+                                      ? new Date(user.last_sign_in_at).toLocaleString('id-ID', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: '2-digit' })
+                                      : 'Never'}
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
                       </table>
                     </div>
                   )}

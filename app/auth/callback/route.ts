@@ -8,6 +8,13 @@ export async function GET(request: Request) {
   const code = searchParams.get('code')
   const rawRedirect = searchParams.get('redirect')
 
+  // Debug logging for localhost troubleshooting
+  console.log('🔐 Auth Callback - Origin:', origin)
+  console.log('🔐 Auth Callback - Code present:', !!code)
+  console.log('🔐 Auth Callback - Raw redirect:', rawRedirect)
+  console.log('🔐 Supabase URL configured:', process.env.NEXT_PUBLIC_SUPABASE_URL)
+  console.log('🔐 Supabase Anon Key configured:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? '✓ Present' : '✗ Missing')
+
   function resolveSafeRedirect(raw: string | null | undefined, fallback = '/dashboard') {
     if (!raw) return fallback
     let decoded = raw
@@ -17,6 +24,7 @@ export async function GET(request: Request) {
   }
 
   const redirect = resolveSafeRedirect(rawRedirect)
+  console.log('🔐 Auth Callback - Resolved redirect:', redirect)
 
   if (code) {
     const cookieStore = cookies()
@@ -29,6 +37,7 @@ export async function GET(request: Request) {
             return cookieStore.getAll()
           },
           setAll(cookiesToSet) {
+            console.log('🔐 Setting cookies:', cookiesToSet.map(c => c.name))
             cookiesToSet.forEach(({ name, value, options }) =>
               cookieStore.set(name, value, options)
             )
@@ -36,19 +45,25 @@ export async function GET(request: Request) {
         },
       }
     )
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    console.log('🔐 Exchanging code for session...')
+    const { error, data } = await supabase.auth.exchangeCodeForSession(code)
     if (error) {
-      console.error('Auth code exchange error:', error)
+      console.error('❌ Auth code exchange error:', error)
       // Fallback to login with error
       return NextResponse.redirect(new URL('/login?error=auth_code_error', origin))
     }
+    console.log('✅ Auth code exchange successful, user:', data.user?.email)
   }
 
+  console.log('🔐 Redirecting to:', redirect)
   return NextResponse.redirect(new URL(redirect, origin))
 }
 
 // Allows client-side password logins to persist session in httpOnly cookies (manual route)
 export async function POST(request: Request) {
+  // Debug logging for localhost troubleshooting
+  console.log('🔐 Auth Callback POST - Client-side login session sync attempt')
+
   // Note: With @supabase/ssr, the recommended pattern for Password login 
   // is using Server Actions or calling exchangeCodeForSession if using PKCE flow.
   // However, if your client sends the session manually (old pattern), 
@@ -82,5 +97,6 @@ export async function POST(request: Request) {
   // Re-evaluating: The correct migration for modern Next.js + Supabase is to move Login to a Server Action.
   // But to minimize code changes:
 
+  console.log('✅ Auth Callback POST - Returning success (client handles cookies)')
   return NextResponse.json({ ok: true })
 }

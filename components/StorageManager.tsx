@@ -2,6 +2,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import styles from './IrrigationManagementView.module.css';
+import Toast, { ToastType } from './Toast';
+import ConfirmModal from './ConfirmModal';
+import InputModal from './InputModal';
 
 interface StorageManagerProps {
     bucketName: string;
@@ -9,6 +12,7 @@ interface StorageManagerProps {
     acceptedTypes: string; // e.g. "image/*" or ".pdf"
     viewMode?: 'grid' | 'list';
     onFileUploaded?: () => void;
+    readOnly?: boolean;
 }
 
 interface FileItem {
@@ -19,12 +23,32 @@ interface FileItem {
     metadata: Record<string, any> | null;
 }
 
-export default function StorageManager({ bucketName, folderPath, acceptedTypes, viewMode = 'grid', onFileUploaded }: StorageManagerProps) {
+export default function StorageManager({ bucketName, folderPath, acceptedTypes, viewMode = 'grid', onFileUploaded, readOnly = false }: StorageManagerProps) {
     const supabase = createClient();
     const [files, setFiles] = useState<FileItem[]>([]);
     const [loading, setLoading] = useState(false);
     const [uploading, setUploading] = useState(false);
+    const [isDragging, setIsDragging] = useState(false);
+    const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Confirm modal state
+    const [confirmModal, setConfirmModal] = useState<{
+        isOpen: boolean;
+        fileName: string;
+    }>({
+        isOpen: false,
+        fileName: ''
+    });
+
+    // Rename modal state
+    const [renameModal, setRenameModal] = useState<{
+        isOpen: boolean;
+        fileName: string;
+    }>({
+        isOpen: false,
+        fileName: ''
+    });
 
     const fetchFiles = async () => {
         setLoading(true);
@@ -47,12 +71,21 @@ export default function StorageManager({ bucketName, folderPath, acceptedTypes, 
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [bucketName, folderPath]);
 
-    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const fileList = e.target.files;
+    useEffect(() => {
+        console.log('📋 StorageManager Props:', {
+            bucketName,
+            folderPath,
+            readOnly,
+            acceptedTypes
+        });
+    }, [bucketName, folderPath, readOnly, acceptedTypes]);
+
+    const uploadFiles = async (fileList: FileList) => {
         if (!fileList || fileList.length === 0) return;
 
         setUploading(true);
         try {
+            const fileCount = fileList.length;
             // Parallel uploads
             const uploads = Array.from(fileList).map(async (file) => {
                 const path = `${folderPath}/${file.name}`;
@@ -65,31 +98,124 @@ export default function StorageManager({ bucketName, folderPath, acceptedTypes, 
             await Promise.all(uploads);
             fetchFiles();
             if (onFileUploaded) onFileUploaded();
+
+            // Show success toast
+            const message = fileCount === 1
+                ? 'File berhasil diupload'
+                : `${fileCount} file berhasil diupload`;
+            setToast({ message, type: 'success' });
         } catch (e: any) {
-            alert(`Upload gagal: ${e.message}`);
+            setToast({ message: `Upload gagal: ${e.message}`, type: 'error' });
         } finally {
             setUploading(false);
             if (fileInputRef.current) fileInputRef.current.value = '';
         }
     };
 
-    const handleDelete = async (fileName: string) => {
-        if (!confirm(`Hapus file ${fileName}?`)) return;
+    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const fileList = e.target.files;
+        if (fileList) await uploadFiles(fileList);
+    };
+
+    const handleDragEnter = (e: React.DragEvent) => {
+        if (readOnly) return;
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(true);
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+        if (readOnly) return;
+        e.preventDefault();
+        e.stopPropagation();
+    };
+
+    const handleDragLeave = (e: React.DragEvent) => {
+        if (readOnly) return;
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(false);
+    };
+
+    const handleDrop = async (e: React.DragEvent) => {
+        if (readOnly) return;
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(false);
+
+        const fileList = e.dataTransfer.files;
+        if (fileList) await uploadFiles(fileList);
+    };
+
+    const handleDelete = (fileName: string) => {
+        console.log('🔴 handleDelete CALLED for:', fileName);
+        setConfirmModal({
+            isOpen: true,
+            fileName
+        });
+    };
+
+    const executeDelete = async () => {
+        const fileName = confirmModal.fileName;
+        setConfirmModal({ isOpen: false, fileName: '' });
+
+        const fullPath = `${folderPath}/${fileName}`;
+        console.log('=== DELETE DEBUG ===');
+        console.log('Bucket:', bucketName);
+        console.log('Folder Path:', folderPath);
+        console.log('File Name:', fileName);
+        console.log('Full Path:', fullPath);
+
         try {
-            const { error } = await supabase.storage.from(bucketName).remove([`${folderPath}/${fileName}`]);
-            if (error) throw error;
+            console.log('Calling API route /api/delete-file...');
+
+            const response = await fetch('/api/delete-file', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    bucketName,
+                    filePath: fullPath
+                })
+            });
+
+            const result = await response.json();
+            console.log('API Response:', JSON.stringify(result, null, 2));
+
+            if (!result.success) {
+                console.error('Delete failed with error:', result.error);
+                throw new Error(result.error || 'Unknown error');
+            }
+
+            console.log('Delete successful, updating UI...');
             setFiles(prev => prev.filter(f => f.name !== fileName));
+            setToast({ message: 'File berhasil dihapus', type: 'success' });
+
+            // Refresh file list to ensure UI is in sync
+            await fetchFiles();
         } catch (e: any) {
-            alert(`Gagal menghapus: ${e.message}`);
+            console.error('=== DELETE ERROR ===');
+            console.error('Error type:', typeof e);
+            console.error('Error message:', e.message);
+            console.error('Full error:', e);
+            setToast({ message: `Gagal menghapus: ${e.message}`, type: 'error' });
         }
     };
 
-    const handleRename = async (oldName: string) => {
-        const newName = prompt("Rename file to:", oldName);
+    const handleRename = (fileName: string) => {
+        setRenameModal({
+            isOpen: true,
+            fileName
+        });
+    };
+
+    const executeRename = async (newName: string) => {
+        const oldName = renameModal.fileName;
+        setRenameModal({ isOpen: false, fileName: '' });
+
         if (!newName || newName === oldName) return;
 
-        // Ensure extension is preserved or user handles it? 
-        // Usually user might mess it up, but for now simple rename
         try {
             const { error } = await supabase.storage
                 .from(bucketName)
@@ -97,8 +223,9 @@ export default function StorageManager({ bucketName, folderPath, acceptedTypes, 
 
             if (error) throw error;
             fetchFiles();
+            setToast({ message: 'File berhasil direname', type: 'success' });
         } catch (e: any) {
-            alert(`Gagal rename: ${e.message}`);
+            setToast({ message: `Gagal rename: ${e.message}`, type: 'error' });
         }
     };
 
@@ -109,20 +236,30 @@ export default function StorageManager({ bucketName, folderPath, acceptedTypes, 
 
     return (
         <div>
-            <div
-                className={styles.dropzone}
-                onClick={() => fileInputRef.current?.click()}
-            >
-                <input
-                    type="file"
-                    multiple
-                    accept={acceptedTypes}
-                    ref={fileInputRef}
-                    style={{ display: 'none' }}
-                    onChange={handleUpload}
-                />
-                <p>{uploading ? 'Mengupload...' : 'Klik atau Tarik file ke sini untuk mengupload (Timpa file yang bernama sama)'}</p>
-            </div>
+            {!readOnly && (
+                <div
+                    className={styles.dropzone}
+                    onClick={() => fileInputRef.current?.click()}
+                    onDragEnter={handleDragEnter}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    style={{
+                        borderColor: isDragging ? '#4CAF50' : undefined,
+                        backgroundColor: isDragging ? 'rgba(76, 175, 80, 0.1)' : undefined,
+                    }}
+                >
+                    <input
+                        type="file"
+                        multiple
+                        accept={acceptedTypes}
+                        ref={fileInputRef}
+                        style={{ display: 'none' }}
+                        onChange={handleUpload}
+                    />
+                    <p>{uploading ? 'Mengupload...' : isDragging ? '📂 Lepaskan file di sini' : 'Klik atau Tarik file ke sini untuk mengupload (Timpa file yang bernama sama)'}</p>
+                </div>
+            )}
 
             {loading && <div style={{ padding: 20, textAlign: 'center' }}>Loading files...</div>}
 
@@ -138,20 +275,24 @@ export default function StorageManager({ bucketName, folderPath, acceptedTypes, 
                                 <a href={url} download={file.name} target="_blank" rel="noopener noreferrer" className={styles.iconBtn} title="Download">
                                     ⬇️
                                 </a>
-                                <button
-                                    className={styles.iconBtn}
-                                    onClick={(e) => { e.stopPropagation(); handleRename(file.name); }}
-                                    title="Rename"
-                                >
-                                    ✏️
-                                </button>
-                                <button
-                                    className={styles.deleteBtn}
-                                    onClick={(e) => { e.stopPropagation(); handleDelete(file.name); }}
-                                    title="Hapus"
-                                >
-                                    &times;
-                                </button>
+                                {!readOnly && (
+                                    <>
+                                        <button
+                                            className={styles.iconBtn}
+                                            onClick={(e) => { e.stopPropagation(); handleRename(file.name); }}
+                                            title="Rename"
+                                        >
+                                            ✏️
+                                        </button>
+                                        <button
+                                            className={styles.deleteBtn}
+                                            onClick={(e) => { e.stopPropagation(); handleDelete(file.name); }}
+                                            title="Hapus"
+                                        >
+                                            &times;
+                                        </button>
+                                    </>
+                                )}
                             </div>
 
                             {isImage ? (
@@ -172,6 +313,41 @@ export default function StorageManager({ bucketName, folderPath, acceptedTypes, 
                     );
                 })}
             </div>
+
+            {/* Toast Notification */}
+            {toast && (
+                <Toast
+                    message={toast.message}
+                    type={toast.type}
+                    onClose={() => setToast(null)}
+                />
+            )}
+
+            {/* Confirm Delete Modal */}
+            <ConfirmModal
+                isOpen={confirmModal.isOpen}
+                title="Hapus File"
+                message={`Apakah Anda yakin ingin menghapus file "${confirmModal.fileName}"? Tindakan ini tidak dapat dibatalkan.`}
+                confirmText="Hapus"
+                cancelText="Batal"
+                type="danger"
+                onConfirm={executeDelete}
+                onCancel={() => setConfirmModal({ isOpen: false, fileName: '' })}
+            />
+
+            {/* Rename Modal */}
+            <InputModal
+                isOpen={renameModal.isOpen}
+                title="Rename File"
+                message="Masukkan nama baru untuk file ini:"
+                placeholder="Nama file baru"
+                defaultValue={renameModal.fileName}
+                confirmText="Rename"
+                cancelText="Batal"
+                type="primary"
+                onConfirm={executeRename}
+                onCancel={() => setRenameModal({ isOpen: false, fileName: '' })}
+            />
         </div>
     );
 }

@@ -121,6 +121,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
     photoModalRef.current = photoModal;
   }, [photoModal]);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loadingStorage, setLoadingStorage] = useState(false);
   const [storageError, setStorageError] = useState<string | null>(null);
   const [storageCounts, setStorageCounts] = useState<{ points: number; lines: number; polygons: number; files: number }>({ points: 0, lines: 0, polygons: 0, files: 0 });
@@ -232,7 +233,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
     setPhotosLoading(true);
     setRandomPhotos([]);
     setFailedPhotoUrls(new Set()); // Reset failed photos when loading new set
-    
+
     // Helper function to resolve URL (similar to popup logic)
     const resolveUrl = (raw: string, diCode: string, folder?: string): string | null => {
       if (!raw) return null;
@@ -294,7 +295,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
         if (!feature) continue;
         const props = typeof feature.getProperties === 'function' ? feature.getProperties() : {};
         const metadata = props && typeof props.metadata === 'object' ? props.metadata : {};
-        
+
         const candidatePhotos = collectCandidates(
           feature.get?.('img_urls'),
           feature.get?.('url_imgs'),
@@ -367,7 +368,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
           for (const item of files) {
             const itemName = (item.name || '').toLowerCase();
             const isImageFile = imageExtensions.some((ext) => itemName.endsWith(ext));
-            
+
             // If it's not an image file and doesn't have an extension, it might be a folder
             if (!isImageFile && !itemName.includes('.')) {
               try {
@@ -422,70 +423,70 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
     };
   }, [activeKdi, supabase, supabaseUrl, loadingStorage]); // Reload when features are loaded (loadingStorage changes)
 
-    useEffect(() => {
-      if (!mapDivRef.current) return;
-      // Reset features ref when map reloads
-      allFeaturesRef.current = [];
-      if (typeof document !== 'undefined') {
-        if (!tooltipRef.current) {
-          const tooltipEl = document.createElement('div');
-          tooltipEl.className = 'ol-tooltip';
-          tooltipRef.current = tooltipEl;
-        }
-        if (!popupRef.current) {
-          const popupEl = document.createElement('div');
-          popupEl.className = 'ol-popup card';
-          popupEl.style.pointerEvents = 'auto';
-          
-          // Store handlers for cleanup
-          const popupClickHandler = (e: Event) => {
-            // Allow clicks on images and their wrappers to propagate to their handlers
-            const target = e.target as HTMLElement;
-            // Check for photo-related elements more thoroughly
-            if (
-              target.tagName === 'IMG' || 
-              target.closest('img') || 
-              target.closest('[data-photo-wrapper]') ||
-              target.closest('[data-photo-gallery]') ||
-              target.hasAttribute('data-photo-wrapper') ||
-              target.hasAttribute('data-photo-gallery')
-            ) {
-              return; // Don't stop propagation for images and photo wrappers
-            }
-            e.stopPropagation();
-          };
-          
-          const popupMousedownHandler = (e: Event) => {
-            // Allow mousedown on images and their wrappers to propagate to their handlers
-            const target = e.target as HTMLElement;
-            // Check for photo-related elements more thoroughly
-            if (
-              target.tagName === 'IMG' || 
-              target.closest('img') || 
-              target.closest('[data-photo-wrapper]') ||
-              target.closest('[data-photo-gallery]') ||
-              target.hasAttribute('data-photo-wrapper') ||
-              target.hasAttribute('data-photo-gallery')
-            ) {
-              return; // Don't stop propagation for images and photo wrappers
-            }
-            e.stopPropagation();
-          };
-          
-          // Prevent map click events when clicking inside popup (except for images)
-          // Use capture phase to check early, but don't stop propagation for photos
-          popupEl.addEventListener('click', popupClickHandler, { capture: false });
-          popupEl.addEventListener('mousedown', popupMousedownHandler, { capture: false });
-          
-          // Store handlers on element for cleanup
-          (popupEl as any)._popupClickHandler = popupClickHandler;
-          (popupEl as any)._popupMousedownHandler = popupMousedownHandler;
-          
-          popupRef.current = popupEl;
-        }
+  useEffect(() => {
+    if (!mapDivRef.current) return;
+    // Reset features ref when map reloads
+    allFeaturesRef.current = [];
+    if (typeof document !== 'undefined') {
+      if (!tooltipRef.current) {
+        const tooltipEl = document.createElement('div');
+        tooltipEl.className = 'ol-tooltip';
+        tooltipRef.current = tooltipEl;
       }
+      if (!popupRef.current) {
+        const popupEl = document.createElement('div');
+        popupEl.className = 'ol-popup card';
+        popupEl.style.pointerEvents = 'auto';
 
-      const center = fromLonLat(centerLonLat);
+        // Store handlers for cleanup
+        const popupClickHandler = (e: Event) => {
+          // Allow clicks on images and their wrappers to propagate to their handlers
+          const target = e.target as HTMLElement;
+          // Check for photo-related elements more thoroughly
+          if (
+            target.tagName === 'IMG' ||
+            target.closest('img') ||
+            target.closest('[data-photo-wrapper]') ||
+            target.closest('[data-photo-gallery]') ||
+            target.hasAttribute('data-photo-wrapper') ||
+            target.hasAttribute('data-photo-gallery')
+          ) {
+            return; // Don't stop propagation for images and photo wrappers
+          }
+          e.stopPropagation();
+        };
+
+        const popupMousedownHandler = (e: Event) => {
+          // Allow mousedown on images and their wrappers to propagate to their handlers
+          const target = e.target as HTMLElement;
+          // Check for photo-related elements more thoroughly
+          if (
+            target.tagName === 'IMG' ||
+            target.closest('img') ||
+            target.closest('[data-photo-wrapper]') ||
+            target.closest('[data-photo-gallery]') ||
+            target.hasAttribute('data-photo-wrapper') ||
+            target.hasAttribute('data-photo-gallery')
+          ) {
+            return; // Don't stop propagation for images and photo wrappers
+          }
+          e.stopPropagation();
+        };
+
+        // Prevent map click events when clicking inside popup (except for images)
+        // Use capture phase to check early, but don't stop propagation for photos
+        popupEl.addEventListener('click', popupClickHandler, { capture: false });
+        popupEl.addEventListener('mousedown', popupMousedownHandler, { capture: false });
+
+        // Store handlers on element for cleanup
+        (popupEl as any)._popupClickHandler = popupClickHandler;
+        (popupEl as any)._popupMousedownHandler = popupMousedownHandler;
+
+        popupRef.current = popupEl;
+      }
+    }
+
+    const center = fromLonLat(centerLonLat);
 
     // Base layers
     const googleHybrid = new TileLayer({
@@ -628,34 +629,36 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
       map.addOverlay(overlay);
     }
 
-      // Load data
-      (async () => {
-        try {
-          // Load boundary for context when no DI selected
-          if (!activeKdi) {
-            const res = await fetch('/data/batas_kecamatan.json');
-            if (res.ok) {
-              const batas = await res.json();
-              const fmt = new GeoJSON();
-              const collection = Array.isArray(batas) ? { type: 'FeatureCollection', features: batas } : batas;
-              const features = fmt.readFeatures(collection, { dataProjection: 'EPSG:4326', featureProjection: map.getView().getProjection() });
-              kecamatanLayer.getSource()?.clear();
-              kecamatanLayer.getSource()?.addFeatures(features);
-              if (features.length > 0) {
-                const ext = kecamatanLayer.getSource()?.getExtent();
-                if (ext) {
-                  dataExtentRef.current = ext.slice() as any;
-                  map.getView().fit(ext, { padding: [50, 50, 50, 50], duration: 500 });
-                }
+    // Load data
+    (async () => {
+      try {
+        // Load boundary for context when no DI selected
+        if (!activeKdi) {
+          const res = await fetch('/data/batas_kecamatan.json');
+          if (res.ok) {
+            const batas = await res.json();
+            const fmt = new GeoJSON();
+            const collection = Array.isArray(batas) ? { type: 'FeatureCollection', features: batas } : batas;
+            const features = fmt.readFeatures(collection, { dataProjection: 'EPSG:4326', featureProjection: map.getView().getProjection() });
+            kecamatanLayer.getSource()?.clear();
+            kecamatanLayer.getSource()?.addFeatures(features);
+            if (features.length > 0) {
+              const ext = kecamatanLayer.getSource()?.getExtent();
+              if (ext) {
+                dataExtentRef.current = ext.slice() as any;
+                map.getView().fit(ext, { padding: [50, 50, 50, 50], duration: 500 });
               }
             }
           }
+        }
 
-          // detect admin role
-          try {
-            const { data } = await supabase.auth.getUser();
-            setIsAdmin(((data.user?.app_metadata as any)?.role) === 'admin');
-          } catch {}
+        // detect admin role and login status
+        try {
+          const { data } = await supabase.auth.getUser();
+          const user = data.user;
+          setIsLoggedIn(!!user);
+          setIsAdmin(((user?.app_metadata as any)?.role) === 'admin');
+        } catch { }
 
         // 1) Load GeoJSON paths via manifest (CDN) dengan fallback
         try {
@@ -675,7 +678,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
                   if (Array.isArray(m?.files)) return m.files as string[];
                 }
               }
-            } catch {}
+            } catch { }
 
             // Fallback ke server endpoint (akan juga membuat/upload manifest)
             try {
@@ -685,7 +688,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
                 if (Array.isArray(m)) return m;
                 if (Array.isArray(m?.files)) return m.files as string[];
               }
-            } catch {}
+            } catch { }
 
             // Final fallback: list langsung via client SDK
             const listAll = async (prefix: string): Promise<string[]> => {
@@ -752,7 +755,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
                   }
                 }
               }
-            } catch {}
+            } catch { }
 
             // Fallback ke SDK download
             const { data: blob } = await supabase.storage.from('geojson').download(path);
@@ -791,7 +794,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
               try {
                 const result = await processFile(current);
                 if (result) storageResults.push(result);
-              } catch {}
+              } catch { }
             }
           });
           await Promise.all(workers);
@@ -806,10 +809,10 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
           } else {
             setStorageCounts({ points: 0, lines: 0, polygons: 0, files: 0 });
           }
-          
+
           // Trigger photo reload after features are loaded
           // This will be handled by the photo loading useEffect which watches activeKdi
-          
+
           // Update extent dari storage layers
           const combined = createEmptyExtent();
           const pExt = polygonsSrc.getExtent();
@@ -1344,7 +1347,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
           });
           existingGallery.remove();
         }
-        
+
         const gallery = document.createElement('div');
         gallery.setAttribute('data-photo-gallery', 'true');
         gallery.style.display = 'flex';
@@ -1352,10 +1355,10 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
         gallery.style.gap = '12px';
         gallery.style.marginTop = '12px';
         gallery.style.width = '100%';
-        
+
         // Store handlers for cleanup
         const photoHandlers: Array<{ element: HTMLElement; handler: (e: Event) => void; type: string }> = [];
-        
+
         allPhotos.slice(0, 6).forEach((url, index) => {
           const imgWrapper = document.createElement('div');
           imgWrapper.setAttribute('data-photo-wrapper', 'true'); // Mark as photo wrapper for event handling
@@ -1403,14 +1406,14 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
           // Add handler with capture phase to ensure it runs before popup handlers
           img.addEventListener('click', openModalHandler, { capture: true, once: false });
           imgWrapper.addEventListener('click', openModalHandler, { capture: true, once: false });
-          
+
           // Also add mousedown handler as fallback to prevent popup handler from interfering
           const mousedownHandler = (e: Event) => {
             e.stopPropagation();
           };
           img.addEventListener('mousedown', mousedownHandler, { capture: true });
           imgWrapper.addEventListener('mousedown', mousedownHandler, { capture: true });
-          
+
           // Store handlers for cleanup with event type info
           photoHandlers.push(
             { element: img, handler: openModalHandler, type: 'click' },
@@ -1422,61 +1425,61 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
           imgWrapper.appendChild(img);
           gallery.appendChild(imgWrapper);
         });
-        
+
         // Store handlers on gallery for cleanup
         (gallery as any)._photoHandlers = photoHandlers;
-        
+
         el.appendChild(gallery);
       }
 
-        popupOverlayRef.current.setPosition(evt.coordinate);
-      };
+      popupOverlayRef.current.setPosition(evt.coordinate);
+    };
     map.on('singleclick', singleClickHandler);
 
-      return () => {
-        // Remove map event listeners
-        map.un('pointermove', pointerMoveHandler);
-        map.un('singleclick', singleClickHandler);
-        
-        // Cleanup popup event listeners and photo handlers
-        if (popupRef.current) {
-          const popupEl = popupRef.current as any;
-          if (popupEl._popupClickHandler) {
-            popupEl.removeEventListener('click', popupEl._popupClickHandler);
-          }
-          if (popupEl._popupMousedownHandler) {
-            popupEl.removeEventListener('mousedown', popupEl._popupMousedownHandler);
-          }
-          
-          // Cleanup photo handlers
-          const existingGallery = popupEl.querySelector('[data-photo-gallery]');
-          if (existingGallery) {
-            const existingHandlers = (existingGallery as any)._photoHandlers || [];
-            existingHandlers.forEach((handler: any) => {
-              if (handler.element && handler.handler && handler.type) {
-                // Remove handler with correct event type and options
-                handler.element.removeEventListener(handler.type, handler.handler, { capture: true });
-                // Also clear onclick handler if it's an img or wrapper element
-                if (handler.type === 'click' && (handler.element.tagName === 'IMG' || handler.element.hasAttribute('data-photo-wrapper'))) {
-                  handler.element.onclick = null;
-                }
+    return () => {
+      // Remove map event listeners
+      map.un('pointermove', pointerMoveHandler);
+      map.un('singleclick', singleClickHandler);
+
+      // Cleanup popup event listeners and photo handlers
+      if (popupRef.current) {
+        const popupEl = popupRef.current as any;
+        if (popupEl._popupClickHandler) {
+          popupEl.removeEventListener('click', popupEl._popupClickHandler);
+        }
+        if (popupEl._popupMousedownHandler) {
+          popupEl.removeEventListener('mousedown', popupEl._popupMousedownHandler);
+        }
+
+        // Cleanup photo handlers
+        const existingGallery = popupEl.querySelector('[data-photo-gallery]');
+        if (existingGallery) {
+          const existingHandlers = (existingGallery as any)._photoHandlers || [];
+          existingHandlers.forEach((handler: any) => {
+            if (handler.element && handler.handler && handler.type) {
+              // Remove handler with correct event type and options
+              handler.element.removeEventListener(handler.type, handler.handler, { capture: true });
+              // Also clear onclick handler if it's an img or wrapper element
+              if (handler.type === 'click' && (handler.element.tagName === 'IMG' || handler.element.hasAttribute('data-photo-wrapper'))) {
+                handler.element.onclick = null;
               }
-            });
-          }
-          
-          popupEl.remove();
-          popupRef.current = null;
+            }
+          });
         }
-        map.setTarget(undefined as any);
-        mapRef.current = null;
-        overlayRef.current = null;
-        popupOverlayRef.current = null;
-        if (tooltipRef.current) {
-          tooltipRef.current.remove();
-          tooltipRef.current = null;
-        }
-      };
-    }, [kecamatanVisible, activeKdi, supabase, supabaseUrl]);
+
+        popupEl.remove();
+        popupRef.current = null;
+      }
+      map.setTarget(undefined as any);
+      mapRef.current = null;
+      overlayRef.current = null;
+      popupOverlayRef.current = null;
+      if (tooltipRef.current) {
+        tooltipRef.current.remove();
+        tooltipRef.current = null;
+      }
+    };
+  }, [kecamatanVisible, activeKdi, supabase, supabaseUrl]);
 
   // UI handlers
   const setBasemap = (name: string) => {
@@ -1678,8 +1681,14 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
   }, [diInfo]);
 
   const goHome = () => { window.location.href = '/'; };
-  const goDashboard = () => { window.location.href = '/dashboard'; };
-  
+  const goDashboard = () => {
+    if (activeKdi) {
+      window.location.href = `/daerah-irigasi/${activeKdi}`;
+    } else {
+      window.location.href = '/dashboard';
+    }
+  };
+
   // Open photo modal from card slider
   const openPhotoModalFromCard = (index: number) => {
     if (randomPhotos.length > 0 && index >= 0 && index < randomPhotos.length && !failedPhotoUrls.has(randomPhotos[index])) {
@@ -1687,7 +1696,7 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
       photoModal.openModal(randomPhotos, index, 'card-slider');
     }
   };
-  
+
   const prevPhoto = () => {
     if (randomPhotos.length > 1) {
       setCurrentPhotoIndex((prev) => {
@@ -1734,13 +1743,13 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
         }
         return (
           <>
-            <div 
-              style={{ 
-                position: 'relative', 
-                width: '100%', 
-                aspectRatio: '16/9', 
-                borderRadius: 8, 
-                overflow: 'hidden', 
+            <div
+              style={{
+                position: 'relative',
+                width: '100%',
+                aspectRatio: '16/9',
+                borderRadius: 8,
+                overflow: 'hidden',
                 backgroundColor: '#f3f4f6',
                 cursor: 'pointer'
               }}
@@ -1752,178 +1761,178 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
               }}
             >
               {randomPhotos[currentPhotoIndex] && !failedPhotoUrls.has(randomPhotos[currentPhotoIndex]) ? (
-              <Image
-                src={randomPhotos[currentPhotoIndex]}
-                alt={`Foto irigasi ${currentPhotoIndex + 1}`}
-                width={400}
-                height={225}
-                unoptimized
-                role="button"
-                tabIndex={0}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                  cursor: 'pointer',
-                  display: 'block',
-                  pointerEvents: 'auto'
-                }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  e.preventDefault();
-                  if (randomPhotos.length > 0 && currentPhotoIndex >= 0 && currentPhotoIndex < randomPhotos.length && !failedPhotoUrls.has(randomPhotos[currentPhotoIndex])) {
-                    openPhotoModalFromCard(currentPhotoIndex);
-                  }
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
+                <Image
+                  src={randomPhotos[currentPhotoIndex]}
+                  alt={`Foto irigasi ${currentPhotoIndex + 1}`}
+                  width={400}
+                  height={225}
+                  unoptimized
+                  role="button"
+                  tabIndex={0}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    cursor: 'pointer',
+                    display: 'block',
+                    pointerEvents: 'auto'
+                  }}
+                  onClick={(e) => {
                     e.stopPropagation();
                     e.preventDefault();
                     if (randomPhotos.length > 0 && currentPhotoIndex >= 0 && currentPhotoIndex < randomPhotos.length && !failedPhotoUrls.has(randomPhotos[currentPhotoIndex])) {
                       openPhotoModalFromCard(currentPhotoIndex);
                     }
-                  }
-                }}
-                onError={(e) => {
-                  const img = e.target as HTMLImageElement;
-                  const failedUrl = img.src;
-                  setFailedPhotoUrls((prev) => {
-                    const newSet = new Set(prev);
-                    newSet.add(failedUrl);
-                    return newSet;
-                  });
-                  // Try next photo if current one fails
-                  if (randomPhotos.length > 1) {
-                    const availablePhotos = randomPhotos.filter((url) => !failedPhotoUrls.has(url));
-                    if (availablePhotos.length > 0) {
-                      const currentUrl = randomPhotos[currentPhotoIndex];
-                      const currentFailedIndex = randomPhotos.indexOf(currentUrl);
-                      let nextIndex = (currentFailedIndex + 1) % randomPhotos.length;
-                      // Find next non-failed photo
-                      let attempts = 0;
-                      while (failedPhotoUrls.has(randomPhotos[nextIndex]) && attempts < randomPhotos.length) {
-                        nextIndex = (nextIndex + 1) % randomPhotos.length;
-                        attempts++;
-                      }
-                      if (!failedPhotoUrls.has(randomPhotos[nextIndex])) {
-                        setTimeout(() => setCurrentPhotoIndex(nextIndex), 100);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      if (randomPhotos.length > 0 && currentPhotoIndex >= 0 && currentPhotoIndex < randomPhotos.length && !failedPhotoUrls.has(randomPhotos[currentPhotoIndex])) {
+                        openPhotoModalFromCard(currentPhotoIndex);
                       }
                     }
-                  }
-                }}
-              />
-            ) : (
-              <div style={{
-                width: '100%',
-                height: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#6b7280',
-                fontSize: 13,
-                textAlign: 'center',
-                padding: '20px'
+                  }}
+                  onError={(e) => {
+                    const img = e.target as HTMLImageElement;
+                    const failedUrl = img.src;
+                    setFailedPhotoUrls((prev) => {
+                      const newSet = new Set(prev);
+                      newSet.add(failedUrl);
+                      return newSet;
+                    });
+                    // Try next photo if current one fails
+                    if (randomPhotos.length > 1) {
+                      const availablePhotos = randomPhotos.filter((url) => !failedPhotoUrls.has(url));
+                      if (availablePhotos.length > 0) {
+                        const currentUrl = randomPhotos[currentPhotoIndex];
+                        const currentFailedIndex = randomPhotos.indexOf(currentUrl);
+                        let nextIndex = (currentFailedIndex + 1) % randomPhotos.length;
+                        // Find next non-failed photo
+                        let attempts = 0;
+                        while (failedPhotoUrls.has(randomPhotos[nextIndex]) && attempts < randomPhotos.length) {
+                          nextIndex = (nextIndex + 1) % randomPhotos.length;
+                          attempts++;
+                        }
+                        if (!failedPhotoUrls.has(randomPhotos[nextIndex])) {
+                          setTimeout(() => setCurrentPhotoIndex(nextIndex), 100);
+                        }
+                      }
+                    }
+                  }}
+                />
+              ) : (
+                <div style={{
+                  width: '100%',
+                  height: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#6b7280',
+                  fontSize: 13,
+                  textAlign: 'center',
+                  padding: '20px'
                 }}>
                   Tidak ada foto tersedia
                 </div>
               )}
               {randomPhotos.length > 1 && (
-              <>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    prevPhoto();
-                  }}
-                  style={{
-                    position: 'absolute',
-                    left: 8,
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    width: 32,
-                    height: 32,
-                    borderRadius: '50%',
-                    border: '1px solid var(--stroke)',
-                    background: 'rgba(255, 255, 255, 0.9)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    fontSize: 18,
-                    fontWeight: 600,
-                    color: 'var(--text)',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                    zIndex: 10
-                  }}
-                  aria-label="Foto sebelumnya"
-                  title="Foto sebelumnya"
-                >
-                  ‹
-                </button>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    nextPhoto();
-                  }}
-                  style={{
-                    position: 'absolute',
-                    right: 8,
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    width: 32,
-                    height: 32,
-                    borderRadius: '50%',
-                    border: '1px solid var(--stroke)',
-                    background: 'rgba(255, 255, 255, 0.9)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    fontSize: 18,
-                    fontWeight: 600,
-                    color: 'var(--text)',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                    zIndex: 10
-                  }}
-                  aria-label="Foto berikutnya"
-                  title="Foto berikutnya"
-                >
-                  ›
-                </button>
-              </>
-            )}
-          </div>
-          {randomPhotos.length > 1 && (
-            <div style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center', 
-              gap: 4,
-              fontSize: 12,
-              color: '#6b7280',
-              marginTop: 8
-            }}>
-              {randomPhotos.map((_, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => setCurrentPhotoIndex(idx)}
-                  style={{
-                    width: 6,
-                    height: 6,
-                    borderRadius: '50%',
-                    border: 'none',
-                    background: idx === currentPhotoIndex ? '#0a84ff' : '#d1d5db',
-                    cursor: 'pointer',
-                    padding: 0,
-                    transition: 'background 0.2s ease'
-                  }}
-                  aria-label={`Foto ${idx + 1}`}
-                />
-              ))}
+                <>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      prevPhoto();
+                    }}
+                    style={{
+                      position: 'absolute',
+                      left: 8,
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      width: 32,
+                      height: 32,
+                      borderRadius: '50%',
+                      border: '1px solid var(--stroke)',
+                      background: 'rgba(255, 255, 255, 0.9)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      fontSize: 18,
+                      fontWeight: 600,
+                      color: 'var(--text)',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                      zIndex: 10
+                    }}
+                    aria-label="Foto sebelumnya"
+                    title="Foto sebelumnya"
+                  >
+                    ‹
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      nextPhoto();
+                    }}
+                    style={{
+                      position: 'absolute',
+                      right: 8,
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      width: 32,
+                      height: 32,
+                      borderRadius: '50%',
+                      border: '1px solid var(--stroke)',
+                      background: 'rgba(255, 255, 255, 0.9)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      fontSize: 18,
+                      fontWeight: 600,
+                      color: 'var(--text)',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                      zIndex: 10
+                    }}
+                    aria-label="Foto berikutnya"
+                    title="Foto berikutnya"
+                  >
+                    ›
+                  </button>
+                </>
+              )}
             </div>
-          )}
+            {randomPhotos.length > 1 && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 4,
+                fontSize: 12,
+                color: '#6b7280',
+                marginTop: 8
+              }}>
+                {randomPhotos.map((_, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setCurrentPhotoIndex(idx)}
+                    style={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: '50%',
+                      border: 'none',
+                      background: idx === currentPhotoIndex ? '#0a84ff' : '#d1d5db',
+                      cursor: 'pointer',
+                      padding: 0,
+                      transition: 'background 0.2s ease'
+                    }}
+                    aria-label={`Foto ${idx + 1}`}
+                  />
+                ))}
+              </div>
+            )}
           </>
         );
       })()}
@@ -1937,7 +1946,15 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
       {/* Floating controls (custom UI) */}
       <div className="float-controls">
         <button onClick={goHome} className="btn" title="Home">🏠</button>
-        <button onClick={goDashboard} className="btn" title="Dashboard">📊</button>
+        {(activeKdi || isLoggedIn) && (
+          <button
+            onClick={goDashboard}
+            className="btn"
+            title={activeKdi ? "Detail Daerah Irigasi" : "Dashboard"}
+          >
+            📊
+          </button>
+        )}
         <button onClick={fitData} className="btn" title="Fit Data">🗺️</button>
         <button onClick={zoomIn} className="btn" title="Zoom In">＋</button>
         <button onClick={zoomOut} className="btn" title="Zoom Out">－</button>
@@ -1954,98 +1971,98 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
           title="Buka panel layer"
         >
           <span className="float-panel-toggle__logo" aria-hidden="true">
-            <Image 
-              src="/assets/icons/openlayers.png" 
-              alt="OpenLayers" 
-              width={36} 
+            <Image
+              src="/assets/icons/openlayers.png"
+              alt="OpenLayers"
+              width={36}
               height={36}
               style={{ background: 'transparent' }}
             />
           </span>
         </button>
-        ) : (
-          <div className="map-side-column">
-            <div className="float-panel card float-card scroll-silent" style={{ zIndex: 1 }}>
-              <div className="panel-header">
-                <button
-                  type="button"
-                  className="panel-collapse-btn"
-                  onClick={collapsePanel}
-                  aria-label="Sembunyikan panel layer"
-                  title="Sembunyikan panel"
-                >
-                  <span className="panel-collapse-icon" aria-hidden="true">
-                    &gt;
-                  </span>
-                </button>
-                <div className="panel-header-body">
-                  <span className="badge badge--right">OpenLayers</span>
-                </div>
+      ) : (
+        <div className="map-side-column">
+          <div className="float-panel card float-card scroll-silent" style={{ zIndex: 1 }}>
+            <div className="panel-header">
+              <button
+                type="button"
+                className="panel-collapse-btn"
+                onClick={collapsePanel}
+                aria-label="Sembunyikan panel layer"
+                title="Sembunyikan panel"
+              >
+                <span className="panel-collapse-icon" aria-hidden="true">
+                  &gt;
+                </span>
+              </button>
+              <div className="panel-header-body">
+                <span className="badge badge--right">OpenLayers</span>
               </div>
-              <div style={{ marginTop: 8 }}>
-                <div style={{ fontWeight: 600, margin: '8px 0 6px' }}>Basemap</div>
-                <label><input type="radio" name="basemap" onChange={() => setBasemap('googleHybrid')} /> Google Satellite Hybrid</label><br />
-                <label><input type="radio" name="basemap" onChange={() => setBasemap('googleSat')} /> Google Satellite</label><br />
-                <label><input type="radio" name="basemap" onChange={() => setBasemap('osm')} /> OpenStreetMap</label><br />
-                <label><input type="radio" name="basemap" defaultChecked onChange={() => setBasemap('carto')} /> CartoDB Light</label><br />
-                <label><input type="radio" name="basemap" onChange={() => setBasemap('sat')} /> ESRI Satellite</label>
-              </div>
-              {!activeKdi && (
-                <>
-                  <div style={{ fontWeight: 600, margin: '12px 0 6px' }}>Batas Wilayah</div>
-                  <label><input type="checkbox" checked={kecamatanVisible} onChange={(e) => toggleKecamatan((e.target as HTMLInputElement).checked)} /> Kecamatan Boundaries</label><br />
-                </>
-              )}
-              <div style={{ fontWeight: 600, margin: '12px 0 6px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span>Daerah Irigasi</span>
-                <span className="badge" title="Jumlah file yang dimuat">{storageCounts.files}</span>
-              </div>
-              <div className="layer-scroll scroll-silent" style={{ maxHeight: activeKdi ? '120px' : 'calc(100vh - 380px)' }}>
-                {loadingStorage ? <div>Memuat GeoJSON…</div> : null}
-                {storageError ? <div style={{ color: 'crimson' }}>{storageError}</div> : null}
-                {!loadingStorage && !storageError && storageCounts.files === 0 ? (
-                  <div style={{ color: '#666' }}>Tidak ada file</div>
-                ) : null}
-                <label style={{ display: 'block' }}>
-                  <input type="checkbox" checked={polygonsVisible} onChange={(e) => togglePolygons((e.target as HTMLInputElement).checked)} /> Fungsional ({storageCounts.polygons})
-                </label>
-                <label style={{ display: 'block' }}>
-                  <input type="checkbox" checked={linesVisible} onChange={(e) => toggleLines((e.target as HTMLInputElement).checked)} /> Saluran ({storageCounts.lines})
-                </label>
-                <label style={{ display: 'block' }}>
-                  <input type="checkbox" checked={pointsVisible} onChange={(e) => togglePoints((e.target as HTMLInputElement).checked)} /> Bangunan ({storageCounts.points})
-                </label>
-              </div>
-              <div style={{ marginTop: 12 }} className="legend" />
-              {activeKdi ? (
-                <div style={{ marginTop: 16 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                    <strong>Data DI</strong>
-                    <span className="badge" title="Kode irigasi aktif">{activeKdi}</span>
-                  </div>
-                  {diInfoLoading && <div style={{ fontSize: 13, color: '#6b7280', marginTop: 6 }}>Memuat detail...</div>}
-                  {diInfoError && <div style={{ fontSize: 13, color: '#b91c1c', marginTop: 6 }}>{diInfoError}</div>}
-                  {!diInfoLoading && !diInfoError && diInfoRows.length > 0 && (
-                    <table className="detail-table" style={{ marginTop: 6 }}>
-                      <tbody>
-                        {diInfoRows.map(([label, value]) => (
-                          <tr key={label}>
-                            <td className="label">{label}</td>
-                            <td className="value">{value}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  )}
-                  {!diInfoLoading && !diInfoError && diInfoRows.length === 0 && (
-                    <div style={{ fontSize: 13, color: '#6b7280', marginTop: 6 }}>Data belum tersedia.</div>
-                  )}
-                </div>
-              ) : null}
             </div>
-            {photoSliderCard}
+            <div style={{ marginTop: 8 }}>
+              <div style={{ fontWeight: 600, margin: '8px 0 6px' }}>Basemap</div>
+              <label><input type="radio" name="basemap" onChange={() => setBasemap('googleHybrid')} /> Google Satellite Hybrid</label><br />
+              <label><input type="radio" name="basemap" onChange={() => setBasemap('googleSat')} /> Google Satellite</label><br />
+              <label><input type="radio" name="basemap" onChange={() => setBasemap('osm')} /> OpenStreetMap</label><br />
+              <label><input type="radio" name="basemap" defaultChecked onChange={() => setBasemap('carto')} /> CartoDB Light</label><br />
+              <label><input type="radio" name="basemap" onChange={() => setBasemap('sat')} /> ESRI Satellite</label>
+            </div>
+            {!activeKdi && (
+              <>
+                <div style={{ fontWeight: 600, margin: '12px 0 6px' }}>Batas Wilayah</div>
+                <label><input type="checkbox" checked={kecamatanVisible} onChange={(e) => toggleKecamatan((e.target as HTMLInputElement).checked)} /> Kecamatan Boundaries</label><br />
+              </>
+            )}
+            <div style={{ fontWeight: 600, margin: '12px 0 6px', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span>Daerah Irigasi</span>
+              <span className="badge" title="Jumlah file yang dimuat">{storageCounts.files}</span>
+            </div>
+            <div className="layer-scroll scroll-silent" style={{ maxHeight: activeKdi ? '120px' : 'calc(100vh - 380px)' }}>
+              {loadingStorage ? <div>Memuat GeoJSON…</div> : null}
+              {storageError ? <div style={{ color: 'crimson' }}>{storageError}</div> : null}
+              {!loadingStorage && !storageError && storageCounts.files === 0 ? (
+                <div style={{ color: '#666' }}>Tidak ada file</div>
+              ) : null}
+              <label style={{ display: 'block' }}>
+                <input type="checkbox" checked={polygonsVisible} onChange={(e) => togglePolygons((e.target as HTMLInputElement).checked)} /> Fungsional ({storageCounts.polygons})
+              </label>
+              <label style={{ display: 'block' }}>
+                <input type="checkbox" checked={linesVisible} onChange={(e) => toggleLines((e.target as HTMLInputElement).checked)} /> Saluran ({storageCounts.lines})
+              </label>
+              <label style={{ display: 'block' }}>
+                <input type="checkbox" checked={pointsVisible} onChange={(e) => togglePoints((e.target as HTMLInputElement).checked)} /> Bangunan ({storageCounts.points})
+              </label>
+            </div>
+            <div style={{ marginTop: 12 }} className="legend" />
+            {activeKdi ? (
+              <div style={{ marginTop: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                  <strong>Data DI</strong>
+                  <span className="badge" title="Kode irigasi aktif">{activeKdi}</span>
+                </div>
+                {diInfoLoading && <div style={{ fontSize: 13, color: '#6b7280', marginTop: 6 }}>Memuat detail...</div>}
+                {diInfoError && <div style={{ fontSize: 13, color: '#b91c1c', marginTop: 6 }}>{diInfoError}</div>}
+                {!diInfoLoading && !diInfoError && diInfoRows.length > 0 && (
+                  <table className="detail-table" style={{ marginTop: 6 }}>
+                    <tbody>
+                      {diInfoRows.map(([label, value]) => (
+                        <tr key={label}>
+                          <td className="label">{label}</td>
+                          <td className="value">{value}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+                {!diInfoLoading && !diInfoError && diInfoRows.length === 0 && (
+                  <div style={{ fontSize: 13, color: '#6b7280', marginTop: 6 }}>Data belum tersedia.</div>
+                )}
+              </div>
+            ) : null}
           </div>
-        )}
+          {photoSliderCard}
+        </div>
+      )}
 
       {/* Photo Modal - Unified modal for both popup and card slider photos */}
       <PhotoModal

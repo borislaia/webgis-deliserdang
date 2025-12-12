@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import styles from './IrrigationManagementView.module.css';
 import StorageManager from './StorageManager';
+import Toast, { ToastType } from './Toast';
 
 type IrrigationManagementViewProps = {
   isAdmin: boolean;
@@ -30,6 +31,9 @@ export default function IrrigationManagementView({ isAdmin }: IrrigationManageme
   const [activeTab, setActiveTab] = useState<'data' | 'images' | 'pdf' | 'geojson'>('data');
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
+
+  // Toast State
+  const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
 
   // Form State
   const [formData, setFormData] = useState<Partial<DaerahIrigasi>>({});
@@ -111,16 +115,16 @@ export default function IrrigationManagementView({ isAdmin }: IrrigationManageme
       console.log('Update result length:', data?.length);
 
       if (!data || data.length === 0) {
-        alert('⚠️ Update gagal: Tidak ada data yang ter-update.\n\nKemungkinan penyebab:\n1. RLS Policy di Supabase memblokir UPDATE\n2. User tidak punya permission\n\nSilakan cek Supabase Dashboard > Authentication > Policies');
+        setToast({ message: '⚠️ Update gagal: Tidak ada data yang ter-update.\n\nKemungkinan penyebab:\n1. RLS Policy di Supabase memblokir UPDATE\n2. User tidak punya permission\n\nSilakan cek Supabase Dashboard > Authentication > Policies', type: 'error' });
         return;
       }
 
-      alert('✅ Data berhasil disimpan');
+      setToast({ message: 'Data berhasil disimpan', type: 'success' });
       await fetchDIList();
       setSelectedDI({ ...selectedDI, ...formData } as DaerahIrigasi);
     } catch (e: any) {
       console.error('Save error:', e);
-      alert(`❌ Gagal menyimpan: ${e.message}`);
+      setToast({ message: `Gagal menyimpan: ${e.message}`, type: 'error' });
     }
   };
 
@@ -146,13 +150,13 @@ export default function IrrigationManagementView({ isAdmin }: IrrigationManageme
 
       if (error) throw error;
 
-      alert('Daerah Irigasi berhasil dibuat!');
+      setToast({ message: 'Daerah Irigasi berhasil dibuat!', type: 'success' });
       setIsCreating(false);
       setCreateForm({ k_di: '', n_di: '', kecamatan: '', desa_kel: '' }); // Reset
       await fetchDIList();
       handleSelect(data as DaerahIrigasi);
     } catch (e: any) {
-      alert(`Gagal membuat DI: ${e.message}`);
+      setToast({ message: `Gagal membuat DI: ${e.message}`, type: 'error' });
     }
   };
 
@@ -161,8 +165,9 @@ export default function IrrigationManagementView({ isAdmin }: IrrigationManageme
 
     const { error } = await supabase.from('daerah_irigasi').delete().eq('id', selectedDI.id);
     if (error) {
-      alert(`Gagal: ${error.message}`);
+      setToast({ message: `Gagal: ${error.message}`, type: 'error' });
     } else {
+      setToast({ message: 'Daerah Irigasi berhasil dihapus', type: 'success' });
       setSelectedDI(null);
       fetchDIList();
     }
@@ -189,9 +194,9 @@ export default function IrrigationManagementView({ isAdmin }: IrrigationManageme
       });
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || 'Unknown error');
-      alert('Sinkronisasi Berhasil: ' + (result.message || 'Data terupdate.'));
+      setToast({ message: result.message || 'Sinkronisasi berhasil, data terupdate', type: 'success' });
     } catch (e: any) {
-      alert(`Sinkronisasi Gagal: ${e.message}`);
+      setToast({ message: `Sinkronisasi Gagal: ${e.message}`, type: 'error' });
     } finally {
       setSyncing(false);
     }
@@ -366,8 +371,9 @@ export default function IrrigationManagementView({ isAdmin }: IrrigationManageme
               {activeTab === 'images' && (
                 <StorageManager
                   bucketName="images"
-                  folderPath={selectedDI.k_di}
+                  folderPath={`${selectedDI.k_di}/citra`}
                   acceptedTypes="image/*"
+                  readOnly={!isAdmin}
                 />
               )}
 
@@ -380,6 +386,7 @@ export default function IrrigationManagementView({ isAdmin }: IrrigationManageme
                     bucketName="pdf"
                     folderPath={selectedDI.k_di}
                     acceptedTypes=".pdf"
+                    readOnly={!isAdmin}
                   />
                 </div>
               )}
@@ -404,6 +411,7 @@ export default function IrrigationManagementView({ isAdmin }: IrrigationManageme
                     bucketName="geojson"
                     folderPath={selectedDI.k_di}
                     acceptedTypes=".json,.geojson"
+                    readOnly={!isAdmin}
                   />
                 </div>
               )}
@@ -412,6 +420,15 @@ export default function IrrigationManagementView({ isAdmin }: IrrigationManageme
           )}
         </main>
       </div>
+
+      {/* Toast Notification */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 }

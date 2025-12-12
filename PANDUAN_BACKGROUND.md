@@ -3,15 +3,17 @@
 ## Cara Menggunakan
 
 ### 1. **Melihat Background Switcher**
-Saat membuka aplikasi, Anda akan melihat panel kecil di **pojok kanan bawah** dengan beberapa tombol emoji:
+Saat membuka **halaman home atau login**, Anda akan melihat panel kecil di **pojok kanan bawah** dengan beberapa tombol emoji:
 
 - 🌈 **Gradient** - Animated gradient blobs (Default)
 - ⚡ **Grid** - Grid pattern dengan spotlight
-- ✨ **Mesh** - Interactive mesh gradient
-- 🔵 **Dots** - Dot pattern dengan parallax
+- 🌙 **Dark Gradient** - Premium dark gradient dengan efek dinamis
+- 🌑 **Dark Grid** - Dark grid dengan animated particles
 - 🌊 **Wave** - Animated wave pattern
 - 🌫️ **Vanta** - 3D fog effect (Original)
 - ⬜ **None** - Tanpa background
+
+**Catatan**: Switcher hanya muncul di halaman **home (/)** dan **login (/login)** untuk menghindari gangguan pada halaman lain seperti dashboard.
 
 ### 2. **Mengganti Background**
 Cukup **klik** salah satu tombol emoji untuk mengganti background. Background akan langsung berubah.
@@ -38,19 +40,21 @@ Background **tidak akan muncul** di halaman peta (`/map`) untuk menjaga performa
 - Cocok untuk tampilan profesional
 - Performa sangat baik
 
-### ✨ Mesh
-**Terbaik untuk**: Landing page, halaman interaktif
-- Gradient yang bergerak mengikuti mouse
-- Multiple floating orbs
-- Efek noise texture
-- Performa baik
-
-### 🔵 Dots
-**Terbaik untuk**: Interface modern dan clean
-- Dot pattern dengan efek parallax
-- Bergerak sedikit saat mouse bergerak
-- Animated gradient orbs
+### 🌙 Dark Gradient
+**Terbaik untuk**: Mode gelap, tampilan premium malam hari
+- Gradient dinamis dengan warna deep purple, blue, dan magenta
+- Multiple animated gradient layers yang bergerak smooth
+- Efek noise texture untuk depth
 - Performa sangat baik
+- Cocok untuk penggunaan malam hari
+
+### 🌑 Dark Grid
+**Terbaik untuk**: Dashboard gelap, tampilan profesional
+- Animated grid pattern dengan warna purple
+- Multiple glowing orbs yang berpulse
+- Gradient overlay yang dinamis
+- Performa sangat baik
+- Tampilan modern dan elegan
 
 ### 🌊 Wave
 **Terbaik untuk**: Halaman dengan tema air/alam
@@ -76,9 +80,10 @@ Background **tidak akan muncul** di halaman peta (`/map`) untuk menjaga performa
 ## Tips
 
 1. **Untuk penggunaan sehari-hari**: Gunakan Gradient atau Grid
-2. **Untuk presentasi/demo**: Gunakan Mesh atau Vanta
-3. **Untuk performa maksimal**: Gunakan None
-4. **Untuk tampilan modern**: Gunakan Dots atau Wave
+2. **Untuk mode gelap/malam**: Gunakan Dark Gradient atau Dark Grid
+3. **Untuk presentasi/demo**: Gunakan Vanta
+4. **Untuk performa maksimal**: Gunakan None
+5. **Untuk tampilan modern**: Gunakan Wave atau Dark Grid
 
 ## Troubleshooting
 

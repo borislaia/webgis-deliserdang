@@ -17,7 +17,7 @@ export default function LoginPage() {
   function resolveSafeRedirect(raw: string | null | undefined, fallback = '/dashboard') {
     if (!raw) return fallback;
     let decoded = raw;
-    try { decoded = decodeURIComponent(raw); } catch {}
+    try { decoded = decodeURIComponent(raw); } catch { }
     if (!decoded.startsWith('/') || decoded.startsWith('//')) return fallback;
     return decoded;
   }
@@ -30,8 +30,10 @@ export default function LoginPage() {
     setLoading(true);
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
+      console.error("Login error details:", error);
+      console.log("Login error message:", error.message);
       setLoading(false);
-      setError('Email atau kata sandi salah.');
+      setError(`Login gagal: ${error.message}`); // Show actual error to user temp
       return;
     }
     try {
@@ -43,7 +45,7 @@ export default function LoginPage() {
       });
       if (!resp.ok) {
         let message = 'Gagal menyimpan sesi. Silakan coba lagi.';
-        try { const j = await resp.json(); if (j?.error) message = j.error; } catch {}
+        try { const j = await resp.json(); if (j?.error) message = j.error; } catch { }
         setLoading(false);
         setError(message);
         return;

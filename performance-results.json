@@ -1,0 +1,60 @@
+{
+  "timestamp": "2025-12-12T14:48:56.623Z",
+  "baseUrl": "http://localhost:3001",
+  "summary": {
+    "total": 5,
+    "excellent": 5,
+    "good": 0,
+    "slow": 0,
+    "critical": 0,
+    "errors": 0,
+    "averageTime": 563.6
+  },
+  "results": [
+    {
+      "scenario": "Home Page",
+      "url": "/",
+      "responseTime": 1010,
+      "expectedTime": 4000,
+      "status": "✅ EXCELLENT",
+      "error": null,
+      "timestamp": "2025-12-12T14:48:49.683Z"
+    },
+    {
+      "scenario": "Login Page",
+      "url": "/login",
+      "responseTime": 496,
+      "expectedTime": 3000,
+      "status": "✅ EXCELLENT",
+      "error": null,
+      "timestamp": "2025-12-12T14:48:51.222Z"
+    },
+    {
+      "scenario": "Daerah Irigasi List",
+      "url": "/daerah-irigasi/12120010",
+      "responseTime": 438,
+      "expectedTime": 10000,
+      "status": "✅ EXCELLENT",
+      "error": null,
+      "timestamp": "2025-12-12T14:48:52.682Z"
+    },
+    {
+      "scenario": "Map View (No DI)",
+      "url": "/map",
+      "responseTime": 391,
+      "expectedTime": 15000,
+      "status": "✅ EXCELLENT",
+      "error": null,
+      "timestamp": "2025-12-12T14:48:54.094Z"
+    },
+    {
+      "scenario": "Map View (With DI)",
+      "url": "/map?k_di=12120010",
+      "responseTime": 483,
+      "expectedTime": 30000,
+      "status": "✅ EXCELLENT",
+      "error": null,
+      "timestamp": "2025-12-12T14:48:55.595Z"
+    }
+  ]
+}

@@ -14,7 +14,7 @@ begin
       on storage.objects
       for select
       to anon, authenticated
-      using (bucket_id in ('geojson', 'csv', 'images'));
+      using (bucket_id in ('geojson', 'csv', 'images', 'pdf'));
   end if;
 end $$;
 
@@ -32,7 +32,7 @@ begin
       for insert
       to authenticated
       with check (
-        bucket_id in ('geojson', 'csv', 'images')
+        bucket_id in ('geojson', 'csv', 'images', 'pdf')
         and coalesce(auth.jwt() -> 'app_metadata' ->> 'role', '') = 'admin'
       );
 
@@ -41,11 +41,11 @@ begin
       for update
       to authenticated
       using (
-        bucket_id in ('geojson', 'csv', 'images')
+        bucket_id in ('geojson', 'csv', 'images', 'pdf')
         and coalesce(auth.jwt() -> 'app_metadata' ->> 'role', '') = 'admin'
       )
       with check (
-        bucket_id in ('geojson', 'csv', 'images')
+        bucket_id in ('geojson', 'csv', 'images', 'pdf')
         and coalesce(auth.jwt() -> 'app_metadata' ->> 'role', '') = 'admin'
       );
 
@@ -54,7 +54,7 @@ begin
       for delete
       to authenticated
       using (
-        bucket_id in ('geojson', 'csv', 'images')
+        bucket_id in ('geojson', 'csv', 'images', 'pdf')
         and coalesce(auth.jwt() -> 'app_metadata' ->> 'role', '') = 'admin'
       );
   end if;

@@ -31,7 +31,7 @@ export default function DashboardButton() {
   }
 
   if (!isAuthenticated) {
-    return null
+    return <Link className="btn primary" href="/login">Login</Link>
   }
 
   return <Link className="btn primary" href="/dashboard">Dashboard</Link>

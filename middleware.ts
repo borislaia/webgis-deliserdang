@@ -58,7 +58,8 @@ export async function middleware(request: NextRequest) {
     return response
   }
 
-  if (pathname.startsWith('/map') || pathname.startsWith('/dashboard')) {
+  // Only protect /dashboard, allow /map to be public
+  if (pathname.startsWith('/dashboard')) {
     if (!user) {
       const url = request.nextUrl.clone()
       url.pathname = '/login'
@@ -72,5 +73,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/map/:path*', '/dashboard/:path*', '/login']
+  matcher: ['/dashboard/:path*', '/login']
 }
