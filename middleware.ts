@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { getTenantFromHostname } from './lib/tenant-config'
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
@@ -7,6 +8,13 @@ export async function middleware(request: NextRequest) {
       headers: request.headers,
     },
   })
+
+  // 1. Detect Tenant
+  const hostname = request.headers.get('host') || 'localhost:3000'
+  const tenantUptd = getTenantFromHostname(hostname)
+
+  // 2. Set Cookie for Client/Server Components to use
+  response.cookies.set('tenant_uptd', tenantUptd)
 
   // Bypass auth saat Preview (Vercel) atau ketika flag eksplisit diaktifkan
   if (process.env.VERCEL_ENV === 'preview' || process.env.NEXT_PUBLIC_BYPASS_AUTH === 'true') {
@@ -73,5 +81,14 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/login']
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     */
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+  ],
 }

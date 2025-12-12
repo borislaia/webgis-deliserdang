@@ -9,12 +9,24 @@ import { SpeedInsights } from '@vercel/speed-insights/next'
 
 const inter = Inter({ subsets: ['latin'] })
 
-export const metadata: Metadata = {
-  title: 'WebGIS Deli Serdang',
-  description: 'WebGIS Deli Serdang - Next.js + Supabase',
-  icons: {
-    icon: '/assets/icons/logo-deliserdang.png',
-  },
+import { cookies } from 'next/headers'
+
+export async function generateMetadata(): Promise<Metadata> {
+  const cookieStore = cookies()
+  const tenantUptd = cookieStore.get('tenant_uptd')?.value
+
+  let title = 'WebGIS Deli Serdang'
+  if (tenantUptd) {
+    title += ` UPTD ${tenantUptd.trim()}`
+  }
+
+  return {
+    title,
+    description: 'WebGIS Deli Serdang - Next.js + Supabase',
+    icons: {
+      icon: '/assets/icons/logo-deliserdang.png',
+    },
+  }
 }
 
 const BackgroundManager = dynamic(() => import('@/components/backgrounds/BackgroundManager'), { ssr: false })

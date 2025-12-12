@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
+import Cookies from 'js-cookie';
 import { usePhotoModal } from '@/hooks/usePhotoModal';
 import PhotoModal from '@/components/PhotoModal';
 import 'ol/ol.css';
@@ -172,7 +173,8 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
 
   useEffect(() => {
     if (typeof document === 'undefined') return;
-    const baseTitle = 'WebGIS Deli Serdang';
+    const tenantUptd = Cookies.get('tenant_uptd');
+    const baseTitle = 'WebGIS Deli Serdang' + (tenantUptd ? ` - UPTD ${tenantUptd}` : '');
     const pageTitle = variant === 'sebaran' ? 'Sebaran Irigasi' : 'Peta Daerah Irigasi';
     document.title = `${pageTitle} | ${baseTitle}`;
   }, [variant]);
@@ -660,6 +662,22 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
           setIsAdmin(((user?.app_metadata as any)?.role) === 'admin');
         } catch { }
 
+        // 0) Get Tenant UPTD and Allowed K_DI if restricted
+        let allowedKdiSet: Set<string> | null = null;
+        try {
+          const tenantUptd = Cookies.get('tenant_uptd');
+          if (tenantUptd) {
+            console.log('[Map] Filtering map data by UPTD:', tenantUptd);
+            const { data: tenantDis } = await supabase
+              .from('daerah_irigasi')
+              .select('k_di')
+              .eq('uptd', tenantUptd);
+            if (tenantDis) {
+              allowedKdiSet = new Set(tenantDis.map((r: any) => (r.k_di || '').toLowerCase().trim()));
+            }
+          }
+        } catch (e) { console.warn('Error fetching tenant DIs:', e); }
+
         // 1) Load GeoJSON paths via manifest (CDN) dengan fallback
         try {
           setLoadingStorage(true);
@@ -724,6 +742,20 @@ export default function IrrigationMapView({ variant = 'map' }: IrrigationMapView
               targetFiles = allFiles.filter((p) => p.startsWith(`${activeKdi}/`));
             }
           }
+
+          // FILTER: If tenant restriction applies and no specific DI selected, filter targetFiles
+          if (allowedKdiSet && !activeKdi) {
+            console.log(`[Map] Applying tenant filter. Total files before: ${targetFiles.length}`);
+            const restrictedFiles = targetFiles.filter(p => {
+              // GeoJSON path format: kode_di/filename.geojson
+              const rootFolder = (p.split('/')[0] || '').toLowerCase().trim();
+              // Check if the root folder matches any allowed K_DI
+              return allowedKdiSet!.has(rootFolder);
+            });
+            targetFiles = restrictedFiles;
+            console.log(`[Map] Tenant filter applied. Total files after: ${targetFiles.length}`);
+          }
+
           const processFile = async (path: string): Promise<StorageResult | null> => {
             // Prefer CDN public URL fetch for speed; fallback to storage.download
             try {

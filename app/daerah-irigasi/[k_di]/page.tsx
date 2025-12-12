@@ -1,10 +1,24 @@
 import { createServerSupabase } from '@/lib/supabase/server';
 import DaerahIrigasiView from '@/components/DaerahIrigasiView';
 
+import { cookies } from 'next/headers';
+
 export const dynamic = 'force-dynamic';
 
 export default async function DaerahIrigasiPage({ params }: { params: { k_di: string } }) {
     const supabase = createServerSupabase();
+    const cookieStore = cookies();
+    const tenantUptd = cookieStore.get('tenant_uptd')?.value;
+
+    // Define Query 1 with conditional status
+    let allDiQuery = supabase
+        .from('daerah_irigasi')
+        .select('k_di, n_di, kecamatan')
+        .order('k_di', { ascending: true });
+
+    if (tenantUptd) {
+        allDiQuery = allDiQuery.eq('uptd', tenantUptd);
+    }
 
     // PERFORMANCE FIX: Parallelize all queries with Promise.all
     const [
@@ -13,11 +27,8 @@ export default async function DaerahIrigasiPage({ params }: { params: { k_di: st
         imageFilesResult,
         pdfFilesResult
     ] = await Promise.all([
-        // Query 1: Fetch all DI for sidebar
-        supabase
-            .from('daerah_irigasi')
-            .select('k_di, n_di, kecamatan')
-            .order('k_di', { ascending: true }),
+        // Query 1: Fetch all DI for sidebar (Filtered)
+        allDiQuery,
 
         // Query 2: Fetch selected DI details
         supabase
@@ -94,6 +105,7 @@ export default async function DaerahIrigasiPage({ params }: { params: { k_di: st
             selectedKDI={params.k_di}
             images={images}
             pdfs={pdfs}
+            tenantUptd={tenantUptd}
         />
     );
 }

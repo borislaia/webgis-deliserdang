@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/client';
 import styles from './IrrigationManagementView.module.css';
 import StorageManager from './StorageManager';
 import Toast, { ToastType } from './Toast';
+import Cookies from 'js-cookie';
 
 type IrrigationManagementViewProps = {
   isAdmin: boolean;
@@ -47,10 +48,23 @@ export default function IrrigationManagementView({ isAdmin }: IrrigationManageme
   // Fetch List
   const fetchDIList = async () => {
     setLoading(true);
-    const { data } = await supabase
+    const tenantUptd = Cookies.get('tenant_uptd');
+
+    let query = supabase
       .from('daerah_irigasi')
       .select('id,k_di,n_di,luas_ha,kecamatan,desa_kel,sumber_air,tahun_data')
       .order('n_di');
+
+    // Filter by Tenant
+    console.log('[IrrigationManagement] Raw Cookie tenant_uptd:', tenantUptd);
+    if (tenantUptd) {
+      console.log('[IrrigationManagement] Applying filter .eq("uptd", "' + tenantUptd + '")');
+      query = query.eq('uptd', tenantUptd);
+    } else {
+      console.log('[IrrigationManagement] No tenant filter applied');
+    }
+
+    const { data } = await query;
     setDiList(data || []);
     setLoading(false);
   };
@@ -143,7 +157,9 @@ export default function IrrigationManagementView({ isAdmin }: IrrigationManageme
           // Defaults for optional fields
           luas_ha: createForm.luas_ha || 0,
           sumber_air: createForm.sumber_air || '-',
-          tahun_data: createForm.tahun_data || new Date().getFullYear().toString()
+          tahun_data: createForm.tahun_data || new Date().getFullYear().toString(),
+          // Auto-fill UPTD from Tenant
+          uptd: Cookies.get('tenant_uptd') || null
         })
         .select()
         .single();

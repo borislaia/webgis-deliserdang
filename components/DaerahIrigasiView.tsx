@@ -34,9 +34,10 @@ type Props = {
     selectedKDI: string;
     images: string[];
     pdfs: PDF[];
+    tenantUptd?: string;
 };
 
-export default function DaerahIrigasiView({ allDI: initialAllDI, selectedDI: initialSelectedDI, selectedKDI: initialKDI, images: initialImages, pdfs: initialPdfs }: Props) {
+export default function DaerahIrigasiView({ allDI: initialAllDI, selectedDI: initialSelectedDI, selectedKDI: initialKDI, images: initialImages, pdfs: initialPdfs, tenantUptd }: Props) {
     const router = useRouter();
     const supabase = createClient();
 
@@ -157,7 +158,9 @@ export default function DaerahIrigasiView({ allDI: initialAllDI, selectedDI: ini
                         height={32}
                         className={styles.brandIcon}
                     />
-                    <span className={styles.brandText}>Daerah Irigasi - Deli Serdang</span>
+                    <span className={styles.brandText}>
+                        {tenantUptd ? `Daerah Irigasi UPTD ${tenantUptd}` : 'Daerah Irigasi - Deli Serdang'}
+                    </span>
                 </div>
                 <Link href="/" className={styles.homeButton}>
                     Kembali ke Home

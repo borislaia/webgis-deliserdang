@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
 import IrrigationManagementView from '@/components/IrrigationManagementView';
+import Cookies from 'js-cookie';
 
 type Panel = 'di' | 'management' | 'reports' | 'users' | 'settings';
 type UserRow = { id: string; email: string; role: string; created_at: string | null; last_sign_in_at: string | null };
@@ -25,6 +26,13 @@ export default function DashboardPage() {
   const [avatarUrl, setAvatarUrl] = useState<string>('');
   const [userId, setUserId] = useState<string>('');
   const [userRole, setUserRole] = useState<string>('');
+
+  // Tenant State
+  const [tenantUptd, setTenantUptd] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    setTenantUptd(Cookies.get('tenant_uptd'));
+  }, []);
 
   const isAdmin = userRole === 'admin';
 
@@ -86,10 +94,24 @@ export default function DashboardPage() {
       setDiRows(null);
       try {
         const supabase = createClient();
-        const { data, error } = await supabase
+        const tenantUptd = Cookies.get('tenant_uptd');
+
+        let query = supabase
           .from('daerah_irigasi')
           .select('id,k_di,n_di,luas_ha,kecamatan,desa_kel,sumber_air,tahun_data')
           .order('k_di', { ascending: true });
+
+        // Filter by Tenant if cookie exists
+        console.log('[Dashboard] Raw Cookie tenant_uptd:', tenantUptd, 'Type:', typeof tenantUptd);
+
+        if (tenantUptd) {
+          console.log('[Dashboard] Applying filter .eq("uptd", "' + tenantUptd + '")');
+          query = query.eq('uptd', tenantUptd);
+        } else {
+          console.log('[Dashboard] No UPTD filter applied (cookie missing or empty)');
+        }
+
+        const { data, error } = await query;
         if (error) throw error;
         if (!cancelled) setDiRows(data || []);
       } catch (e: any) {
@@ -191,7 +213,9 @@ export default function DashboardPage() {
       <header className="app-header blur">
         <div className="brand">
           <Image src="/assets/icons/logo-deliserdang.png" alt="Logo" width={24} height={24} className="brand-icon" />
-          <span className="brand-text">WebGIS Deli Serdang</span>
+          <span className="brand-text">
+            WebGIS Deli Serdang {tenantUptd ? `UPTD ${tenantUptd}` : ''}
+          </span>
         </div>
         <nav style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div
