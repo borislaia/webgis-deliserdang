@@ -7,7 +7,7 @@ import { useTenant } from '@/lib/tenant-context';
 import IrrigationManagementView from '@/components/IrrigationManagementView';
 import ReportsPanel from '@/components/ReportsPanel';
 import Cookies from 'js-cookie';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 
 type Panel = 'di' | 'management' | 'reports' | 'users' | 'settings';
 type UserRow = { id: string; email: string; role: string; created_at: string | null; last_sign_in_at: string | null };
@@ -252,26 +252,51 @@ export default function DashboardPage() {
   }, [diRows, searchQuery, filterKecamatan, filterSumberAir]);
 
   // Export to Excel
-  const exportDiToExcel = () => {
+  const exportDiToExcel = async () => {
     const dataToExport = filteredDiRows || diRows;
     if (!dataToExport || !dataToExport.length) return;
 
-    const wsData = dataToExport.map(d => ({
-      'Kode DI': d.k_di,
-      'Nama': d.n_di || '-',
-      'Luas (Ha)': d.luas_ha || 0,
-      'Kecamatan': d.kecamatan || '-',
-      'Desa/Kel': d.desa_kel || '-',
-      'Sumber Air': d.sumber_air || '-',
-      'Tahun Data': d.tahun_data || '-',
-    }));
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Daerah Irigasi');
 
-    const ws = XLSX.utils.json_to_sheet(wsData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Daerah Irigasi');
+    // Add headers
+    worksheet.columns = [
+      { header: 'Kode DI', key: 'k_di', width: 15 },
+      { header: 'Nama', key: 'n_di', width: 30 },
+      { header: 'Luas (Ha)', key: 'luas_ha', width: 12 },
+      { header: 'Kecamatan', key: 'kecamatan', width: 20 },
+      { header: 'Desa/Kel', key: 'desa_kel', width: 20 },
+      { header: 'Sumber Air', key: 'sumber_air', width: 15 },
+      { header: 'Tahun Data', key: 'tahun_data', width: 12 },
+    ];
 
-    const fileName = `Daerah_Irigasi_${new Date().toISOString().split('T')[0]}.xlsx`;
-    XLSX.writeFile(wb, fileName, { bookType: 'xlsx' });
+    // Add data
+    dataToExport.forEach(d => {
+      worksheet.addRow({
+        k_di: d.k_di,
+        n_di: d.n_di || '-',
+        luas_ha: d.luas_ha || 0,
+        kecamatan: d.kecamatan || '-',
+        desa_kel: d.desa_kel || '-',
+        sumber_air: d.sumber_air || '-',
+        tahun_data: d.tahun_data || '-',
+      });
+    });
+
+    // Style header row
+    worksheet.getRow(1).font = { bold: true };
+
+    // Generate and download
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Daerah_Irigasi_${new Date().toISOString().split('T')[0]}.xlsx`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   // Export to CSV

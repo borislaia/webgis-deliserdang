@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import Cookies from 'js-cookie';
 import styles from './ReportsPanel.module.css';
 
@@ -184,55 +184,87 @@ export default function ReportsPanel() {
     }, [data, geojsonCounts]);
 
     // Export to Excel
-    const exportToExcel = () => {
+    const exportToExcel = async () => {
         if (!data.length) return;
 
-        // Main data sheet
-        const wsData = data.map(d => ({
-            'Kode DI': d.k_di,
-            'Nama DI': d.n_di || '-',
-            'Luas (Ha)': d.luas_ha || 0,
-            'Kecamatan': d.kecamatan || '-',
-            'Sumber Air': d.sumber_air || '-',
-            'Kondisi': d.kondisi || '-',
-            'Jumlah Saluran': d.jumlah_saluran || 0,
-            'Jumlah Bangunan': d.jumlah_bangunan || 0,
-            'Panjang SP (m)': d.panjang_sp || 0,
-            'Panjang SS (m)': d.panjang_ss || 0,
-        }));
+        const workbook = new ExcelJS.Workbook();
 
-        const ws = XLSX.utils.json_to_sheet(wsData);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Daerah Irigasi');
+        // Main data sheet
+        const wsMain = workbook.addWorksheet('Daerah Irigasi');
+        wsMain.columns = [
+            { header: 'Kode DI', key: 'k_di', width: 15 },
+            { header: 'Nama DI', key: 'n_di', width: 30 },
+            { header: 'Luas (Ha)', key: 'luas_ha', width: 12 },
+            { header: 'Kecamatan', key: 'kecamatan', width: 20 },
+            { header: 'Sumber Air', key: 'sumber_air', width: 15 },
+            { header: 'Kondisi', key: 'kondisi', width: 15 },
+            { header: 'Jumlah Saluran', key: 'jumlah_saluran', width: 15 },
+            { header: 'Jumlah Bangunan', key: 'jumlah_bangunan', width: 15 },
+            { header: 'Panjang SP (m)', key: 'panjang_sp', width: 15 },
+            { header: 'Panjang SS (m)', key: 'panjang_ss', width: 15 },
+        ];
+        data.forEach(d => {
+            wsMain.addRow({
+                k_di: d.k_di,
+                n_di: d.n_di || '-',
+                luas_ha: d.luas_ha || 0,
+                kecamatan: d.kecamatan || '-',
+                sumber_air: d.sumber_air || '-',
+                kondisi: d.kondisi || '-',
+                jumlah_saluran: d.jumlah_saluran || 0,
+                jumlah_bangunan: d.jumlah_bangunan || 0,
+                panjang_sp: d.panjang_sp || 0,
+                panjang_ss: d.panjang_ss || 0,
+            });
+        });
+        wsMain.getRow(1).font = { bold: true };
 
         // Summary sheet
         if (stats) {
-            const summaryData = [
-                { 'Metric': 'Total Daerah Irigasi', 'Nilai': stats.totalDI },
-                { 'Metric': 'Total Luas (Ha)', 'Nilai': stats.totalLuas.toFixed(2) },
-                { 'Metric': 'Rata-rata Luas (Ha)', 'Nilai': stats.avgLuas.toFixed(2) },
-                { 'Metric': 'Total Saluran', 'Nilai': stats.totalSaluran },
-                { 'Metric': 'Total Bangunan', 'Nilai': stats.totalBangunan },
-                { 'Metric': 'Total Panjang SP (m)', 'Nilai': stats.totalPanjangSP.toFixed(2) },
-                { 'Metric': 'Total Panjang SS (m)', 'Nilai': stats.totalPanjangSS.toFixed(2) },
+            const wsSummary = workbook.addWorksheet('Ringkasan');
+            wsSummary.columns = [
+                { header: 'Metric', key: 'metric', width: 25 },
+                { header: 'Nilai', key: 'nilai', width: 20 },
             ];
-            const wsSummary = XLSX.utils.json_to_sheet(summaryData);
-            XLSX.utils.book_append_sheet(wb, wsSummary, 'Ringkasan');
+            wsSummary.addRow({ metric: 'Total Daerah Irigasi', nilai: stats.totalDI });
+            wsSummary.addRow({ metric: 'Total Luas (Ha)', nilai: stats.totalLuas.toFixed(2) });
+            wsSummary.addRow({ metric: 'Rata-rata Luas (Ha)', nilai: stats.avgLuas.toFixed(2) });
+            wsSummary.addRow({ metric: 'Total Saluran', nilai: stats.totalSaluran });
+            wsSummary.addRow({ metric: 'Total Bangunan', nilai: stats.totalBangunan });
+            wsSummary.addRow({ metric: 'Total Panjang SP (m)', nilai: stats.totalPanjangSP.toFixed(2) });
+            wsSummary.addRow({ metric: 'Total Panjang SS (m)', nilai: stats.totalPanjangSS.toFixed(2) });
+            wsSummary.getRow(1).font = { bold: true };
 
             // Kecamatan sheet
-            const kecamatanData = stats.kecamatanSummary.map(k => ({
-                'Kecamatan': k.name,
-                'Jumlah DI': k.count,
-                'Total Luas (Ha)': k.totalLuas.toFixed(2),
-                'Persentase (%)': k.percentage.toFixed(1)
-            }));
-            const wsKecamatan = XLSX.utils.json_to_sheet(kecamatanData);
-            XLSX.utils.book_append_sheet(wb, wsKecamatan, 'Per Kecamatan');
+            const wsKecamatan = workbook.addWorksheet('Per Kecamatan');
+            wsKecamatan.columns = [
+                { header: 'Kecamatan', key: 'kecamatan', width: 25 },
+                { header: 'Jumlah DI', key: 'count', width: 12 },
+                { header: 'Total Luas (Ha)', key: 'luas', width: 15 },
+                { header: 'Persentase (%)', key: 'percentage', width: 15 },
+            ];
+            stats.kecamatanSummary.forEach(k => {
+                wsKecamatan.addRow({
+                    kecamatan: k.name,
+                    count: k.count,
+                    luas: k.totalLuas.toFixed(2),
+                    percentage: k.percentage.toFixed(1),
+                });
+            });
+            wsKecamatan.getRow(1).font = { bold: true };
         }
 
-        const fileName = `Laporan_Irigasi_${new Date().toISOString().split('T')[0]}.xlsx`;
-        // Use writeFile with explicit options for browser download
-        XLSX.writeFile(wb, fileName, { bookType: 'xlsx' });
+        // Generate and download
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `Laporan_Irigasi_${new Date().toISOString().split('T')[0]}.xlsx`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
     };
 
     // Export to CSV
