@@ -16,8 +16,7 @@ const nextConfig = {
       { source: '/index.html', destination: '/' },
       { source: '/login.html', destination: '/login' },
       { source: '/map.html', destination: '/map' },
-      { source: '/dashboard.html', destination: '/dashboard' },
-      { source: '/irrigation-management.html', destination: '/irrigation-management' }
+      { source: '/dashboard.html', destination: '/dashboard' }
     ]
   }
 };
