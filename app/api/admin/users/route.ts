@@ -78,9 +78,10 @@ export async function PATCH(request: Request) {
     const targetUser = existing?.user
     const targetRole = (targetUser?.app_metadata as any)?.role || (targetUser?.user_metadata as any)?.role || 'user'
 
-    if (targetRole === 'admin' && id !== user.id && role !== targetRole) {
-      return NextResponse.json({ error: 'Anda tidak dapat mengubah role admin lain' }, { status: 403 })
-    }
+    // Protection removed to allow admin management
+    // if (targetRole === 'admin' && id !== user.id && role !== targetRole) {
+    //   return NextResponse.json({ error: 'Anda tidak dapat mengubah role admin lain' }, { status: 403 })
+    // }
 
     if (role === targetRole) {
       return NextResponse.json({ ok: true, user: targetUser })

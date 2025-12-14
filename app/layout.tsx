@@ -6,6 +6,7 @@ import dynamic from 'next/dynamic'
 import { headers } from 'next/headers'
 import Script from 'next/script'
 import { SpeedInsights } from '@vercel/speed-insights/next'
+import Providers from '@/components/Providers'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -40,7 +41,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className={inter.className}>
         {showVanta && <BackgroundManager defaultBackground="gradient" allowSwitch={true} />}
-        {children}
+        <Providers>
+          {children}
+        </Providers>
         <SpeedInsights />
         {/* Sync Supabase client events to server cookies */}
         <Script id="supabase-auth-sync" strategy="afterInteractive">

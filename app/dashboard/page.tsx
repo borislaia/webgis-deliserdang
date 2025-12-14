@@ -1,9 +1,13 @@
 "use client";
 import { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { useTenant } from '@/lib/tenant-context';
 import IrrigationManagementView from '@/components/IrrigationManagementView';
+import ReportsPanel from '@/components/ReportsPanel';
 import Cookies from 'js-cookie';
+import * as XLSX from 'xlsx';
 
 type Panel = 'di' | 'management' | 'reports' | 'users' | 'settings';
 type UserRow = { id: string; email: string; role: string; created_at: string | null; last_sign_in_at: string | null };
@@ -27,12 +31,8 @@ export default function DashboardPage() {
   const [userId, setUserId] = useState<string>('');
   const [userRole, setUserRole] = useState<string>('');
 
-  // Tenant State
-  const [tenantUptd, setTenantUptd] = useState<string | undefined>(undefined);
-
-  useEffect(() => {
-    setTenantUptd(Cookies.get('tenant_uptd'));
-  }, []);
+  // Tenant State from context
+  const { tenant: tenantUptd } = useTenant();
 
   const isAdmin = userRole === 'admin';
 
@@ -40,6 +40,11 @@ export default function DashboardPage() {
   const [diRows, setDiRows] = useState<DaerahIrigasiRow[] | null>(null);
   const [diLoading, setDiLoading] = useState<boolean>(false);
   const [diError, setDiError] = useState<string | null>(null);
+
+  // Search & Filter state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterKecamatan, setFilterKecamatan] = useState('');
+  const [filterSumberAir, setFilterSumberAir] = useState('');
 
   // Users panel state
   const [users, setUsers] = useState<UserRow[]>([]);
@@ -94,7 +99,8 @@ export default function DashboardPage() {
       setDiRows(null);
       try {
         const supabase = createClient();
-        const tenantUptd = Cookies.get('tenant_uptd');
+        // Read cookie directly for data fetching (more reliable after SPA navigation)
+        const cookieTenant = Cookies.get('tenant_uptd');
 
         let query = supabase
           .from('daerah_irigasi')
@@ -102,11 +108,11 @@ export default function DashboardPage() {
           .order('k_di', { ascending: true });
 
         // Filter by Tenant if cookie exists
-        console.log('[Dashboard] Raw Cookie tenant_uptd:', tenantUptd, 'Type:', typeof tenantUptd);
+        console.log('[Dashboard] Raw Cookie tenant_uptd:', cookieTenant, 'Type:', typeof cookieTenant);
 
-        if (tenantUptd) {
-          console.log('[Dashboard] Applying filter .eq("uptd", "' + tenantUptd + '")');
-          query = query.eq('uptd', tenantUptd);
+        if (cookieTenant) {
+          console.log('[Dashboard] Applying filter .eq("uptd", "' + cookieTenant + '")');
+          query = query.eq('uptd', cookieTenant);
         } else {
           console.log('[Dashboard] No UPTD filter applied (cookie missing or empty)');
         }
@@ -208,6 +214,98 @@ export default function DashboardPage() {
     return '';
   };
 
+  // Unique kecamatan and sumber_air options for filters
+  const filterOptions = useMemo(() => {
+    if (!diRows) return { kecamatan: [], sumberAir: [] };
+    const kecamatanSet = new Set<string>();
+    const sumberAirSet = new Set<string>();
+    diRows.forEach(row => {
+      if (row.kecamatan) kecamatanSet.add(row.kecamatan);
+      if (row.sumber_air) sumberAirSet.add(row.sumber_air);
+    });
+    return {
+      kecamatan: Array.from(kecamatanSet).sort(),
+      sumberAir: Array.from(sumberAirSet).sort()
+    };
+  }, [diRows]);
+
+  // Filtered rows based on search and filters
+  const filteredDiRows = useMemo(() => {
+    if (!diRows) return null;
+    return diRows.filter(row => {
+      // Search query filter
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const matches =
+          (row.k_di || '').toLowerCase().includes(query) ||
+          (row.n_di || '').toLowerCase().includes(query) ||
+          (row.kecamatan || '').toLowerCase().includes(query) ||
+          (row.desa_kel || '').toLowerCase().includes(query);
+        if (!matches) return false;
+      }
+      // Kecamatan filter
+      if (filterKecamatan && row.kecamatan !== filterKecamatan) return false;
+      // Sumber Air filter
+      if (filterSumberAir && row.sumber_air !== filterSumberAir) return false;
+      return true;
+    });
+  }, [diRows, searchQuery, filterKecamatan, filterSumberAir]);
+
+  // Export to Excel
+  const exportDiToExcel = () => {
+    const dataToExport = filteredDiRows || diRows;
+    if (!dataToExport || !dataToExport.length) return;
+
+    const wsData = dataToExport.map(d => ({
+      'Kode DI': d.k_di,
+      'Nama': d.n_di || '-',
+      'Luas (Ha)': d.luas_ha || 0,
+      'Kecamatan': d.kecamatan || '-',
+      'Desa/Kel': d.desa_kel || '-',
+      'Sumber Air': d.sumber_air || '-',
+      'Tahun Data': d.tahun_data || '-',
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(wsData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Daerah Irigasi');
+
+    const fileName = `Daerah_Irigasi_${new Date().toISOString().split('T')[0]}.xlsx`;
+    XLSX.writeFile(wb, fileName, { bookType: 'xlsx' });
+  };
+
+  // Export to CSV
+  const exportDiToCSV = () => {
+    const dataToExport = filteredDiRows || diRows;
+    if (!dataToExport || !dataToExport.length) return;
+
+    const headers = ['Kode DI', 'Nama', 'Luas (Ha)', 'Kecamatan', 'Desa/Kel', 'Sumber Air', 'Tahun Data'];
+    const csvContent = [
+      headers.join(','),
+      ...dataToExport.map(d => [
+        d.k_di,
+        `"${(d.n_di || '-').replace(/"/g, '""')}"`,
+        d.luas_ha || 0,
+        `"${(d.kecamatan || '-').replace(/"/g, '""')}"`,
+        `"${(d.desa_kel || '-').replace(/"/g, '""')}"`,
+        `"${(d.sumber_air || '-').replace(/"/g, '""')}"`,
+        d.tahun_data || '-'
+      ].join(','))
+    ].join('\n');
+
+    // Add BOM for UTF-8 encoding
+    const BOM = '\uFEFF';
+    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `Daerah_Irigasi_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <main>
       <header className="app-header blur">
@@ -263,7 +361,7 @@ export default function DashboardPage() {
               <span style={{ fontSize: 11, opacity: 0.65 }}>Role: {userRole || 'user'}</span>
             </div>
           </div>
-          <button className="btn primary" onClick={() => (window.location.href = '/')}>Home</button>
+          <Link href="/" className="btn">Home</Link>
           <button className="btn" onClick={logout}>Logout</button>
         </nav>
       </header>
@@ -276,7 +374,7 @@ export default function DashboardPage() {
               <span className="badge">Dashboard</span>
             </div>
             <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <button className="btn primary" onClick={() => (window.location.href = '/sebaran-irigasi')}>Sebaran Irigasi</button>
+              <Link href="/sebaran-irigasi" className="btn primary">Sebaran Irigasi</Link>
               <button className="btn" onClick={() => setActivePanel('di')}>Daerah Irigasi</button>
               <button className="btn" onClick={() => setActivePanel('management')}>Manajemen Irigasi</button>
               <button className="btn" onClick={() => setActivePanel('reports')}>Laporan</button>
@@ -289,54 +387,199 @@ export default function DashboardPage() {
         </aside>
         <main className="content">
           {activePanel === 'di' && (
-            <div className="card" style={{ padding: 18 }}>
-              <h3 style={{ marginTop: 0 }}>Daerah Irigasi</h3>
-              {diLoading && <div className="loading">Memuat data...</div>}
-              {diError && <div className="error-message">{diError}</div>}
-              {!diLoading && !diError && diRows && diRows.length === 0 && <div className="info">Data daerah irigasi belum tersedia.</div>}
-              {!diLoading && !diError && diRows && diRows.length > 0 && (
-                <div style={{ overflowX: 'auto' }}>
-                  <table className="data-table">
-                    <thead>
-                      <tr>
-                        <th>KODE DI</th>
-                        <th>NAMA</th>
-                        <th>LUAS (HA)</th>
-                        <th>KECAMATAN</th>
-                        <th>DESA/KEL</th>
-                        <th>SUMBER AIR</th>
-                        <th>TAHUN DATA</th>
-                        <th>MAP</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {diRows.map((row) => (
-                        <tr key={row.id}>
-                          <td>{row.k_di || '-'}</td>
-                          <td>{row.n_di || '-'}</td>
-                          <td>{row.luas_ha ?? '-'}</td>
-                          <td>{row.kecamatan || '-'}</td>
-                          <td>{row.desa_kel || '-'}</td>
-                          <td>{row.sumber_air || '-'}</td>
-                          <td>{row.tahun_data || '-'}</td>
-                          <td>
-                            <button
-                              className="btn primary"
-                              onClick={() => {
-                                const di = getDiCodeFromRow(row as Record<string, any>);
-                                const target = di ? `/map?di=${encodeURIComponent(di)}` : '/sebaran-irigasi';
-                                window.location.href = target;
-                              }}
-                            >
-                              MAP
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+              {/* Header with title and export buttons */}
+              <div style={{
+                padding: '20px 24px',
+                borderBottom: '1px solid var(--stroke)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: 16,
+                background: 'linear-gradient(180deg, #ffffff, #f9fafb)'
+              }}>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700 }}>Daerah Irigasi</h3>
+                  <p style={{ margin: '4px 0 0', fontSize: '0.875rem', color: 'var(--muted)' }}>
+                    {filteredDiRows ? `${filteredDiRows.length} dari ${diRows?.length || 0} data` : 'Memuat...'}
+                  </p>
                 </div>
-              )}
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  <button onClick={exportDiToExcel} className="btn primary" style={{ fontSize: '0.875rem', padding: '8px 14px' }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="7 10 12 15 17 10" />
+                      <line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
+                    Excel
+                  </button>
+                  <button onClick={exportDiToCSV} className="btn" style={{ fontSize: '0.875rem', padding: '8px 14px' }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                      <polyline points="14 2 14 8 20 8" />
+                    </svg>
+                    CSV
+                  </button>
+                </div>
+              </div>
+
+              {/* Search and Filter Bar */}
+              <div style={{
+                padding: '16px 24px',
+                borderBottom: '1px solid var(--stroke)',
+                display: 'flex',
+                gap: 12,
+                flexWrap: 'wrap',
+                background: '#f9fafb'
+              }}>
+                {/* Search Input */}
+                <div style={{ flex: '1 1 250px', position: 'relative' }}>
+                  <svg
+                    width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2"
+                    style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }}
+                  >
+                    <circle cx="11" cy="11" r="8" />
+                    <path d="m21 21-4.35-4.35" />
+                  </svg>
+                  <input
+                    type="text"
+                    placeholder="Cari kode, nama, kecamatan..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '10px 12px 10px 40px',
+                      border: '1px solid var(--stroke)',
+                      borderRadius: 10,
+                      fontSize: '0.875rem',
+                      background: 'white'
+                    }}
+                  />
+                </div>
+
+                {/* Kecamatan Filter */}
+                <select
+                  value={filterKecamatan}
+                  onChange={(e) => setFilterKecamatan(e.target.value)}
+                  style={{
+                    padding: '10px 32px 10px 12px',
+                    border: '1px solid var(--stroke)',
+                    borderRadius: 10,
+                    fontSize: '0.875rem',
+                    background: 'white',
+                    minWidth: 160,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <option value="">Semua Kecamatan</option>
+                  {filterOptions.kecamatan.map(k => (
+                    <option key={k} value={k}>{k}</option>
+                  ))}
+                </select>
+
+                {/* Sumber Air Filter */}
+                <select
+                  value={filterSumberAir}
+                  onChange={(e) => setFilterSumberAir(e.target.value)}
+                  style={{
+                    padding: '10px 32px 10px 12px',
+                    border: '1px solid var(--stroke)',
+                    borderRadius: 10,
+                    fontSize: '0.875rem',
+                    background: 'white',
+                    minWidth: 160,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <option value="">Semua Sumber Air</option>
+                  {filterOptions.sumberAir.map(s => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+
+                {/* Clear Filters */}
+                {(searchQuery || filterKecamatan || filterSumberAir) && (
+                  <button
+                    onClick={() => {
+                      setSearchQuery('');
+                      setFilterKecamatan('');
+                      setFilterSumberAir('');
+                    }}
+                    className="btn"
+                    style={{ padding: '10px 14px', fontSize: '0.875rem' }}
+                  >
+                    ✕ Reset
+                  </button>
+                )}
+              </div>
+
+              {/* Table Content */}
+              <div style={{ padding: '0 24px 24px' }}>
+                {diLoading && (
+                  <div style={{ padding: 32, textAlign: 'center', color: 'var(--muted)' }}>
+                    <div style={{
+                      width: 32, height: 32,
+                      border: '3px solid #e5e7eb',
+                      borderTopColor: 'var(--brand)',
+                      borderRadius: '50%',
+                      animation: 'spin 1s linear infinite',
+                      margin: '0 auto 12px'
+                    }} />
+                    <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+                    Memuat data...
+                  </div>
+                )}
+                {diError && <div className="error-message" style={{ marginTop: 16 }}>{diError}</div>}
+                {!diLoading && !diError && filteredDiRows && filteredDiRows.length === 0 && (
+                  <div style={{ padding: 32, textAlign: 'center', color: 'var(--muted)' }}>
+                    {diRows && diRows.length > 0 ? 'Tidak ada data yang cocok dengan filter.' : 'Data daerah irigasi belum tersedia.'}
+                  </div>
+                )}
+                {!diLoading && !diError && filteredDiRows && filteredDiRows.length > 0 && (
+                  <div style={{ overflowX: 'auto', marginTop: 16 }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+                      <thead>
+                        <tr style={{ background: '#f9fafb', borderBottom: '2px solid var(--stroke)' }}>
+                          <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--muted)', letterSpacing: '0.05em' }}>KODE DI</th>
+                          <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--muted)', letterSpacing: '0.05em' }}>NAMA</th>
+                          <th style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--muted)', letterSpacing: '0.05em' }}>LUAS (HA)</th>
+                          <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--muted)', letterSpacing: '0.05em' }}>KECAMATAN</th>
+                          <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--muted)', letterSpacing: '0.05em' }}>DESA/KEL</th>
+                          <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--muted)', letterSpacing: '0.05em' }}>SUMBER AIR</th>
+                          <th style={{ padding: '12px 16px', textAlign: 'center', fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--muted)', letterSpacing: '0.05em' }}>TAHUN</th>
+                          <th style={{ padding: '12px 16px', textAlign: 'center', fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--muted)', letterSpacing: '0.05em' }}>AKSI</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredDiRows.map((row) => (
+                          <tr key={row.id} style={{ borderBottom: '1px solid rgba(0,0,0,0.06)', transition: 'background 0.15s' }}
+                            onMouseEnter={(e) => (e.currentTarget.style.background = '#f9fafb')}
+                            onMouseLeave={(e) => (e.currentTarget.style.background = 'white')}
+                          >
+                            <td style={{ padding: '14px 16px', fontFamily: 'monospace', fontWeight: 600, color: 'var(--brand)' }}>{row.k_di || '-'}</td>
+                            <td style={{ padding: '14px 16px', fontWeight: 500 }}>{row.n_di || '-'}</td>
+                            <td style={{ padding: '14px 16px', textAlign: 'right' }}>{row.luas_ha?.toLocaleString('id-ID', { maximumFractionDigits: 2 }) ?? '-'}</td>
+                            <td style={{ padding: '14px 16px' }}>{row.kecamatan || '-'}</td>
+                            <td style={{ padding: '14px 16px' }}>{row.desa_kel || '-'}</td>
+                            <td style={{ padding: '14px 16px' }}>{row.sumber_air || '-'}</td>
+                            <td style={{ padding: '14px 16px', textAlign: 'center' }}>{row.tahun_data || '-'}</td>
+                            <td style={{ padding: '14px 16px', textAlign: 'center' }}>
+                              <Link
+                                href={getDiCodeFromRow(row as Record<string, any>) ? `/map?di=${encodeURIComponent(getDiCodeFromRow(row as Record<string, any>))}` : '/sebaran-irigasi'}
+                                className="btn primary"
+                                style={{ padding: '6px 12px', fontSize: '0.75rem' }}
+                              >
+                                🗺️ MAP
+                              </Link>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -347,9 +590,8 @@ export default function DashboardPage() {
           )}
 
           {activePanel === 'reports' && (
-            <div className="card" style={{ padding: 18 }}>
-              <h3 style={{ marginTop: 0 }}>Laporan</h3>
-              <p>Fitur laporan akan ditambahkan.</p>
+            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+              <ReportsPanel />
             </div>
           )}
 
@@ -498,12 +740,12 @@ export default function DashboardPage() {
                                       className="modern-select"
                                       value={user.role || 'user'}
                                       onChange={(e) => {
-                                        if (isSelf || isOtherAdmin) return;
+                                        if (isSelf) return;  // Only block self-modification
                                         updateUserRole(user.id, e.target.value);
                                       }}
-                                      disabled={isSelf || isOtherAdmin || updatingUserId === user.id}
+                                      disabled={isSelf || updatingUserId === user.id}
                                       style={{
-                                        cursor: isSelf || isOtherAdmin ? 'not-allowed' : 'pointer',
+                                        cursor: isSelf ? 'not-allowed' : 'pointer',
                                       }}
                                     >
                                       <option value="user">User</option>

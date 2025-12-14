@@ -1,0 +1,271 @@
+{
+  "summary": {
+    "total_features": 60,
+    "total_saluran": 6,
+    "total_length_meters": 2889.391522495253,
+    "features_with_images": 60,
+    "image_coverage_pct": 100
+  },
+  "saluran": [
+    {
+      "no_saluran": "001",
+      "nama": "Saluran Primer",
+      "ruas_count": 9,
+      "ruas_numbers": [
+        1,
+        2,
+        9,
+        8,
+        7,
+        6,
+        5,
+        4,
+        3
+      ],
+      "total_length": 0.0038894505089509994,
+      "has_images": 9,
+      "image_urls": [
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/001/Ruas - 1.webp",
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/001/Ruas - 2.webp",
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/001/Ruas - 9.webp",
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/001/Ruas - 8.webp",
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/001/Ruas - 7.webp",
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/001/Ruas - 6.webp",
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/001/Ruas - 5.webp",
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/001/Ruas - 4.webp",
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/001/Ruas - 3.webp"
+      ]
+    },
+    {
+      "no_saluran": "002",
+      "nama": "Saluran Primer",
+      "ruas_count": 20,
+      "ruas_numbers": [
+        1,
+        20,
+        19,
+        17,
+        16,
+        15,
+        14,
+        13,
+        12,
+        11,
+        10,
+        9,
+        8,
+        7,
+        7,
+        6,
+        5,
+        4,
+        3,
+        2
+      ],
+      "total_length": 0.008759172082831,
+      "has_images": 20,
+      "image_urls": [
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/002/Ruas - 1.webp",
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/002/Ruas - 20.webp",
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/002/Ruas - 19.webp",
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/002/Ruas - 17.webp",
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/002/Ruas - 16.webp",
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/002/Ruas - 15.webp",
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/002/Ruas - 14.webp",
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/002/Ruas - 13.webp",
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/002/Ruas - 12.webp",
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/002/Ruas - 11.webp",
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/002/Ruas - 10.webp",
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/002/Ruas - 9.webp",
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/002/Ruas - 8.webp",
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/002/Ruas - 7.webp",
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/002/Ruas - 7.webp",
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/002/Ruas - 6.webp",
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/002/Ruas - 5.webp",
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/002/Ruas - 4.webp",
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/002/Ruas - 3.webp",
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/002/Ruas - 2.webp"
+      ]
+    },
+    {
+      "no_saluran": "003",
+      "nama": "Saluran Sekunder 1",
+      "ruas_count": 5,
+      "ruas_numbers": [
+        1,
+        5,
+        4,
+        3,
+        2
+      ],
+      "total_length": 0.0020478869068129998,
+      "has_images": 5,
+      "image_urls": [
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/003/Ruas - 1.webp",
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/003/Ruas - 5.webp",
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/003/Ruas - 4.webp",
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/003/Ruas - 3.webp",
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/003/Ruas - 2.webp"
+      ]
+    },
+    {
+      "no_saluran": "004",
+      "nama": "Saluran Skunder 1",
+      "ruas_count": 9,
+      "ruas_numbers": [
+        1,
+        9,
+        8,
+        7,
+        6,
+        5,
+        4,
+        3,
+        2
+      ],
+      "total_length": 0.004040697882390001,
+      "has_images": 9,
+      "image_urls": [
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/004/Ruas - 1.webp",
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/004/Ruas - 9.webp",
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/004/Ruas - 8.webp",
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/004/Ruas - 7.webp",
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/004/Ruas - 6.webp",
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/004/Ruas - 5.webp",
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/004/Ruas - 4.webp",
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/004/Ruas - 3.webp",
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/004/Ruas - 2.webp"
+      ]
+    },
+    {
+      "no_saluran": "005",
+      "nama": "Saluran Sekunder 1",
+      "ruas_count": 7,
+      "ruas_numbers": [
+        1,
+        7,
+        6,
+        5,
+        4,
+        3,
+        2
+      ],
+      "total_length": 0.00285214022102,
+      "has_images": 7,
+      "image_urls": [
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/005/Ruas - 1.webp",
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/005/Ruas - 7.webp",
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/005/Ruas - 6.webp",
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/005/Ruas - 5.webp",
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/005/Ruas - 4.webp",
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/005/Ruas - 3.webp",
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/005/Ruas - 2.webp"
+      ]
+    },
+    {
+      "no_saluran": "006",
+      "nama": "Saluran Sekunder 2",
+      "ruas_count": 10,
+      "ruas_numbers": [
+        1,
+        19,
+        9,
+        8,
+        7,
+        6,
+        5,
+        4,
+        3,
+        2
+      ],
+      "total_length": 0.004441206654709,
+      "has_images": 10,
+      "image_urls": [
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/006/Ruas - 1.webp",
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/006/Ruas - 10.webp",
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/006/Ruas - 9.webp",
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/006/Ruas - 8.webp",
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/006/Ruas - 7.webp",
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/006/Ruas - 6.webp",
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/006/Ruas - 5.webp",
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/006/Ruas - 4.webp",
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/006/Ruas - 3.webp",
+        "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/006/Ruas - 2.webp"
+      ]
+    }
+  ],
+  "geometry_types": {
+    "LineString": 60
+  },
+  "image_stats": {
+    "total": 60,
+    "has_image": 60,
+    "no_image": 0,
+    "unique_urls": 59,
+    "url_patterns": {
+      "002/*.webp": 20,
+      "001/*.webp": 9,
+      "003/*.webp": 5,
+      "005/*.webp": 7,
+      "006/*.webp": 10,
+      "004/*.webp": 9
+    }
+  },
+  "ruas_stats": {
+    "total": 60,
+    "unique": 19,
+    "min": 1,
+    "max": 20,
+    "duplicates": [
+      {
+        "ruas": "1",
+        "count": 6
+      },
+      {
+        "ruas": "2",
+        "count": 6
+      },
+      {
+        "ruas": "3",
+        "count": 6
+      },
+      {
+        "ruas": "4",
+        "count": 6
+      },
+      {
+        "ruas": "5",
+        "count": 6
+      },
+      {
+        "ruas": "6",
+        "count": 5
+      },
+      {
+        "ruas": "7",
+        "count": 6
+      },
+      {
+        "ruas": "8",
+        "count": 4
+      },
+      {
+        "ruas": "9",
+        "count": 4
+      },
+      {
+        "ruas": "19",
+        "count": 2
+      }
+    ],
+    "gaps": [
+      18
+    ]
+  },
+  "length_stats": {
+    "total_meters": 2889.391522495253,
+    "avg_meters": 48.15652537492088,
+    "min_meters": 15.522839066111999,
+    "max_meters": 50.177524839741
+  }
+}

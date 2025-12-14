@@ -21,6 +21,23 @@ export default function BackgroundManager({
 }: BackgroundManagerProps) {
     const pathname = usePathname();
     const [currentBg, setCurrentBg] = useState<BackgroundType>(defaultBackground);
+    const [theme, setTheme] = useState<'light' | 'dark'>('light');
+
+    useEffect(() => {
+        // Load theme preference
+        const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null;
+        if (savedTheme) {
+            setTheme(savedTheme);
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        }
+    }, []);
+
+    const toggleTheme = () => {
+        const newTheme = theme === 'light' ? 'dark' : 'light';
+        setTheme(newTheme);
+        localStorage.setItem('theme', newTheme);
+        document.documentElement.setAttribute('data-theme', newTheme);
+    };
 
     // Load saved preference from localStorage
     useEffect(() => {
@@ -88,6 +105,31 @@ export default function BackgroundManager({
                     boxShadow: '0 5px 15px rgba(0,0,0,0.1)',
                     backdropFilter: 'blur(10px)',
                 }}>
+                    {/* Dark Mode Toggle */}
+                    <button
+                        onClick={toggleTheme}
+                        title={`Switch to ${theme === 'light' ? 'Dark' : 'Light'} Mode`}
+                        style={{
+                            width: 22,
+                            height: 22,
+                            borderRadius: 6,
+                            border: '1px solid var(--stroke)',
+                            background: theme === 'dark' ? '#333' : '#fff',
+                            color: theme === 'dark' ? '#fff' : 'var(--text)',
+                            fontSize: 12,
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                        }}
+                    >
+                        {theme === 'light' ? '🌙' : '☀️'}
+                    </button>
+
+                    {/* Separator */}
+                    <div style={{ width: 1, background: 'var(--stroke)', margin: '0 2px' }} />
+
                     <BackgroundButton
                         active={currentBg === 'gradient'}
                         onClick={() => handleBackgroundChange('gradient')}

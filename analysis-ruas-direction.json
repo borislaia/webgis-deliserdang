@@ -1,0 +1,82 @@
+{
+  "analyzed_at": "2025-12-14T10:45:50.055Z",
+  "summary": {
+    "total_saluran": 6,
+    "follows_pattern": 1,
+    "opposite_pattern": 5
+  },
+  "details": [
+    {
+      "no_saluran": "001",
+      "nama": "Saluran Primer",
+      "ruas_count": 9,
+      "ruas1_start_lat": 3.62636099986031,
+      "ruas1_end_lat": 3.6263168386512348,
+      "ruasLast_start_lat": 3.6261649998149323,
+      "ruasLast_end_lat": 3.626161999676583,
+      "overall_delta_lat": -0.00019900018372709383,
+      "overall_delta_meters": -22.089020393707415,
+      "follows_upstream_downstream": true
+    },
+    {
+      "no_saluran": "002",
+      "nama": "Saluran Primer",
+      "ruas_count": 20,
+      "ruas1_start_lat": 3.626161999676583,
+      "ruas1_end_lat": 3.62610858714163,
+      "ruasLast_start_lat": 3.6288677449505258,
+      "ruasLast_end_lat": 3.6289296443876538,
+      "overall_delta_lat": 0.002767644711070716,
+      "overall_delta_meters": 307.20856292884946,
+      "follows_upstream_downstream": false
+    },
+    {
+      "no_saluran": "003",
+      "nama": "Saluran Sekunder 1",
+      "ruas_count": 5,
+      "ruas1_start_lat": 3.6308320000968024,
+      "ruas1_end_lat": 3.63082405188851,
+      "ruasLast_start_lat": 3.6317064855659282,
+      "ruasLast_end_lat": 3.6317120002086654,
+      "overall_delta_lat": 0.0008800001118629552,
+      "overall_delta_meters": 97.68001241678803,
+      "follows_upstream_downstream": false
+    },
+    {
+      "no_saluran": "004",
+      "nama": "Saluran Skunder 1",
+      "ruas_count": 9,
+      "ruas1_start_lat": 3.6261679999532817,
+      "ruas1_end_lat": 3.6264686702929225,
+      "ruasLast_start_lat": 3.628842792361013,
+      "ruasLast_end_lat": 3.6292669998721863,
+      "overall_delta_lat": 0.0030989999189046102,
+      "overall_delta_meters": 343.98899099841174,
+      "follows_upstream_downstream": false
+    },
+    {
+      "no_saluran": "005",
+      "nama": "Saluran Sekunder 1",
+      "ruas_count": 7,
+      "ruas1_start_lat": 3.6292669998721863,
+      "ruas1_end_lat": 3.6295696873912107,
+      "ruasLast_start_lat": 3.6307157411386015,
+      "ruasLast_end_lat": 3.6308300000045506,
+      "overall_delta_lat": 0.0015630001323643228,
+      "overall_delta_meters": 173.49301469243983,
+      "follows_upstream_downstream": false
+    },
+    {
+      "no_saluran": "006",
+      "nama": "Saluran Sekunder 2",
+      "ruas_count": 10,
+      "ruas1_start_lat": 3.628934999850401,
+      "ruas1_end_lat": 3.6293571353235734,
+      "ruasLast_start_lat": 3.6317903230649904,
+      "ruasLast_end_lat": 3.6321400001609163,
+      "overall_delta_lat": 0.0032050003105155156,
+      "overall_delta_meters": 355.75503446722223,
+      "follows_upstream_downstream": false
+    }
+  ]
+}

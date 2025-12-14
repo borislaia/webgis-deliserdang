@@ -1,5 +1,7 @@
 /* Tailwind removed to avoid conflicts with legacy CSS */
 /* Keep existing base.css styles */
+
+/* Light mode (default) */
 :root {
   --bg: #f6f7fb;
   --card: rgba(255, 255, 255, 0.72);
@@ -10,6 +12,26 @@
   --brand-2: #5e5ce6;
   --radius: 16px;
   --app-header-height: 72px;
+  --hover-bg: rgba(0, 0, 0, 0.03);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 10px 30px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.1);
+}
+
+/* Dark mode - use :root with attribute for specificity */
+:root[data-theme="dark"],
+html[data-theme="dark"] {
+  --bg: #0f1419;
+  --card: rgba(30, 35, 42, 0.85);
+  --stroke: rgba(255, 255, 255, 0.08);
+  --text: #e8eaed;
+  --muted: #9ca3af;
+  --brand: #3b9eff;
+  --brand-2: #8b7cff;
+  --hover-bg: rgba(255, 255, 255, 0.05);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 10px 30px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.7);
 }
 
 .sr-only {
@@ -22,6 +44,34 @@
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+/* Apply smooth transitions only to specific properties on specific elements */
+.card,
+.btn,
+.menu-item,
+.app-header,
+.blur {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+body {
+  margin: 0;
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, Helvetica, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+html {
+  transition: background-color 0.3s ease;
+}
+
+/* Dark mode body override - must be specific! */
+html[data-theme="dark"] body,
+:root[data-theme="dark"] body {
+  background: linear-gradient(180deg, #0f1419, #1a1f26) !important;
+  color: #e8eaed !important;
 }
 
 .blur {

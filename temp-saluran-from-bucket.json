@@ -1,0 +1,2357 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.54846799959859,
+            3.626161999676583
+          ],
+          [
+            98.54848000015193,
+            3.6261520001147574
+          ],
+          [
+            98.54852300033627,
+            3.626138000368485
+          ],
+          [
+            98.54864799980538,
+            3.626118000345514
+          ],
+          [
+            98.54875000001255,
+            3.626111000022661
+          ],
+          [
+            98.5488480000352,
+            3.626111000022661
+          ],
+          [
+            98.54891233213846,
+            3.62610858714163
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Primer",
+        "no_ruas": 1,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/002/Ruas - 1.webp",
+        "no_saluran": "002",
+        "Shape_Leng": 0.000452049287568,
+        "nn": 307
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.55654450152758,
+            3.6288677449505258
+          ],
+          [
+            98.55670308977585,
+            3.6289296443876538
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Primer",
+        "no_ruas": 20,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/002/Ruas - 20.webp",
+        "no_saluran": "002",
+        "Shape_Leng": 0.000170240338362,
+        "nn": 309
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.55612311698832,
+            3.6287040917205218
+          ],
+          [
+            98.55635299989109,
+            3.6287929995972945
+          ],
+          [
+            98.55654450152758,
+            3.6288677449505258
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Primer",
+        "no_ruas": 19,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/002/Ruas - 19.webp",
+        "no_saluran": "002",
+        "Shape_Leng": 0.000452048442189,
+        "nn": 310
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.55570088348907,
+            3.6285431085776736
+          ],
+          [
+            98.55583500028507,
+            3.6285900001284404
+          ],
+          [
+            98.5558849998929,
+            3.6286120002436633
+          ],
+          [
+            98.55612311698832,
+            3.6287040917205218
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Primer",
+        "no_ruas": 17,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/002/Ruas - 17.webp",
+        "no_saluran": "002",
+        "Shape_Leng": 0.000452048778861,
+        "nn": 311
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.5552752244721,
+            3.628390916307808
+          ],
+          [
+            98.55570088348907,
+            3.6285431085776736
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Primer",
+        "no_ruas": 16,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/002/Ruas - 16.webp",
+        "no_saluran": "002",
+        "Shape_Leng": 0.000452048982632,
+        "nn": 312
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.55484824525035,
+            3.6282429535494884
+          ],
+          [
+            98.55491099994276,
+            3.628263000337256
+          ],
+          [
+            98.5549859998041,
+            3.628290999829801
+          ],
+          [
+            98.55504399978082,
+            3.628313999991178
+          ],
+          [
+            98.55518600003393,
+            3.6283590002677215
+          ],
+          [
+            98.5552752244721,
+            3.628390916307808
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Primer",
+        "no_ruas": 15,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/002/Ruas - 15.webp",
+        "no_saluran": "002",
+        "Shape_Leng": 0.000452049721791,
+        "nn": 313
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.55442387496191,
+            3.628087846576932
+          ],
+          [
+            98.55455299962131,
+            3.628134999830422
+          ],
+          [
+            98.55464700035884,
+            3.628164000268441
+          ],
+          [
+            98.55473499992036,
+            3.6282000001299366
+          ],
+          [
+            98.55484824525035,
+            3.6282429535494884
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Primer",
+        "no_ruas": 14,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/002/Ruas - 14.webp",
+        "no_saluran": "002",
+        "Shape_Leng": 0.00045204869597,
+        "nn": 314
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.554004295362,
+            3.6279213955560294
+          ],
+          [
+            98.55405099985381,
+            3.6279409998772962
+          ],
+          [
+            98.55409600013036,
+            3.6279539995774712
+          ],
+          [
+            98.55416799985335,
+            3.627991000384384
+          ],
+          [
+            98.55425899955327,
+            3.628027000245936
+          ],
+          [
+            98.55442387496191,
+            3.628087846576932
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Primer",
+        "no_ruas": 13,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/002/Ruas - 13.webp",
+        "no_saluran": "002",
+        "Shape_Leng": 0.000452049649641,
+        "nn": 315
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.55357954555961,
+            3.6277680179796903
+          ],
+          [
+            98.55363200031661,
+            3.6277890000623643
+          ],
+          [
+            98.55371200040855,
+            3.627818999647161
+          ],
+          [
+            98.55379499973952,
+            3.6278439999007333
+          ],
+          [
+            98.55386999960086,
+            3.627875999577782
+          ],
+          [
+            98.55396999971578,
+            3.627907000107996
+          ],
+          [
+            98.554004295362,
+            3.6279213955560294
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Primer",
+        "no_ruas": 12,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/002/Ruas - 12.webp",
+        "no_saluran": "002",
+        "Shape_Leng": 0.000452048876721,
+        "nn": 316
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.55316050375433,
+            3.6275986018940216
+          ],
+          [
+            98.55328399955698,
+            3.6276499999476073
+          ],
+          [
+            98.55338799985634,
+            3.627688999947452
+          ],
+          [
+            98.5535320002017,
+            3.6277490000163652
+          ],
+          [
+            98.55357954555961,
+            3.6277680179796903
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Primer",
+        "no_ruas": 11,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/002/Ruas - 11.webp",
+        "no_saluran": "002",
+        "Shape_Leng": 0.000452048986661,
+        "nn": 317
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.55273805891437,
+            3.627438105284398
+          ],
+          [
+            98.55285000022741,
+            3.62747700006355
+          ],
+          [
+            98.55293299955832,
+            3.6275069996483467
+          ],
+          [
+            98.55301499974252,
+            3.6275420003630643
+          ],
+          [
+            98.5530990000189,
+            3.627574000040113
+          ],
+          [
+            98.55316050375433,
+            3.6275986018940216
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Primer",
+        "no_ruas": 10,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/002/Ruas - 10.webp",
+        "no_saluran": "002",
+        "Shape_Leng": 0.000452048758261,
+        "nn": 318
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.55231693517845,
+            3.627273791052687
+          ],
+          [
+            98.55273200018172,
+            3.6274359999714534
+          ],
+          [
+            98.55273805891437,
+            3.627438105284398
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Primer",
+        "no_ruas": 9,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/002/Ruas - 9.webp",
+        "no_saluran": "002",
+        "Shape_Leng": 0.000452049246362,
+        "nn": 319
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.55189291832357,
+            3.627117269446501
+          ],
+          [
+            98.55194499986192,
+            3.627134999580619
+          ],
+          [
+            98.5520290001383,
+            3.627168000203085
+          ],
+          [
+            98.55220900034516,
+            3.627231999557182
+          ],
+          [
+            98.55231693517845,
+            3.627273791052687
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Primer",
+        "no_ruas": 8,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/002/Ruas - 8.webp",
+        "no_saluran": "002",
+        "Shape_Leng": 0.000452049339252,
+        "nn": 320
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.55146964970464,
+            3.626958872753846
+          ],
+          [
+            98.55156999965584,
+            3.6269970004112793
+          ],
+          [
+            98.55165199983998,
+            3.6270300001344253
+          ],
+          [
+            98.55174999986264,
+            3.6270639999037257
+          ],
+          [
+            98.5518510000237,
+            3.6271029999035704
+          ],
+          [
+            98.55189291832357,
+            3.627117269446501
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Primer",
+        "no_ruas": 7,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/002/Ruas - 7.webp",
+        "no_saluran": "002",
+        "Shape_Leng": 0.000452048760111,
+        "nn": 321
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.55104383870224,
+            3.626807943132121
+          ],
+          [
+            98.55130199988747,
+            3.6268980003424645
+          ],
+          [
+            98.55138400007161,
+            3.6269330001578624
+          ],
+          [
+            98.55146964970464,
+            3.626958872753846
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Primer",
+        "no_ruas": 7,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/002/Ruas - 7.webp",
+        "no_saluran": "002",
+        "Shape_Leng": 0.000452048885537,
+        "nn": 322
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.55062086506092,
+            3.6266486956807853
+          ],
+          [
+            98.55072900044308,
+            3.6266929998820956
+          ],
+          [
+            98.5508929999121,
+            3.6267550000432607
+          ],
+          [
+            98.55104383870224,
+            3.626807943132121
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Primer",
+        "no_ruas": 6,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/002/Ruas - 6.webp",
+        "no_saluran": "002",
+        "Shape_Leng": 0.000452048845758,
+        "nn": 323
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.55019818909523,
+            3.626488734167822
+          ],
+          [
+            98.55028099956854,
+            3.626519999998038
+          ],
+          [
+            98.55045600044411,
+            3.6265889995827365
+          ],
+          [
+            98.55055200037458,
+            3.626621000159105
+          ],
+          [
+            98.55062086506092,
+            3.6266486956807853
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Primer",
+        "no_ruas": 5,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/002/Ruas - 5.webp",
+        "no_saluran": "002",
+        "Shape_Leng": 0.000452049264212,
+        "nn": 324
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.54977600685731,
+            3.626327584650369
+          ],
+          [
+            98.54982400007759,
+            3.6263460000678833
+          ],
+          [
+            98.54991399973136,
+            3.626385000067728
+          ],
+          [
+            98.55008699961542,
+            3.6264500003672993
+          ],
+          [
+            98.55019818909523,
+            3.626488734167822
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Primer",
+        "no_ruas": 4,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/002/Ruas - 4.webp",
+        "no_saluran": "002",
+        "Shape_Leng": 0.00045204895916,
+        "nn": 325
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.54935330211327,
+            3.62616811956309
+          ],
+          [
+            98.54947300007893,
+            3.6262120001837275
+          ],
+          [
+            98.54955500026313,
+            3.6262490000913203
+          ],
+          [
+            98.54965100019359,
+            3.626280999768369
+          ],
+          [
+            98.54977600685731,
+            3.626327584650369
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Primer",
+        "no_ruas": 3,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/002/Ruas - 3.webp",
+        "no_saluran": "002",
+        "Shape_Leng": 0.000452049101236,
+        "nn": 326
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.54891233213846,
+            3.62610858714163
+          ],
+          [
+            98.5490009998963,
+            3.6261079998843115
+          ],
+          [
+            98.54905799982691,
+            3.6261039996998647
+          ],
+          [
+            98.54911599980363,
+            3.6261019996076698
+          ],
+          [
+            98.54916300017237,
+            3.6261029996537673
+          ],
+          [
+            98.54920000008002,
+            3.62611400016101
+          ],
+          [
+            98.54928200026416,
+            3.626141999653612
+          ],
+          [
+            98.54935330211327,
+            3.62616811956309
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Primer",
+        "no_ruas": 2,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/002/Ruas - 2.webp",
+        "no_saluran": "002",
+        "Shape_Leng": 0.000452049162546,
+        "nn": 327
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.54459600000547,
+            3.62636099986031
+          ],
+          [
+            98.54466599963621,
+            3.626380999883281
+          ],
+          [
+            98.54475900032764,
+            3.62636099986031
+          ],
+          [
+            98.54486900000438,
+            3.6263219998604654
+          ],
+          [
+            98.5449690001193,
+            3.6263179996760186
+          ],
+          [
+            98.54503632246838,
+            3.6263168386512348
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Primer",
+        "no_ruas": 1,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/001/Ruas - 1.webp",
+        "no_saluran": "001",
+        "Shape_Leng": 0.000452048848009,
+        "nn": 328
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.54503632246838,
+            3.6263168386512348
+          ],
+          [
+            98.54508500007273,
+            3.626315999583767
+          ],
+          [
+            98.54527900002591,
+            3.626302999883592
+          ],
+          [
+            98.54538400037137,
+            3.6262969996068932
+          ],
+          [
+            98.54548767241823,
+            3.626292802470914
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Primer",
+        "no_ruas": 2,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/001/Ruas - 2.webp",
+        "no_saluran": "001",
+        "Shape_Leng": 0.000452048901204,
+        "nn": 329
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.54819563182303,
+            3.6261649998149323
+          ],
+          [
+            98.54833999999107,
+            3.6261570003453585
+          ],
+          [
+            98.54844100015208,
+            3.6261570003453585
+          ],
+          [
+            98.54846799959859,
+            3.626161999676583
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Primer",
+        "no_ruas": 9,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/001/Ruas - 9.webp",
+        "no_saluran": "001",
+        "Shape_Leng": 0.000273058382222,
+        "nn": 330
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.54774397340572,
+            3.6261779149788254
+          ],
+          [
+            98.5478839996469,
+            3.626171000091631
+          ],
+          [
+            98.54799600031521,
+            3.6261720001377284
+          ],
+          [
+            98.54811000017645,
+            3.6261649998149323
+          ],
+          [
+            98.54819563182303,
+            3.6261649998149323
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Primer",
+        "no_ruas": 8,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/001/Ruas - 8.webp",
+        "no_saluran": "001",
+        "Shape_Leng": 0.000452048246294,
+        "nn": 331
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.5472925667986,
+            3.626199766705895
+          ],
+          [
+            98.54733400036389,
+            3.6261989995842328
+          ],
+          [
+            98.54763299976321,
+            3.626179999607359
+          ],
+          [
+            98.54774397340572,
+            3.6261779149788254
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Primer",
+        "no_ruas": 7,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/001/Ruas - 7.webp",
+        "no_saluran": "001",
+        "Shape_Leng": 0.000452049333495,
+        "nn": 332
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.5468411431043,
+            3.6262219269004277
+          ],
+          [
+            98.54695499997331,
+            3.6262179995611064
+          ],
+          [
+            98.54712599976511,
+            3.626205999907029
+          ],
+          [
+            98.54722599988003,
+            3.6262009996764277
+          ],
+          [
+            98.5472925667986,
+            3.626199766705895
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Primer",
+        "no_ruas": 6,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/001/Ruas - 6.webp",
+        "no_saluran": "001",
+        "Shape_Leng": 0.000452049535459,
+        "nn": 333
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.546389487385,
+            3.6262388602352758
+          ],
+          [
+            98.54647600036719,
+            3.626237000437243
+          ],
+          [
+            98.54657999976723,
+            3.6262300001144467
+          ],
+          [
+            98.54667100036642,
+            3.6262269999760974
+          ],
+          [
+            98.54677199962816,
+            3.6262249998839025
+          ],
+          [
+            98.5468411431043,
+            3.6262219269004277
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Primer",
+        "no_ruas": 5,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/001/Ruas - 5.webp",
+        "no_saluran": "001",
+        "Shape_Leng": 0.000452048537953,
+        "nn": 334
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.54593860418328,
+            3.62626751263565
+          ],
+          [
+            98.54614699958444,
+            3.626260999745398
+          ],
+          [
+            98.54627400004512,
+            3.6262469999991254
+          ],
+          [
+            98.546389487385,
+            3.6262388602352758
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Primer",
+        "no_ruas": 4,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/001/Ruas - 4.webp",
+        "no_saluran": "001",
+        "Shape_Leng": 0.000452048950984,
+        "nn": 335
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.54548767241823,
+            3.626292802470914
+          ],
+          [
+            98.5455770002784,
+            3.626288000091165
+          ],
+          [
+            98.54567100011661,
+            3.6262760004371444
+          ],
+          [
+            98.54576299986263,
+            3.6262760004371444
+          ],
+          [
+            98.54585899979304,
+            3.6262700001604458
+          ],
+          [
+            98.54593860418328,
+            3.62626751263565
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Primer",
+        "no_ruas": 3,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/001/Ruas - 3.webp",
+        "no_saluran": "001",
+        "Shape_Leng": 0.000452049773331,
+        "nn": 336
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.55200199979254,
+            3.6308320000968024
+          ],
+          [
+            98.5521009998613,
+            3.630831000050648
+          ],
+          [
+            98.55220500016071,
+            3.6308269998662013
+          ],
+          [
+            98.55231406903914,
+            3.63082405188851
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Sekunder 1",
+        "no_ruas": 1,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/003/Ruas - 1.webp",
+        "no_saluran": "003",
+        "Shape_Leng": 0.000312203218272,
+        "nn": 337
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.5528009583976,
+            3.6317064855659282
+          ],
+          [
+            98.55280099976636,
+            3.6317080000242186
+          ],
+          [
+            98.55317900011084,
+            3.6317120002086654
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Sekunder 1",
+        "no_ruas": 5,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/003/Ruas - 5.webp",
+        "no_saluran": "003",
+        "Shape_Leng": 0.000379536533041,
+        "nn": 338
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.55278599997399,
+            3.6312550573750286
+          ],
+          [
+            98.55278599997399,
+            3.6312709996569765
+          ],
+          [
+            98.55279600043514,
+            3.631363000302258
+          ],
+          [
+            98.55279500038904,
+            3.6314610003249754
+          ],
+          [
+            98.55279699958191,
+            3.6315600003937334
+          ],
+          [
+            98.5528009583976,
+            3.6317064855659282
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Sekunder 1",
+        "no_ruas": 4,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/003/Ruas - 4.webp",
+        "no_saluran": "003",
+        "Shape_Leng": 0.000452048889848,
+        "nn": 339
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.55276237838109,
+            3.6308084135774834
+          ],
+          [
+            98.55277000013547,
+            3.6308120000737745
+          ],
+          [
+            98.55278700002009,
+            3.6310680001881224
+          ],
+          [
+            98.55278599997399,
+            3.6312550573750286
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Sekunder 1",
+        "no_ruas": 3,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/003/Ruas - 3.webp",
+        "no_saluran": "003",
+        "Shape_Leng": 0.000452049359022,
+        "nn": 340
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.55231406903914,
+            3.63082405188851
+          ],
+          [
+            98.55235299979114,
+            3.6308229996817545
+          ],
+          [
+            98.55273600036617,
+            3.63079600023525
+          ],
+          [
+            98.55276237838109,
+            3.6308084135774834
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Sekunder 1",
+        "no_ruas": 2,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/003/Ruas - 2.webp",
+        "no_saluran": "003",
+        "Shape_Leng": 0.00045204890663,
+        "nn": 341
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.55064400012054,
+            3.6292669998721863
+          ],
+          [
+            98.55072400021248,
+            3.6292659998260888
+          ],
+          [
+            98.55078999965883,
+            3.629263999733837
+          ],
+          [
+            98.55079199975103,
+            3.629358999618205
+          ],
+          [
+            98.5508031675322,
+            3.6295696873912107
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Sekunder 1",
+        "no_ruas": 1,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/005/Ruas - 1.webp",
+        "no_saluran": "005",
+        "Shape_Leng": 0.000452049178798,
+        "nn": 342
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.55193780618487,
+            3.6307157411386015
+          ],
+          [
+            98.55194699995417,
+            3.6307849997280073
+          ],
+          [
+            98.55196199974654,
+            3.630808999935425
+          ],
+          [
+            98.55199799960803,
+            3.6308300000045506
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Sekunder 1",
+        "no_ruas": 7,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/005/Ruas - 7.webp",
+        "no_saluran": "005",
+        "Shape_Leng": 0.000139845396992,
+        "nn": 343
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.55179687792366,
+            3.630382730278825
+          ],
+          [
+            98.55189999958537,
+            3.6303779998448817
+          ],
+          [
+            98.55191999960834,
+            3.630391999591154
+          ],
+          [
+            98.55192399979279,
+            3.630460000029018
+          ],
+          [
+            98.55192699993114,
+            3.630569999705756
+          ],
+          [
+            98.55193200016174,
+            3.63067199991292
+          ],
+          [
+            98.55193780618487,
+            3.6307157411386015
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Sekunder 1",
+        "no_ruas": 6,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/005/Ruas - 6.webp",
+        "no_saluran": "005",
+        "Shape_Leng": 0.000452049233067,
+        "nn": 344
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.5513450558297,
+            3.6303957407708936
+          ],
+          [
+            98.55147099958702,
+            3.630391999591154
+          ],
+          [
+            98.55157399984029,
+            3.630388000306027
+          ],
+          [
+            98.55169500002427,
+            3.6303870002599297
+          ],
+          [
+            98.55179687792366,
+            3.630382730278825
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Sekunder 1",
+        "no_ruas": 5,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/005/Ruas - 5.webp",
+        "no_saluran": "005",
+        "Shape_Leng": 0.000452048886596,
+        "nn": 345
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.55089315729344,
+            3.630407395984605
+          ],
+          [
+            98.55126900016427,
+            3.630397999867853
+          ],
+          [
+            98.5513450558297,
+            3.6303957407708936
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Sekunder 1",
+        "no_ruas": 4,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/005/Ruas - 4.webp",
+        "no_saluran": "005",
+        "Shape_Leng": 0.000452049513743,
+        "nn": 346
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.5508163956602,
+            3.6300215112837577
+          ],
+          [
+            98.55082100018905,
+            3.630134000283931
+          ],
+          [
+            98.55082899965868,
+            3.6302450000067665
+          ],
+          [
+            98.55082899965868,
+            3.6304090003750957
+          ],
+          [
+            98.55089315729344,
+            3.630407395984605
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Sekunder 1",
+        "no_ruas": 3,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/005/Ruas - 3.webp",
+        "no_saluran": "005",
+        "Shape_Leng": 0.00045204886044,
+        "nn": 347
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.5508031675322,
+            3.6295696873912107
+          ],
+          [
+            98.55080700044277,
+            3.629791999801
+          ],
+          [
+            98.5508163956602,
+            3.6300215112837577
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Sekunder 1",
+        "no_ruas": 2,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/005/Ruas - 2.webp",
+        "no_saluran": "005",
+        "Shape_Leng": 0.000452049151384,
+        "nn": 348
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.5567009997514,
+            3.628934999850401
+          ],
+          [
+            98.5566730002588,
+            3.629006000426614
+          ],
+          [
+            98.55654699984422,
+            3.6293399996413314
+          ],
+          [
+            98.55653938438513,
+            3.6293571353235734
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Sekunder 2",
+        "no_ruas": 1,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/006/Ruas - 1.webp",
+        "no_saluran": "006",
+        "Shape_Leng": 0.000452049375532,
+        "nn": 349
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.55761712203264,
+            3.6317903230649904
+          ],
+          [
+            98.55754600004792,
+            3.6319810000231882
+          ],
+          [
+            98.5574880000712,
+            3.6321400001609163
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Sekunder 2",
+        "no_ruas": 19,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/006/Ruas - 10.webp",
+        "no_saluran": "006",
+        "Shape_Leng": 0.000372765314327,
+        "nn": 350
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.5577688331652,
+            3.6313646514575453
+          ],
+          [
+            98.55771099956303,
+            3.6315210003938887
+          ],
+          [
+            98.55767799983988,
+            3.631614000186005
+          ],
+          [
+            98.55764500011674,
+            3.6316989996091706
+          ],
+          [
+            98.55761712203264,
+            3.6317903230649904
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Sekunder 2",
+        "no_ruas": 9,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/006/Ruas - 9.webp",
+        "no_saluran": "006",
+        "Shape_Leng": 0.000452049070079,
+        "nn": 351
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.55739760741369,
+            3.6311743252349515
+          ],
+          [
+            98.55746599995598,
+            3.6311979998878314
+          ],
+          [
+            98.55755599960975,
+            3.631226000279753
+          ],
+          [
+            98.55764400007058,
+            3.631256999910647
+          ],
+          [
+            98.5577359998166,
+            3.6312969999566462
+          ],
+          [
+            98.55776400020852,
+            3.63130500032554
+          ],
+          [
+            98.55777599986254,
+            3.631345000371539
+          ],
+          [
+            98.5577688331652,
+            3.6313646514575453
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Sekunder 2",
+        "no_ruas": 8,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/006/Ruas - 8.webp",
+        "no_saluran": "006",
+        "Shape_Leng": 0.000452048392872,
+        "nn": 352
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.55697307614662,
+            3.631019771345393
+          ],
+          [
+            98.5570620002112,
+            3.631057999726977
+          ],
+          [
+            98.55715199986497,
+            3.631087000164996
+          ],
+          [
+            98.55723199995691,
+            3.6311139996114434
+          ],
+          [
+            98.55733600025627,
+            3.631152999611288
+          ],
+          [
+            98.55739760741369,
+            3.6311743252349515
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Sekunder 2",
+        "no_ruas": 7,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/006/Ruas - 7.webp",
+        "no_saluran": "006",
+        "Shape_Leng": 0.000452049123412,
+        "nn": 353
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.55655112953104,
+            3.630858459050671
+          ],
+          [
+            98.55665600037418,
+            3.6308980004424143
+          ],
+          [
+            98.55673999975124,
+            3.6309360003961615
+          ],
+          [
+            98.55686500011973,
+            3.63098299986558
+          ],
+          [
+            98.5569549997735,
+            3.631012000303599
+          ],
+          [
+            98.55697307614662,
+            3.631019771345393
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Sekunder 2",
+        "no_ruas": 6,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/006/Ruas - 6.webp",
+        "no_saluran": "006",
+        "Shape_Leng": 0.000452049386955,
+        "nn": 354
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.5561769216277,
+            3.630620482249526
+          ],
+          [
+            98.5562040002145,
+            3.6306489997515996
+          ],
+          [
+            98.5562329997532,
+            3.630691999935891
+          ],
+          [
+            98.5563099997068,
+            3.6307499999126094
+          ],
+          [
+            98.55640200035208,
+            3.630791000004706
+          ],
+          [
+            98.55653400014404,
+            3.6308520001197735
+          ],
+          [
+            98.55655112953104,
+            3.630858459050671
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Sekunder 2",
+        "no_ruas": 5,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/006/Ruas - 5.webp",
+        "no_saluran": "006",
+        "Shape_Leng": 0.000452049571938,
+        "nn": 355
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.55621490089703,
+            3.6302001148434897
+          ],
+          [
+            98.55620800039895,
+            3.630221999845446
+          ],
+          [
+            98.55616400016851,
+            3.630333999614436
+          ],
+          [
+            98.55611799984587,
+            3.630469000444066
+          ],
+          [
+            98.55612700026091,
+            3.6305250003285323
+          ],
+          [
+            98.55614100000719,
+            3.6305580000517352
+          ],
+          [
+            98.55615199961517,
+            3.630591999820979
+          ],
+          [
+            98.5561769216277,
+            3.630620482249526
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Sekunder 2",
+        "no_ruas": 4,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/006/Ruas - 4.webp",
+        "no_saluran": "006",
+        "Shape_Leng": 0.000452048991848,
+        "nn": 356
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.55636958878557,
+            3.6297757355617932
+          ],
+          [
+            98.55635299989109,
+            3.6298119998239713
+          ],
+          [
+            98.55632300030629,
+            3.62990399956999
+          ],
+          [
+            98.55628400030645,
+            3.629999000353621
+          ],
+          [
+            98.55624300021435,
+            3.6301110001226107
+          ],
+          [
+            98.55621490089703,
+            3.6302001148434897
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Sekunder 2",
+        "no_ruas": 3,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/006/Ruas - 3.webp",
+        "no_saluran": "006",
+        "Shape_Leng": 0.000452048520846,
+        "nn": 357
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.55653938438513,
+            3.6293571353235734
+          ],
+          [
+            98.5565229996368,
+            3.6293940003329226
+          ],
+          [
+            98.5564960001903,
+            3.6294690001942627
+          ],
+          [
+            98.55640899977556,
+            3.6296759998475636
+          ],
+          [
+            98.55639600007538,
+            3.6297179999857576
+          ],
+          [
+            98.55636958878557,
+            3.6297757355617932
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Sekunder 2",
+        "no_ruas": 2,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/006/Ruas - 2.webp",
+        "no_saluran": "006",
+        "Shape_Leng": 0.0004520489069,
+        "nn": 358
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.54849499994435,
+            3.6261679999532817
+          ],
+          [
+            98.5485400002209,
+            3.626223999837748
+          ],
+          [
+            98.54860599966719,
+            3.626280999768369
+          ],
+          [
+            98.54866699978226,
+            3.6263379996989897
+          ],
+          [
+            98.54873800035847,
+            3.626397999767903
+          ],
+          [
+            98.54883068268992,
+            3.6264686702929225
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Skunder 1",
+        "no_ruas": 1,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/004/Ruas - 1.webp",
+        "no_saluran": "004",
+        "Shape_Leng": 0.000452049433079,
+        "nn": 359
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.55063390343196,
+            3.628842792361013
+          ],
+          [
+            98.55064300007444,
+            3.6292669998721863
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Skunder 1",
+        "no_ruas": 9,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/004/Ruas - 9.webp",
+        "no_saluran": "004",
+        "Shape_Leng": 0.000424305033485,
+        "nn": 360
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.55062600018982,
+            3.6283908362681245
+          ],
+          [
+            98.55062600018982,
+            3.628453000105935
+          ],
+          [
+            98.55062900032817,
+            3.628542999759702
+          ],
+          [
+            98.55063000037427,
+            3.62864199982846
+          ],
+          [
+            98.55063390343196,
+            3.628842792361013
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Skunder 1",
+        "no_ruas": 8,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/004/Ruas - 8.webp",
+        "no_saluran": "004",
+        "Shape_Leng": 0.000452049384667,
+        "nn": 361
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.55049013061512,
+            3.6280009900536925
+          ],
+          [
+            98.55057399959048,
+            3.6280739997153546
+          ],
+          [
+            98.55061299959033,
+            3.62809499978448
+          ],
+          [
+            98.55062200000538,
+            3.628159000037897
+          ],
+          [
+            98.55062600018982,
+            3.6282499997377613
+          ],
+          [
+            98.55062600018982,
+            3.6283908362681245
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Skunder 1",
+        "no_ruas": 7,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/004/Ruas - 7.webp",
+        "no_saluran": "004",
+        "Shape_Leng": 0.000452048733917,
+        "nn": 362
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.55015735717637,
+            3.6276957052926377
+          ],
+          [
+            98.55018599968417,
+            3.6277209996245006
+          ],
+          [
+            98.55026399968392,
+            3.627800999716385
+          ],
+          [
+            98.55035300019085,
+            3.627875999577782
+          ],
+          [
+            98.5504249999139,
+            3.627947000153995
+          ],
+          [
+            98.55049013061512,
+            3.6280009900536925
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Skunder 1",
+        "no_ruas": 6,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/004/Ruas - 6.webp",
+        "no_saluran": "004",
+        "Shape_Leng": 0.000452049503848,
+        "nn": 363
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.5498272727105,
+            3.627386967134896
+          ],
+          [
+            98.54983399963942,
+            3.6273939998332594
+          ],
+          [
+            98.55001399984627,
+            3.6275669997173168
+          ],
+          [
+            98.55010899973064,
+            3.6276530000859566
+          ],
+          [
+            98.55015735717637,
+            3.6276957052926377
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Skunder 1",
+        "no_ruas": 5,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/004/Ruas - 5.webp",
+        "no_saluran": "004",
+        "Shape_Leng": 0.000452049311861,
+        "nn": 364
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.54949871529351,
+            3.627077022086951
+          ],
+          [
+            98.54961899961722,
+            3.6271799998571623
+          ],
+          [
+            98.54969500042398,
+            3.6272569998107542
+          ],
+          [
+            98.54976800019313,
+            3.627325000248618
+          ],
+          [
+            98.5498272727105,
+            3.627386967134896
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Skunder 1",
+        "no_ruas": 4,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/004/Ruas - 4.webp",
+        "no_saluran": "004",
+        "Shape_Leng": 0.000452049145855,
+        "nn": 365
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.54916450653678,
+            3.6267730764163844
+          ],
+          [
+            98.54918700037985,
+            3.626792999997008
+          ],
+          [
+            98.54926500037953,
+            3.6268560002042705
+          ],
+          [
+            98.54933199987198,
+            3.6269219996506195
+          ],
+          [
+            98.54940599968717,
+            3.626990000088483
+          ],
+          [
+            98.54948000040173,
+            3.6270609997653764
+          ],
+          [
+            98.54949871529351,
+            3.627077022086951
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Skunder 1",
+        "no_ruas": 3,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/004/Ruas - 3.webp",
+        "no_saluran": "004",
+        "Shape_Leng": 0.000452048783017,
+        "nn": 366
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            98.54883068268992,
+            3.6264686702929225
+          ],
+          [
+            98.5488890001273,
+            3.6265159998135914
+          ],
+          [
+            98.54896199989645,
+            3.626581000113106
+          ],
+          [
+            98.54901699973482,
+            3.6266369999975723
+          ],
+          [
+            98.54911699984973,
+            3.626730999835843
+          ],
+          [
+            98.54916450653678,
+            3.6267730764163844
+          ]
+        ]
+      },
+      "properties": {
+        "id_di": "2877",
+        "k_di": "12120008",
+        "n_di": "Paya Bakung I",
+        "nama": "Saluran Skunder 1",
+        "no_ruas": 2,
+        "img_urls": "https://yyagythhwzdncantoszf.supabase.co/storage/v1/object/public/images/12120008/004/Ruas - 2.webp",
+        "no_saluran": "004",
+        "Shape_Leng": 0.000452048552661,
+        "nn": 367
+      }
+    }
+  ]
+}

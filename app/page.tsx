@@ -1,5 +1,4 @@
-import Image from 'next/image'
-import DashboardButton from '@/components/DashboardButton'
+import HomeHeader from '@/components/HomeHeader'
 import { createServerSupabase } from '@/lib/supabase/server'
 import { cookies } from 'next/headers'
 
@@ -28,17 +27,7 @@ export default async function HomePage() {
 
   return (
     <main>
-      <header className="app-header blur">
-        <div className="brand">
-          <Image src="/assets/icons/logo-deliserdang.png" alt="Logo" width={24} height={24} className="brand-icon" />
-          <span className="brand-text">
-            WebGIS Deli Serdang {tenantUptd ? `UPTD ${tenantUptd}` : ''}
-          </span>
-        </div>
-        <nav style={{ display: 'flex', alignItems: 'center' }}>
-          <DashboardButton />
-        </nav>
-      </header>
+      <HomeHeader tenantUptd={tenantUptd} />
       <section className="menu-grid" style={{ margin: '40px auto', padding: '0 16px' }}>
         <a className="menu-item" href={firstDILink}><span className="label">Daerah Irigasi</span></a>
         <a className="menu-item" href="/login"><span className="label">Pemanfaatan SDA</span></a>
