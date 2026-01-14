@@ -2,23 +2,26 @@
 // Mapping Domain -> UPTD Value
 // Format: 'domain.com': 'UPTD_VALUE'
 export const DOMAIN_MAPPING: Record<string, string> = {
-    // Production mappings (Custom Domains)
-    'webgis-deli-serdang-uptdi.com': 'I',
-    'webgis-deli-serdang-uptdv.com': 'V',
-    'webgis-deli-serdang-uptdvi.com': 'VI',
+    // Production mappings (Custom Domains) - NEW PURCHASED DOMAINS
+    'webgis-di-uptd1-deli-serdang.com': 'I',
+    'webgis-di-uptd5-deli-serdang.com': 'V',
+    'webgis-di-uptd6-deli-serdang.com': 'VI',
 
-    // Vercel Free Domains (.vercel.app)
-    'webgis-deli-serdang-uptdi.vercel.app': 'I',
-    'webgis-deli-serdang-uptdv.vercel.app': 'V',
-    'webgis-deli-serdang-uptdvi.vercel.app': 'VI',
+    // With www prefix
+    'www.webgis-di-uptd1-deli-serdang.com': 'I',
+    'www.webgis-di-uptd5-deli-serdang.com': 'V',
+    'www.webgis-di-uptd6-deli-serdang.com': 'VI',
 
-    // Localhost / Prevention
+    // Vercel Free Domains (.vercel.app) - Optional fallback
+    'webgis-di-uptd1-deli-serdang.vercel.app': 'I',
+    'webgis-di-uptd5-deli-serdang.vercel.app': 'V',
+    'webgis-di-uptd6-deli-serdang.vercel.app': 'VI',
+
+    // Localhost / Development
     'localhost:3000': 'I',
     'localhost:3001': 'I',
     'localhost:3002': 'I',
     '127.0.0.1:3000': 'I',
-
-
 };
 
 export const DEFAULT_UPTD = 'I'; // Fallback if no domain matches
